@@ -34,3 +34,16 @@ async def test_repository_can_create_user():
         str_query
         == "db.users.insert_one({'_id': 10, 'username': 'test', 'password': 'secret'})"
     )
+
+
+@pytest.mark.asyncio
+async def test_repository_can_update_user():
+    repo = Repository()
+    str_query = await repo.update(
+        entity=User(_id=10, username="test", password="secret")
+    )
+
+    assert (
+        str_query
+        == "db.users.update_one({'_id': 10}, {'username': 'test', 'password': 'secret'})"
+    )

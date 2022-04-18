@@ -9,6 +9,13 @@ from winter.query.nodes import (
 )
 from winter.drivers import MongoDbDriver
 import pytest
+from pydantic import Field, BaseModel
+
+
+class User(BaseModel):
+    id: int = Field(..., alias="_id")
+    name: str
+    age: int
 
 
 @pytest.mark.asyncio
@@ -29,7 +36,7 @@ async def test_driver_panics_on_update_with_no_id():
     driver = MongoDbDriver()
 
     query_repr = await driver.get_query_repr(
-        query, "tests", _id=1, name="tests", age=10
+        query, "tests", entity=User(_id=1, name="tests", age=10)
     )
 
     assert query_repr == "db.tests.update_one({'_id': 1}, {'name': 'tests', 'age': 10})"

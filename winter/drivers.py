@@ -142,12 +142,12 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.insert_one({entity})"
 
     @query.register
-    async def _(self, node: Update, table_name: str, **kwargs):
-        _id = kwargs.pop("_id", None) or kwargs.pop("id", None)
+    async def _(self, node: Update, table_name: str, *, entity: BaseModel):
+        _id = getattr(entity, 'id', None)
         if _id is None:
-            raise ExecutionError("Must supply id to update")
+            raise ExecutionError("Entity must have id field")
 
-        return f"db.{table_name}.update_one({{'_id': {_id}}}, {kwargs})"
+        return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity.dict(exclude={'id'})})"
 
     @singledispatchmethod
     async def visit(self, node: OpNode, table_name: str, **kwargs):
