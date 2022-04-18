@@ -9,7 +9,7 @@ class CrudRepository(Generic[T, TypeId]):
     async def find(self) -> List[T]:
         ...
 
-    async def find_by_id(self, *, id: TypeId) -> T:
+    async def get_by_id(self, *, id: TypeId) -> T:
         ...
 
     async def update(self, *, entity: T) -> None:

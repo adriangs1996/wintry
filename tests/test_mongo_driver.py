@@ -59,7 +59,7 @@ async def test_driver_translate_nested_find_query():
 
     assert (
         query_repr
-        == "db.tests.find({'$and': [{'_id': {'$eq': 1}}, {'$or': [{'age': {'$lt': 27}}, {'$and': [{'username': {'$eq': 'username@test'}}]}]}]})"
+        == "db.tests.find({'$and': [{'_id': {'$eq': 1}}, {'$or': [{'age': {'$lt': 27}}, {'$and': [{'username': {'$eq': 'username@test'}}]}]}]}).to_list()"
     )
 
 
@@ -79,5 +79,5 @@ async def test_driver_flattens_nested_continuos_and_queries():
 
     assert (
         query_repr
-        == "db.tests.find({'$and': [{'username': {'$eq': 'myUserName'}}, {'lastName': {'$eq': 'last'}}, {'age': {'$lt': 30}}]})"
+        == "db.tests.find({'$and': [{'username': {'$eq': 'myUserName'}}, {'lastName': {'$eq': 'last'}}, {'age': {'$lt': 30}}]}).to_list()"
     )

@@ -117,17 +117,23 @@ class MongoDbDriver(QueryDriver):
 
     @query.register
     async def _(self, node: Find, table_name: str, **kwargs):
-        filters = await self.query(node.filters, table_name, **kwargs) or ""
-        return f"db.{table_name}.find({filters})"
+        if node.filters is not None:
+            filters = await self.query(node.filters, table_name, **kwargs) or ""
+        else:
+            filters = {}
+        return f"db.{table_name}.find({filters}).to_list()"
 
     @query.register
     async def _(self, node: Delete, table_name: str, **kwargs):
-        filters = self.query(node.filters) or ""
+        if node.filters is not None:
+            filters = await self.query(node.filters, table_name, **kwargs) or ""
+        else:
+            filters = {}
         return f"db.{table_name}.delete_many({filters})"
 
     @query.register
     async def _(self, node: Get, table_name: str, **kwargs):
-        filters = self.query(node.filters) or ""
+        filters = await self.query(node.filters, table_name, **kwargs) or ""
         return f"db.{table_name}.find_one({filters})"
 
     @query.register
@@ -143,7 +149,7 @@ class MongoDbDriver(QueryDriver):
 
     @query.register
     async def _(self, node: Update, table_name: str, *, entity: BaseModel):
-        _id = getattr(entity, 'id', None)
+        _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 

@@ -47,3 +47,35 @@ async def test_repository_can_update_user():
         str_query
         == "db.users.update_one({'_id': 10}, {'username': 'test', 'password': 'secret'})"
     )
+
+
+@pytest.mark.asyncio
+async def test_repository_can_find_simple():
+    repo = Repository()
+    str_query = await repo.find()
+
+    assert str_query == "db.users.find({}).to_list()"
+
+
+@pytest.mark.asyncio
+async def test_repository_can_find_by_id():
+    repo = Repository()
+    str_query = await repo.get_by_id(id=10)
+
+    assert str_query == "db.users.find_one({'$and': [{'_id': {'$eq': 10}}]})"
+
+
+@pytest.mark.asyncio
+async def test_repository_can_delete():
+    repo = Repository()
+    str_query = await repo.delete_by_id(id=10)
+
+    assert str_query == "db.users.delete_many({'$and': [{'_id': {'$eq': 10}}]})"
+
+
+@pytest.mark.asyncio
+async def test_repository_can_delete_all_users():
+    repo = Repository()
+    str_query = await repo.delete()
+
+    assert str_query == "db.users.delete_many({})"
