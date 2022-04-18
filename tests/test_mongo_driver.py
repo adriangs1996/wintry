@@ -54,3 +54,23 @@ async def test_driver_translate_nested_find_query():
         query_repr
         == "db.tests.find({'$and': [{'_id': {'$eq': 1}}, {'$or': [{'age': {'$lt': 27}}, {'$and': [{'username': {'$eq': 'username@test'}}]}]}]})"
     )
+
+
+@pytest.mark.asyncio
+async def test_driver_flattens_nested_continuos_and_queries():
+    query = Find(
+        AndNode(
+            EqualToNode("username"),
+            AndNode(EqualToNode("lastName"), AndNode(LowerThanNode("age"), None)),
+        )
+    )
+
+    driver = MongoDbDriver()
+    query_repr = await driver.get_query_repr(
+        query, "tests", username="myUserName", lastName="last", age=30
+    )
+
+    assert (
+        query_repr
+        == "db.tests.find({'$and': [{'username': {'$eq': 'myUserName'}}, {'lastName': {'$eq': 'last'}}, {'age': {'$lt': 30}}]})"
+    )

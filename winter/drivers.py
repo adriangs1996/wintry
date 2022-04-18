@@ -22,6 +22,7 @@ from winter.query.nodes import (
     Update,
 )
 import motor.motor_asyncio
+from pydantic import BaseModel
 
 
 def Eq(field, value):
@@ -135,6 +136,9 @@ class MongoDbDriver(QueryDriver):
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
 
+        if isinstance(entity, BaseModel):
+            entity = entity.dict(exclude_unset=True, by_alias=True)
+
         return f"db.{table_name}.insert_one({entity})"
 
     @query.register
@@ -212,7 +216,7 @@ class MongoDbDriver(QueryDriver):
             if isinstance(node.right, AndNode):
                 where["$and"].extend(right_condition["$and"])
             else:
-                where['$and'].append(right_condition)
+                where["$and"].append(right_condition)
 
         return where
 

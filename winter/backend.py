@@ -43,13 +43,16 @@ class Backend:
 
     @classmethod
     @classmethod
-    def run(cls, query: str, table_name: str):
+    def run(cls, query: str, table_name: str, dry_run: bool = False):
         parser = QueryParser()
         root_node = parser.parse(query)
         return partial(cls.driver.run, root_node, table_name)
 
     @classmethod
-    def run_async(cls, query: str, table_name: str):
+    def run_async(cls, query: str, table_name: str, dry_run: bool = False):
         parser = QueryParser()
         root_node = parser.parse(query)
-        return partial(cls.driver.run_async, root_node, table_name)
+        if dry_run:
+            return partial(cls.driver.get_query_repr, root_node, table_name)
+        else:
+            return partial(cls.driver.run_async, root_node, table_name)

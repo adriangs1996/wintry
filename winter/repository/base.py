@@ -13,7 +13,7 @@ T = TypeVar("T", bound=BaseModel)
 
 
 def is_processable(method: Callable):
-    return not getattr(method, "_raw_method", False)
+    return method.__name__ != "__init__" and not getattr(method, "_raw_method", False)
 
 
 def get_type_annotation_for_entity(entity, fn):
@@ -50,8 +50,8 @@ def map_result_to_entity(entity, return_annotation, result):
         return result
 
 
-def repository(entity: Type[T], table_name: Optional[str] = None):
-    target_name = table_name or f"{entity.__name__}s"
+def repository(entity: Type[T], table_name: Optional[str] = None, dry: bool = False):
+    target_name = table_name or f"{entity.__name__}s".lower()
 
     def _runtime_method_parsing(cls: Type):
         def _getattribute(self, __name: str):
@@ -67,20 +67,22 @@ def repository(entity: Type[T], table_name: Optional[str] = None):
                 result = await attr(*args, **kwargs)
                 return map_result_to_entity(entity, return_annotation, result)
 
-            if inspect.isfunction(attr) and is_processable(attr):
+            if inspect.isfunction(attr) and is_processable(attr) and not dry:
                 if inspect.iscoroutinefunction(attr):
                     return async_wrapper
                 else:
                     return wrapper
+            else:
+                return attr
 
         function_members = inspect.getmembers(cls, inspect.isfunction)
 
         for fname, fobject in function_members:
             if is_processable(fobject):
                 if inspect.iscoroutinefunction(fobject):
-                    new_method = Backend.run_async(fname, target_name)
+                    new_method = Backend.run_async(fname, target_name, dry_run=dry)
                 else:
-                    new_method = Backend.run(fname, target_name)
+                    new_method = Backend.run(fname, target_name, dry_run=dry)
 
                 setattr(new_method, "_raw_method", True)
                 setattr(cls, fname, new_method)
