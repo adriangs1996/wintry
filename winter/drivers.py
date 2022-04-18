@@ -24,6 +24,8 @@ from winter.query.nodes import (
 import motor.motor_asyncio
 from pydantic import BaseModel
 
+from winter.settings import WinterSettings
+
 
 def Eq(field, value):
     return {field: {"$eq": value}}
@@ -277,3 +279,7 @@ class MongoDbDriver(QueryDriver):
     @visit.register
     async def _(self, node: NotInNode, table_name: str, **kwargs):
         return create_expression(node, Nin, **kwargs)
+
+
+def factory(settings: WinterSettings):
+    return MongoDbDriver()

@@ -1,5 +1,4 @@
-from winter.backend import Backend
-from winter.drivers import MongoDbDriver
+import winter.backend
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
 from pydantic import BaseModel, Field
@@ -10,10 +9,6 @@ class User(BaseModel):
     id: int = Field(..., alias="_id")
     username: str
     password: str
-
-
-driver = MongoDbDriver()
-Backend.driver = driver
 
 
 @repository(User, dry=True)

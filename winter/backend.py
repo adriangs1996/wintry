@@ -1,7 +1,14 @@
 import abc
+from typing import Callable
 from winter.query.nodes import RootNode
 from winter.query.parsing import QueryParser
-from functools import partial, partialmethod
+from functools import partial
+import winter.settings
+import importlib
+
+
+class BackendException(Exception):
+    pass
 
 
 class QueryDriver(abc.ABC):
@@ -27,7 +34,7 @@ class QueryDriver(abc.ABC):
 
 
 class Backend:
-    driver: QueryDriver
+    driver: QueryDriver | None = None
 
     @classmethod
     def configure_for_driver(cls, driver: QueryDriver):
@@ -44,15 +51,47 @@ class Backend:
     @classmethod
     @classmethod
     def run(cls, query: str, table_name: str, dry_run: bool = False):
+        if cls.driver is None:
+            raise BackendException("Driver is not configured.")
+
         parser = QueryParser()
         root_node = parser.parse(query)
         return partial(cls.driver.run, root_node, table_name)
 
     @classmethod
     def run_async(cls, query: str, table_name: str, dry_run: bool = False):
+        if cls.driver is None:
+            raise BackendException("Driver is not configured.")
+
         parser = QueryParser()
         root_node = parser.parse(query)
         if dry_run:
             return partial(cls.driver.get_query_repr, root_node, table_name)
         else:
             return partial(cls.driver.run_async, root_node, table_name)
+
+
+# Bootstrapping process
+if Backend.driver is None:
+    backend_settings = winter.settings.WinterSettings()
+    try:
+        driver_module = importlib.import_module(backend_settings.backend)
+    except ModuleNotFoundError:
+        raise BackendException(
+            "Driver module was not found: provide a valid absolute path to driver."
+        )
+
+    try:
+        driver_factory: Callable[
+            [winter.settings.WinterSettings], QueryDriver
+        ] = getattr(driver_module, "factory")
+    except AttributeError:
+        raise BackendException(
+            "Driver module must provide a factory function (settings: WinterSettings) -> QueryDriver"
+        )
+    try:
+        driver = driver_factory(backend_settings)
+    except Exception as e:
+        raise BackendException("Error initializing instance of driver")
+
+    Backend.driver = driver
