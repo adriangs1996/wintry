@@ -1,5 +1,5 @@
 import abc
-from typing import Callable
+from typing import Any, Callable
 from winter.query.nodes import RootNode
 from winter.query.parsing import QueryParser
 from functools import partial
@@ -32,9 +32,18 @@ class QueryDriver(abc.ABC):
     def init_async(self, *args, **kwargs):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def get_connection(self) -> Any:
+        raise NotImplementedError
+
 
 class Backend:
     driver: QueryDriver | None = None
+
+    @classmethod
+    def get_connection(cls) -> Any:
+        assert cls.driver is not None
+        return cls.driver.get_connection()
 
     @classmethod
     def configure_for_driver(cls, *args, **kwargs):

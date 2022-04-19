@@ -11,6 +11,7 @@ class RepositoryError(Exception):
 
 
 T = TypeVar("T", bound=BaseModel)
+TDecorated = TypeVar("TDecorated")
 
 
 def is_processable(method: Callable):
@@ -53,9 +54,9 @@ def map_result_to_entity(entity, result):
 def repository(entity: Type[T], table_name: Optional[str] = None, dry: bool = False):
     target_name = table_name or f"{entity.__name__}s".lower()
 
-    def _runtime_method_parsing(cls: Type):
+    def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
         def _getattribute(self, __name: str):
-            attr = super(cls, self).__getattribute__(__name)
+            attr = super(cls, self).__getattribute__(__name)  # type: ignore
 
             def wrapper(*args, **kwargs):
                 result = attr(*args, **kwargs)
@@ -91,7 +92,10 @@ def repository(entity: Type[T], table_name: Optional[str] = None, dry: bool = Fa
     return _runtime_method_parsing
 
 
-def raw_method(method: Callable):
+FuncT = TypeVar("FuncT", bound=Callable[..., Any])
+
+
+def raw_method(method: FuncT) -> FuncT:
     # annotate this function as a raw method, so it is ignored
     # by the engine
     setattr(method, "_raw_method", True)

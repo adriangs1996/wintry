@@ -1,6 +1,5 @@
 from functools import singledispatchmethod
-from platform import node
-from typing import Optional
+from typing import Any, Optional
 from winter.backend import QueryDriver
 from winter.query.nodes import (
     AndNode,
@@ -85,6 +84,9 @@ class ExecutionError(Exception):
 
 
 class MongoDbDriver(QueryDriver):
+    def get_connection(self) -> Any:
+        return self.db
+
     def init(
         self,
         url: Optional[str] = None,
