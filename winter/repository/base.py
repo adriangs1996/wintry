@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Any, Callable, List, Optional, Type, TypeVar
 import inspect
 from pydantic import BaseModel
@@ -16,37 +17,36 @@ def is_processable(method: Callable):
     return method.__name__ != "__init__" and not getattr(method, "_raw_method", False)
 
 
+def marked(method):
+    return not getattr(method, "_raw_method", False)
+
+
 def get_type_annotation_for_entity(entity, fn):
     signature = inspect.signature(fn)
     return_annotation = signature.return_annotation
 
     if not (
-        return_annotation is None
+        return_annotation == inspect._empty
+        or return_annotation is None
         or return_annotation == entity
         or return_annotation == List[entity]
-        or return_annotation == int
+        or return_annotation == int,
     ):
         raise RepositoryError(f"Invalid Return type for function: {return_annotation}")
 
     return return_annotation
 
 
-def map_result_to_entity(entity, return_annotation, result):
-    if return_annotation == None:
-        return None
-    elif return_annotation == entity:
-        if isinstance(result, dict):
-            return entity(**result)
-        else:
-            return entity.from_orm(result)
-    elif return_annotation == List[entity]:
-        results = []
-        for r in result:
-            if isinstance(r, dict):
-                results.append(entity(**r))
-            else:
-                results.append(entity.from_orm(r))
-    else:
+def map_result_to_entity(entity, result):
+    if isinstance(result, list):
+        try:
+            return [entity(**instance) for instance in result]
+        except:
+            return result
+
+    try:
+        return entity(**result)
+    except:
         return result
 
 
@@ -58,17 +58,15 @@ def repository(entity: Type[T], table_name: Optional[str] = None, dry: bool = Fa
             attr = super(cls, self).__getattribute__(__name)
 
             def wrapper(*args, **kwargs):
-                return_annotation = get_type_annotation_for_entity(entity, attr)
                 result = attr(*args, **kwargs)
-                return map_result_to_entity(entity, return_annotation, result)
+                return map_result_to_entity(entity, result)
 
             async def async_wrapper(*args, **kwargs):
-                return_annotation = get_type_annotation_for_entity(entity, attr)
                 result = await attr(*args, **kwargs)
-                return map_result_to_entity(entity, return_annotation, result)
+                return map_result_to_entity(entity, result)
 
-            if inspect.isfunction(attr) and is_processable(attr) and not dry:
-                if inspect.iscoroutinefunction(attr):
+            if isinstance(attr, partial) and not dry:
+                if inspect.iscoroutinefunction(attr.func):
                     return async_wrapper
                 else:
                     return wrapper

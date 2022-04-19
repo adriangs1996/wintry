@@ -167,17 +167,22 @@ class MongoDbDriver(QueryDriver):
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
 
+        if isinstance(entity, BaseModel):
+            entity = entity.dict(exclude_unset=True, by_alias=True)
+
         collection = self.db[table_name]
         return await collection.insert_one(entity)
 
     @visit.register
-    async def _(self, node: Update, table_name: str, **kwargs):
-        _id = kwargs.pop("_id", None) or kwargs.pop("id", None)
+    async def _(self, node: Update, table_name: str, *, entity: BaseModel):
+        _id = getattr(entity, "id", None)
         if _id is None:
-            raise ExecutionError("Must supply id to update")
+            raise ExecutionError("Entity must have id field")
 
         collection = self.db[table_name]
-        return await collection.update_one({"_id": _id}, kwargs)
+        return await collection.update_one(
+            {"_id": _id}, {"$set": entity.dict(exclude_unset=True, exclude={"id"})}
+        )
 
     @visit.register
     async def _(self, node: Find, table_name: str, **kwargs):

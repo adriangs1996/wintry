@@ -37,16 +37,12 @@ class Backend:
     driver: QueryDriver | None = None
 
     @classmethod
-    def configure_for_driver(cls, driver: QueryDriver):
-        assert isinstance(driver, QueryDriver)
-        driver.init()
-        cls.driver = driver
+    def configure_for_driver(cls, *args, **kwargs):
+        driver.init(*args, **kwargs)
 
     @classmethod
-    async def configure_for_driver_async(cls, driver: QueryDriver):
-        assert isinstance(driver, QueryDriver)
+    async def configure_for_driver_async(cls, *args, **kwargs):
         await driver.init_async()
-        cls.driver = driver
 
     @classmethod
     @classmethod
