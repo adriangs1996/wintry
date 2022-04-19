@@ -1,4 +1,5 @@
 # Import backend, so it is configured with MongoDb
+from typing import List
 import winter.backend as bkd
 import pydantic as pdc
 from winter.repository.base import repository, raw_method
@@ -26,6 +27,13 @@ class UserRepository(CrudRepository[User, int]):
             return User(**row)
         else:
             return None
+
+    @raw_method
+    async def list(self):
+        return await self.find()
+
+    async def find_by_name_or_age_lowerThan(self, *, name: str, age: int) -> List[User]:
+        ...
 
 
 @pytest_asyncio.fixture()
@@ -98,3 +106,27 @@ async def test_repository_runs_raw_method(clean):
     user = await repo.get_user_by_name("test2")
     assert user is not None
     assert user.id == 2
+
+
+@pytest.mark.asyncio
+async def test_raw_method_can_call_compiled_method(clean):
+    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+
+    repo = UserRepository()
+    users = await repo.list()
+
+    assert len(users) == 2
+    assert all(isinstance(user, User) for user in users)
+
+
+@pytest.mark.asyncio
+async def test_custom_or_method(clean):
+    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"_id": 3, "name": "test3", "age": 30})
+
+    repo = UserRepository()
+    users = await repo.find_by_name_or_age_lowerThan(name="test3", age=15)
+
+    assert len(users) == 2
