@@ -1,5 +1,5 @@
 # Import backend, so it is configured with MongoDb
-from typing import List
+from typing import List, Optional
 import winter.backend as bkd
 import pydantic as pdc
 from winter.repository.base import repository, raw_method
@@ -8,10 +8,16 @@ import pytest
 import pytest_asyncio
 
 
+class Address(pdc.BaseModel):
+    latitude: float
+    longitude: float
+
+
 class User(pdc.BaseModel):
     id: int = pdc.Field(..., alias="_id")
     name: str
     age: int
+    address: Optional[Address] = None
 
 
 bkd.Backend.configure_for_driver(host="localhost", port=27017)
@@ -33,6 +39,11 @@ class UserRepository(CrudRepository[User, int]):
         return await self.find()
 
     async def find_by_name_or_age_lowerThan(self, *, name: str, age: int) -> List[User]:
+        ...
+
+    async def find_by_address__latitude(
+        self, *, address__latitude: float
+    ) -> List[User]:
         ...
 
 
@@ -130,3 +141,42 @@ async def test_custom_or_method(clean):
     users = await repo.find_by_name_or_age_lowerThan(name="test3", age=15)
 
     assert len(users) == 2
+
+
+@pytest.mark.asyncio
+async def test_nested_field_find_query(clean):
+    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
+    await db.users.insert_one(
+        {
+            "_id": 2,
+            "name": "test2",
+            "age": 20,
+            "address": {"latitude": 12.345, "longitude": 1.101},
+        }
+    )
+    await db.users.insert_one(
+        {
+            "_id": 3,
+            "name": "test3",
+            "age": 30,
+            "address": {"latitude": 12.345, "longitude": 1.101},
+        }
+    )
+
+    repo = UserRepository()
+
+    users = await repo.find_by_address__latitude(address__latitude=12.345)
+
+    assert len(users) == 2
+
+
+@pytest.mark.asyncio
+async def test_repository_insert_nested_field(clean):
+    user = User(
+        _id=1, name="test", age=10, address=Address(latitude=3.0, longitude=4.0)
+    )
+    repo = UserRepository()
+    await repo.create(entity=user)
+
+    rows = await db.users.find({}).to_list(None)
+    assert len(rows) == 1

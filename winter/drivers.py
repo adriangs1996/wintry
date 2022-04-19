@@ -68,7 +68,11 @@ def Notlt(field, value):
 
 def create_expression(node, op, **kwargs):
     field_name = node.field
-    value = kwargs.get(field_name, None)
+    if "." in field_name:
+        value_query = "__".join(field_name.split("."))
+    else:
+        value_query = field_name
+    value = kwargs.get(value_query, None)
     if value is None:
         raise ExecutionError(f"{field_name} was not suplied as argument")
 

@@ -172,3 +172,22 @@ def test_parser_handles_find_queries_with_logical_operators_and_filters():
             ),
         )
     )
+
+
+def test_parser_gets_dot_separaed_nested_fields():
+    query = "find_by_id_and_user__age_lowerThan_or_user__username"
+    parser = QueryParser()
+    ast = parser.parse(query)
+
+    assert ast == Find(
+        AndNode(
+            EqualToNode("id"),
+            OrNode(
+                LowerThanNode("user.age"),
+                AndNode(
+                    EqualToNode("user.username"),
+                    None,
+                ),
+            ),
+        )
+    )

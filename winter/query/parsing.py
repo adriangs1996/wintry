@@ -157,31 +157,36 @@ class QueryParser:
             return AndNode(left, None)
 
     def parse_criteria(self) -> FilterNode:
-        field_name_token = self.consume(TokenType.fieldName)
+        if self.lookahead() == TokenType.fieldName:
+            field_name_token = self.consume(TokenType.fieldName)
+            field = field_name_token.lexema
+        else:
+            field_name_token = self.consume(TokenType.nested_field)
+            field = ".".join(field_name_token.lexema.split("__"))
 
         if self.lookahead() == TokenType.operator:
             operator_token = self.consume(TokenType.operator)
 
             match operator_token.lexema.lower():
                 case "equalto":
-                    return EqualToNode(field_name_token.lexema)
+                    return EqualToNode(field)
                 case "notequalto":
-                    return NotEqualNode(field_name_token.lexema)
+                    return NotEqualNode(field)
                 case "lowerthan":
-                    return LowerThanNode(field_name_token.lexema)
+                    return LowerThanNode(field)
                 case "notlowerthan":
-                    return NotLowerThanNode(field_name_token.lexema)
+                    return NotLowerThanNode(field)
                 case "in":
-                    return InNode(field_name_token.lexema)
+                    return InNode(field)
                 case "notin":
-                    return NotInNode(field_name_token.lexema)
+                    return NotInNode(field)
                 case "greaterthan":
-                    return GreaterThanNode(field_name_token.lexema)
+                    return GreaterThanNode(field)
                 case "notgreaterthan":
-                    return NotGreaterThanNode(field_name_token.lexema)
+                    return NotGreaterThanNode(field)
             raise ParsingError()
         else:
-            return EqualToNode(field_name_token.lexema)
+            return EqualToNode(field)
 
     def parse(self, query: str) -> RootNode:
         self.tokens = QueryTokenizer.tokenize(query)
