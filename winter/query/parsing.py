@@ -43,10 +43,10 @@ class TokenType(Enum):
     logical_operator = 5
     modifier = 6
     end_token = 7
+    nested_field = 8
 
 
 TOKEN_MATCHER: Dict[TokenType, re.Pattern] = {
-    TokenType.separator: re.compile(r"_"),
     TokenType.by: re.compile(r"by", flags=re.RegexFlag.IGNORECASE),
     TokenType.query_target: re.compile(
         r"(find|get|delete|update|removeOne|create)", flags=re.RegexFlag.IGNORECASE
@@ -57,7 +57,9 @@ TOKEN_MATCHER: Dict[TokenType, re.Pattern] = {
     ),
     TokenType.logical_operator: re.compile(r"(and|or)", flags=re.RegexFlag.IGNORECASE),
     TokenType.modifier: re.compile(r"(skip|limit)", flags=re.RegexFlag.IGNORECASE),
+    TokenType.nested_field: re.compile(r"[a-zA-Z]+(__[a-zA-Z]+)+"),
     TokenType.fieldName: re.compile(r"[a-zA-Z]+"),
+    TokenType.separator: re.compile(r"_"),
     TokenType.end_token: re.compile(r"\$"),
 }
 

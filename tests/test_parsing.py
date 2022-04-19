@@ -92,6 +92,37 @@ def test_tokenizer_distinguish_between_operators_and_fieldNames():
     ]
 
 
+def test_tokenizer_recognizes_nested_fields_access():
+    query = "find_by_user__name_and_age"
+    tokens = QueryTokenizer.tokenize(query)
+    tokens_types = [token.token_type for token in tokens]
+
+    assert tokens_types == [
+        TokenType.query_target,
+        TokenType.by,
+        TokenType.nested_field,
+        TokenType.logical_operator,
+        TokenType.fieldName,
+        TokenType.end_token,
+    ]
+
+def test_tokenizer_recognizes_deeply_nested_fields():
+    query = "find_by_user__address__location__latitude_and_age_or_user__name"
+    tokens = QueryTokenizer.tokenize(query)
+    tokens_types = [token.token_type for token in tokens]
+
+    assert tokens_types == [
+        TokenType.query_target,
+        TokenType.by,
+        TokenType.nested_field,
+        TokenType.logical_operator,
+        TokenType.fieldName,
+        TokenType.logical_operator,
+        TokenType.nested_field,
+        TokenType.end_token,
+    ]
+
+
 def test_parser_handles_find_queries():
     query = "find_by_id"
     parser = QueryParser()
