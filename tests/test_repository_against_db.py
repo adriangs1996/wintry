@@ -1,3 +1,7 @@
+# configure backend
+import os
+os.environ['backend'] = "winter.drivers.mongo"
+
 # Import backend, so it is configured with MongoDb
 from typing import List, Optional
 import winter.backend as bkd

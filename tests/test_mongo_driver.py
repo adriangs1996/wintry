@@ -7,7 +7,7 @@ from winter.query.nodes import (
     OrNode,
     Update,
 )
-from winter.drivers import MongoDbDriver
+from winter.drivers.mongo import MongoDbDriver
 import pytest
 from pydantic import Field, BaseModel
 

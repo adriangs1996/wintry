@@ -1,3 +1,7 @@
+# Configure te mongo driver
+import os
+os.environ['backend'] = "winter.drivers.mongo"
+
 import winter.backend
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
