@@ -22,22 +22,6 @@ def marked(method):
     return not getattr(method, "_raw_method", False)
 
 
-def get_type_annotation_for_entity(entity, fn):
-    signature = inspect.signature(fn)
-    return_annotation = signature.return_annotation
-
-    if not (
-        return_annotation == inspect._empty
-        or return_annotation is None
-        or return_annotation == entity
-        or return_annotation == List[entity]
-        or return_annotation == int,
-    ):
-        raise RepositoryError(f"Invalid Return type for function: {return_annotation}")
-
-    return return_annotation
-
-
 def map_result_to_entity(entity, result):
     if isinstance(result, list):
         try:
