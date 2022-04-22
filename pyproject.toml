@@ -10,6 +10,10 @@ python = "^3.10"
 pydantic = "^1.9.0"
 motor = "^2.5.1"
 SQLAlchemy = {version = "^1.4.35", optional = true}
+asyncpg = {version = "^0.25.0", optional = true}
+
+[tool.poetry.extras]
+postgres = ["SQLAlchemy", "asyncpg"]
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

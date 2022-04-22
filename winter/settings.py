@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import pydantic as pdc
 
 
@@ -24,6 +24,8 @@ class ConnectionOptions(pdc.BaseSettings):
     host: str = "localhost"
     port: int = 27017
     database_name: str = "tests"
+    user: Optional[str] = None
+    password: Optional[str] = None
 
 
 class WinterSettings(pdc.BaseSettings):
