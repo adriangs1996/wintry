@@ -1,13 +1,19 @@
 from functools import singledispatchmethod
-from typing import Any, Optional
+from operator import and_, or_
+from turtle import st
+from typing import Any, Optional, Type
 from winter.backend import QueryDriver
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncResult
 import sqlalchemy.orm as orm
-from winter.query.nodes import Find, Get, OpNode, RootNode
+from winter.query.nodes import Delete, Find, Get, OpNode, RootNode, Update
 from pydantic import BaseModel
 from winter.settings import WinterSettings
-from sqlalchemy import select, update, delete
-from sqlalchemy.sql import Select
+from sqlalchemy import select, update, delete, or_, and_, Column
+from sqlalchemy.sql import Select, Update as UpdateStatement, Delete as DeleteStatement
+
+
+class ExecutionError(Exception):
+    pass
 
 
 class PostgresqlDriver(QueryDriver):
@@ -22,7 +28,7 @@ class PostgresqlDriver(QueryDriver):
             db_name = settings.connection_options.database_name
             url = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{db_name}"
             engine = create_async_engine(url=url, future=True)
-        
+
         session = orm.sessionmaker(bind=engine, expire_on_commit=False, autocommit=False, class_=AsyncSession)
 
         self._sessionmaker: orm.sessionmaker = session
@@ -35,7 +41,6 @@ class PostgresqlDriver(QueryDriver):
         else:
             return self._sessionmaker()
 
-    
     async def init_async(self, *args, **kwargs):
         pass
 
@@ -43,23 +48,15 @@ class PostgresqlDriver(QueryDriver):
         return super().run(query_expression, table_name, **kwargs)
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, schema: BaseModel, **kwargs):
+    async def visit(self, node: OpNode, schema: Type[BaseModel], **kwargs):
         raise NotImplementedError
 
     @visit.register
-    async def _(self, node: Find, schema: BaseModel, **kwargs):
-        if node.filters is not None:
-            modifiers: dict[str, Any] = await self.visit(node.filters, schema, **kwargs)
-        else:
-            modifiers = {}
+    async def _(self, node: Find, schema: Type[BaseModel], **kwargs):
         stmt: Select = select(schema)
 
-        if (where := modifiers.get("where", None)) is not None:
-            stmt = stmt.where(where)
-
-        if (joins := modifiers.get("joins", None)) is not None:
-            for jointable in joins:
-                stmt = stmt.join(jointable)
+        if node.filters is not None:
+            stmt = await self.visit(node.filters, stmt, **kwargs)
 
         if self._session is not None:
             result: AsyncResult = await self._session.execute(stmt)
@@ -72,27 +69,55 @@ class PostgresqlDriver(QueryDriver):
                     return result.scalars().all()
 
     @visit.register
-    async def _(self, node: Get, schema: BaseModel, **kwargs):
-        if node.filters is not None:
-            modifiers: dict[str, Any] = await self.visit(node.filters, schema, **kwargs)
-        else:
-            modifiers = {}
-
+    async def _(self, node: Get, schema: Type[BaseModel], **kwargs):
         stmt: Select = select(schema)
 
-        if (condition := modifiers.get("where", None)) is not None:
-            stmt = stmt.where(condition)
-
-        if (joins := modifiers.get("joins", None)) is not None:
-            for jointable in joins:
-                stmt = stmt.join(jointable)
+        if node.filters is not None:
+            stmt = await self.visit(node.filters, stmt, **kwargs)
 
         if self._session is not None:
             result: AsyncResult = await self._session.execute(stmt)
-            return result.scalars().all()
+            return result.scalar_one_or_none()
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
                 async with _session.begin():
                     result: AsyncResult = await _session.execute(stmt)
                     return result.scalar_one_or_none()
+
+    @visit.register
+    async def _(self, node: Update, schema: Type[BaseModel], *, entity: BaseModel):
+        _id = getattr(entity, "id", None)
+        if _id is None:
+            raise ExecutionError("Entity must have id field")
+
+        stmt: UpdateStatement = update(schema)
+        stmt = (
+            stmt.filter_by(id=_id)
+            .values(**entity.dict(exclude={"id"}, exclude_unset=True))
+            .execution_options(synchronize_session=False)
+        )
+
+        if self._session is not None:
+            await self._session.execute(stmt)
+        else:
+            async with self._sessionmaker() as session:
+                _session: AsyncSession = session
+                async with _session.begin():
+                    await _session.execute(stmt)
+
+    @visit.register
+    async def _(self, node: Delete, schema: Type[BaseModel], **kwargs):
+        stmt: DeleteStatement = delete(schema)
+        stmt = stmt.execution_options(synchronize_session=False)
+
+        if node.filters is not None:
+            stmt = await self.visit(node, stmt, **kwargs)
+
+        if self._session is not None:
+            await self._session.execute(stmt)
+        else:
+            async with self._sessionmaker() as session:
+                _session: AsyncSession = session
+                async with _session.begin():
+                    await _session.execute(stmt)
