@@ -106,7 +106,7 @@ def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -
         return {"where": op(getattr(schema, field_path), value), "joins": joins}
 
 
-class PostgresqlDriver(QueryDriver):
+class SqlAlchemyDriver(QueryDriver):
     def init(self, settings: WinterSettings):  # type: ignore
         if settings.connection_options.url is not None:
             engine = create_async_engine(url=settings.connection_options.url, future=True)
@@ -116,7 +116,8 @@ class PostgresqlDriver(QueryDriver):
             username = settings.connection_options.user
             password = settings.connection_options.password
             db_name = settings.connection_options.database_name
-            url = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{db_name}"
+            connector = settings.connection_options.connector
+            url = f"{connector}://{username}:{password}@{host}:{port}/{db_name}"
             engine = create_async_engine(url=url, future=True)
 
         session = orm.sessionmaker(bind=engine, expire_on_commit=False, autocommit=False, class_=AsyncSession)
@@ -136,6 +137,63 @@ class PostgresqlDriver(QueryDriver):
 
     def run(self, query_expression: RootNode, table_name: str, **kwargs):  # type: ignore
         return super().run(query_expression, table_name, **kwargs)
+
+    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
+        return await self.visit(query_expression, table_name, **kwargs)
+
+    async def get_query_repr(
+        self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any
+    ) -> str:
+        return await self.query(query_expression, table_name, **kwargs)
+
+    @singledispatchmethod
+    async def query(self, node: OpNode, schema: Type[Any], **kwargs: Any) -> str:
+        raise NotImplementedError
+
+    @query.register
+    async def _(self, node: Find, schema: Type[Any], **kwargs: Any) -> str:
+        stmt: Select = select(schema)
+
+        if node.filters is not None:
+            state = await self.visit(node.filters, schema, **kwargs)
+            stmt = _apply(stmt, state)
+
+        return str(stmt)
+
+    @query.register
+    async def _(self, node: Get, schema: Type[Any], **kwargs: Any) -> str:
+        stmt: Select = select(schema)
+
+        if node.filters is not None:
+            state = await self.visit(node.filters, schema, **kwargs)
+            stmt = _apply(stmt, state)
+
+        return str(stmt)
+
+    @query.register
+    async def _(self, node: Delete, schema: Type[Any], **kwargs: Any) -> str:
+        stmt: DeleteStatement = delete(schema)
+        stmt = stmt.execution_options(synchronize_session=False)
+
+        if node.filters is not None:
+            state = await self.visit(node, schema, **kwargs)
+            stmt = _apply(stmt, state)
+
+        return str(stmt)
+
+    @query.register
+    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel) -> str:
+        _id = getattr(entity, "id", None)
+        if _id is None:
+            raise ExecutionError("Entity must have id field")
+
+        stmt: UpdateStatement = update(schema)
+        stmt = (
+            stmt.filter_by(id=_id)
+            .values(**entity.dict(exclude={"id"}, exclude_unset=True))
+            .execution_options(synchronize_session=False)
+        )
+        return str(stmt)
 
     @singledispatchmethod
     async def visit(self, node: OpNode, schema: Type[Any], **kwargs):  # type: ignore
@@ -256,3 +314,7 @@ class PostgresqlDriver(QueryDriver):
     @visit.register
     async def _(self, node: LowerThanNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
         return _operate(node, schema, lt, **kwargs)
+
+
+def factory(settings: WinterSettings) -> SqlAlchemyDriver:
+    return SqlAlchemyDriver()

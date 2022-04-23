@@ -26,6 +26,7 @@ class ConnectionOptions(pdc.BaseSettings):
     database_name: str = "tests"
     user: Optional[str] = None
     password: Optional[str] = None
+    connector: str | None = "postgresql+asyncpg"
 
 
 class WinterSettings(pdc.BaseSettings):
