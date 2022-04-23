@@ -1,7 +1,7 @@
 from typing import Any, List, Optional
 import pydantic as pdc
 from sqlalchemy.orm import relation, aliased
-from sqlalchemy import Column, Table, MetaData, Integer, ForeignKey, String, select, update, text
+from sqlalchemy import Column, Table, MetaData, Integer, ForeignKey, String, select, update, insert
 from winter.orm import for_model, __mapper__
 from sqlalchemy.orm import declarative_base, RelationshipProperty
 from sqlalchemy import inspect
@@ -49,10 +49,11 @@ UserSchematics = __mapper__[User]
 AddressSchematics = __mapper__[Address]
 
 
-stmt = select(UserSchematics).where(eq(UserSchematics.username,"test")).subquery()
+stmt = select(UserSchematics).where(eq(UserSchematics.username, "test")).subquery()
 aliased_address = aliased(UserSchematics, stmt)
 stmt = select(aliased_address)
 
 user = User(username="test", password="secret", age=26, id=1, addresses=[Address(street="Test", id=2)])
-print(list(inspect(AddressSchematics).relationships)[0].key == "user")
+
+stmt = update(UserSchema).values(**user.dict(exclude_unset=True, exclude={"addresses"}))
 print(stmt)

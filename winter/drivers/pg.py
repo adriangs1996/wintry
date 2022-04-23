@@ -1,11 +1,12 @@
 from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, overload
+from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
 from winter.backend import QueryDriver
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncResult
 import sqlalchemy.orm as orm
 from winter.query.nodes import (
     AndNode,
+    Create,
     Delete,
     EqualToNode,
     FilterNode,
@@ -22,8 +23,13 @@ from winter.query.nodes import (
 )
 from pydantic import BaseModel
 from winter.settings import WinterSettings
-from sqlalchemy import select, update, delete, inspect
-from sqlalchemy.sql import Select, Update as UpdateStatement, Delete as DeleteStatement
+from sqlalchemy import select, update, delete, inspect, insert
+from sqlalchemy.sql import (
+    Select,
+    Update as UpdateStatement,
+    Delete as DeleteStatement,
+    Insert as InsertStatement,
+)
 from sqlalchemy.orm import Mapper, RelationshipProperty
 
 
@@ -182,17 +188,34 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel) -> str:
-        _id = getattr(entity, "id", None)
+    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> str:
+        if isinstance(entity, BaseModel):
+            _id = getattr(entity, "id", None)
+        else:
+            _id = entity.get("id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
         stmt: UpdateStatement = update(schema)
-        stmt = (
-            stmt.filter_by(id=_id)
-            .values(**entity.dict(exclude={"id"}, exclude_unset=True))
-            .execution_options(synchronize_session=False)
-        )
+        if isinstance(entity, BaseModel):
+            stmt = (
+                stmt.filter_by(id=_id)
+                .values(**entity.dict(exclude={"id"}, exclude_unset=True))
+                .execution_options(synchronize_session=False)
+            )
+        else:
+            entity.pop("id", None)
+            stmt = stmt.filter_by(id=_id).values(**entity).execution_options(synchronize_session=False)
+        return str(stmt)
+
+    @query.register
+    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel) -> str:
+        stmt: InsertStatement = insert(schema)
+        if isinstance(entity, BaseModel):
+            stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
+        else:
+            stmt = stmt.values(**entity)  # type: ignore
+
         return str(stmt)
 
     @singledispatchmethod
@@ -236,17 +259,40 @@ class SqlAlchemyDriver(QueryDriver):
                     return await fresh_result.scalar_one_or_none()
 
     @visit.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel) -> None:
-        _id = getattr(entity, "id", None)
+    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> None:
+        if isinstance(entity, BaseModel):
+            _id = getattr(entity, "id", None)
+        else:
+            _id = entity.get("id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
         stmt: UpdateStatement = update(schema)
-        stmt = (
-            stmt.filter_by(id=_id)
-            .values(**entity.dict(exclude={"id"}, exclude_unset=True))
-            .execution_options(synchronize_session=False)
-        )
+        if isinstance(entity, BaseModel):
+            stmt = (
+                stmt.filter_by(id=_id)
+                .values(**entity.dict(exclude={"id"}, exclude_unset=True))
+                .execution_options(synchronize_session=False)
+            )
+        else:
+            entity.pop("id", None)
+            stmt = stmt.filter_by(id=_id).values(**entity).execution_options(synchronize_session=False)
+
+        if self._session is not None:
+            await self._session.execute(stmt)
+        else:
+            async with self._sessionmaker() as session:
+                _session: AsyncSession = session
+                async with _session.begin():
+                    await _session.execute(stmt)
+
+    @visit.register
+    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> None:
+        stmt: InsertStatement = insert(schema)
+        if isinstance(entity, BaseModel):
+            stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
+        else:
+            stmt = stmt.values(**entity)  # type: ignore
 
         if self._session is not None:
             await self._session.execute(stmt)
