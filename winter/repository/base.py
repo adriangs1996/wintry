@@ -4,6 +4,7 @@ import inspect
 from pydantic import BaseModel
 
 from winter.backend import Backend
+from winter.orm import __mapper__, __SQL_ENABLED_FLAG__
 
 
 class RepositoryError(Exception):
@@ -25,14 +26,20 @@ def marked(method):
 def map_result_to_entity(entity, result):
     if isinstance(result, list):
         try:
-            return [entity(**instance) for instance in result]
+            return [entity.from_orm(instance) for instance in result]
         except:
-            return result
+            try:
+                return [entity(**instance) for instance in result]
+            except:
+                return result
 
     try:
-        return entity(**result)
+        return entity.from_orm(result)
     except:
-        return result
+        try:
+            return entity(**result)
+        except:
+            return result
 
 
 def repository(entity: Type[T], table_name: Optional[str] = None, dry: bool = False):
@@ -63,9 +70,17 @@ def repository(entity: Type[T], table_name: Optional[str] = None, dry: bool = Fa
         for fname, fobject in function_members:
             if is_processable(fobject):
                 if inspect.iscoroutinefunction(fobject):
-                    new_method = Backend.run_async(fname, target_name, dry_run=dry)
+                    if getattr(entity, __SQL_ENABLED_FLAG__, False):
+                        table_schema = __mapper__[entity]
+                        new_method = Backend.run_async(fname, table_schema, dry_run=dry)
+                    else:
+                        new_method = Backend.run_async(fname, target_name, dry_run=dry)
                 else:
-                    new_method = Backend.run(fname, target_name, dry_run=dry)
+                    if getattr(entity, __SQL_ENABLED_FLAG__, False):
+                        table_schema = __mapper__[entity]
+                        new_method = Backend.run(fname, table_schema, dry_run=dry)
+                    else:
+                        new_method = Backend.run(fname, target_name, dry_run=dry)
 
                 setattr(new_method, "_raw_method", True)
                 setattr(cls, fname, new_method)

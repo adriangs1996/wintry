@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Callable
+from typing import Any, Callable, Type
 from winter.query.nodes import RootNode
 from winter.query.parsing import QueryParser
 from functools import partial
@@ -13,15 +13,15 @@ class BackendException(Exception):
 
 class QueryDriver(abc.ABC):
     @abc.abstractmethod
-    def run(self, query_expression: RootNode, table_name: str, **kwargs):
+    def run(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def run_async(self, query_expression: RootNode, table_name: str, **kwargs):
+    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_query_repr(self, query_expression: RootNode, table_name: str, **kwargs):
+    def get_query_repr(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -55,7 +55,7 @@ class Backend:
 
     @classmethod
     @classmethod
-    def run(cls, query: str, table_name: str, dry_run: bool = False):
+    def run(cls, query: str, table_name: str | Type[Any], dry_run: bool = False):
         if cls.driver is None:
             raise BackendException("Driver is not configured.")
 
@@ -64,7 +64,7 @@ class Backend:
         return partial(cls.driver.run, root_node, table_name)
 
     @classmethod
-    def run_async(cls, query: str, table_name: str, dry_run: bool = False):
+    def run_async(cls, query: str, table_name: str | Type[Any], dry_run: bool = False):
         if cls.driver is None:
             raise BackendException("Driver is not configured.")
 
