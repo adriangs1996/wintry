@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Any, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar, overload
 from winter.backend import QueryDriver
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncResult
 import sqlalchemy.orm as orm
@@ -17,6 +17,36 @@ class ExecutionError(Exception):
 
 
 T = TypeVar("T")
+
+
+@overload
+def _apply(stmt: Select, state: Dict[str, Any]) -> Select:
+    ...
+
+
+@overload
+def _apply(stmt: DeleteStatement, state: Dict[str, Any]) -> DeleteStatement:  # type: ignore
+    ...
+
+
+def _apply(stmt: Select | DeleteStatement, state: Dict[str, Any]) -> Select | DeleteStatement:
+    new_stmt = stmt
+    if (conditions := state.get("where", None)) is not None:
+        new_stmt = new_stmt.where(conditions)
+
+    if (joins := state.get("joins", None)) is not None and isinstance(new_stmt, Select):
+        for table in joins:
+            new_stmt = new_stmt.join(table)
+
+    assert new_stmt is not None
+    return new_stmt
+
+
+def _resolve_joins(schema_to_inspect: Type[Any], field: str, joins: List[Any]) -> None:
+    mapper: Mapper = inspect(schema_to_inspect)
+    relationships: List[RelationshipProperty] = list(mapper.relationships)
+    schema_to_inspect = next(filter(lambda p: p.key == field, relationships)).entity
+    joins.append(schema_to_inspect)
 
 
 def get_field_name(field_name: str) -> str | List[str]:
@@ -80,8 +110,8 @@ class PostgresqlDriver(QueryDriver):
         stmt: Select = select(schema)
 
         if node.filters is not None:
-            conditions = await self.visit(node.filters, schema, stmt, **kwargs)
-            stmt = stmt.where(conditions)
+            state = await self.visit(node.filters, schema, **kwargs)
+            stmt = _apply(stmt, state)
 
         if self._session is not None:
             result: AsyncResult = await self._session.execute(stmt)
@@ -98,8 +128,8 @@ class PostgresqlDriver(QueryDriver):
         stmt: Select = select(schema)
 
         if node.filters is not None:
-            conditions = await self.visit(node.filters, schema, stmt, **kwargs)
-            stmt = stmt.where(conditions)
+            state = await self.visit(node.filters, schema, **kwargs)
+            stmt = _apply(stmt, state)
 
         if self._session is not None:
             result: AsyncResult = await self._session.execute(stmt)
@@ -112,7 +142,7 @@ class PostgresqlDriver(QueryDriver):
                     return await fresh_result.scalar_one_or_none()
 
     @visit.register
-    async def _(self, node: Update, schema: Type[T], *, entity: BaseModel) -> None:
+    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel) -> None:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
@@ -133,13 +163,13 @@ class PostgresqlDriver(QueryDriver):
                     await _session.execute(stmt)
 
     @visit.register
-    async def _(self, node: Delete, schema: Type[T], **kwargs: Any) -> None:
+    async def _(self, node: Delete, schema: Type[Any], **kwargs: Any) -> None:
         stmt: DeleteStatement = delete(schema)
         stmt = stmt.execution_options(synchronize_session=False)
 
         if node.filters is not None:
-            conditions = await self.visit(node, schema, stmt, **kwargs)
-            stmt = stmt.where(conditions)  # type: ignore
+            state = await self.visit(node, schema, **kwargs)
+            stmt = _apply(stmt, state)
 
         if self._session is not None:
             await self._session.execute(stmt)
@@ -150,52 +180,47 @@ class PostgresqlDriver(QueryDriver):
                     await _session.execute(stmt)
 
     @visit.register
-    async def _(
-        self, node: AndNode, schema: Type[T], stmt: Select | UpdateStatement, **kwargs: Any
-    ) -> BinaryExpression:
-        left = await self.visit(node.left, schema, stmt, **kwargs)
+    async def _(self, node: AndNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+        state = {}
+        left = await self.visit(node.left, schema, **kwargs)
 
         if node.right is not None:
-            right = await self.visit(node.right, schema, stmt, **kwargs)
-            return (left) & (right)
+            right = await self.visit(node.right, schema, **kwargs)
+            state["where"] = left["where"] & right["where"]
+            state["joins"] = left["joins"] + right["joins"]
+            return state
         else:
             return left
 
     @visit.register
-    async def _(
-        self, node: OrNode, schema: Type[T], stmt: Select | UpdateStatement, **kwargs: Any
-    ) -> BinaryExpression:
-        left = await self.visit(node.left, schema, stmt, **kwargs)
+    async def _(self, node: OrNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+        state = {}
+        left = await self.visit(node.left, schema, **kwargs)
 
         if node.right is not None:
-            right = await self.visit(node.right, schema, stmt, **kwargs)
-            return (left) | (right)
+            right = await self.visit(node.right, schema, **kwargs)
+            state["where"] = left["where"] | right["where"]
+            state["joins"] = left["joins"] + right["joins"]
+            return state
         else:
             return left
 
     @visit.register
-    async def _(
-        self, node: EqualToNode, schema: Type[T], stmt: Select | UpdateStatement, **kwargs: Any
-    ) -> BinaryExpression:
+    async def _(self, node: EqualToNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
         field_path = get_field_name(node.field)
         value = get_value_from_args(field_path, **kwargs)
-
-        self._stmt = stmt
+        joins: List[Any] = []
 
         if isinstance(field_path, list):
-            assert isinstance(self._stmt, Select)
             # This is a related field
             schema_to_inspect = schema
             while field_path:
                 field = field_path.pop(0)
                 # is this the last one ??
                 if field_path is None:
-                    return getattr(schema_to_inspect, field) == value
+                    return {"where": getattr(schema_to_inspect, field) == value, "joins": joins}
                 else:
-                    mapper: Mapper = inspect(schema)
-                    relationships: List[RelationshipProperty] = list(mapper.relationships)
-                    schema_to_inspect = next(filter(lambda p: p.key == field, relationships)).entity
-                    self._stmt = self._stmt.join(schema_to_inspect)
+                    _resolve_joins(schema_to_inspect, field, joins)
             raise ExecutionError("WTF This should not end here")
         else:
-            return getattr(schema, field_path) == value
+            return {"where": getattr(schema, field_path) == value, "joins": joins}
