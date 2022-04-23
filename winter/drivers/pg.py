@@ -1,14 +1,29 @@
 from functools import singledispatchmethod
-from typing import Any, Dict, List, Optional, Type, TypeVar, overload
+from operator import eq, gt, lt, ne
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, overload
 from winter.backend import QueryDriver
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncResult
 import sqlalchemy.orm as orm
-from winter.query.nodes import AndNode, Delete, EqualToNode, Find, Get, OpNode, OrNode, RootNode, Update
+from winter.query.nodes import (
+    AndNode,
+    Delete,
+    EqualToNode,
+    FilterNode,
+    Find,
+    Get,
+    GreaterThanNode,
+    LowerThanNode,
+    NotEqualNode,
+    NotGreaterThanNode,
+    OpNode,
+    OrNode,
+    RootNode,
+    Update,
+)
 from pydantic import BaseModel
 from winter.settings import WinterSettings
 from sqlalchemy import select, update, delete, inspect
 from sqlalchemy.sql import Select, Update as UpdateStatement, Delete as DeleteStatement
-from sqlalchemy.sql.elements import BinaryExpression
 from sqlalchemy.orm import Mapper, RelationshipProperty
 
 
@@ -17,6 +32,7 @@ class ExecutionError(Exception):
 
 
 T = TypeVar("T")
+Operator = Callable[[Any, Any], Any]
 
 
 @overload
@@ -68,6 +84,26 @@ def get_value_from_args(field_path: str | List[str], **kwargs: Any) -> Any:
         raise ExecutionError(f"{field} was not suplied as argument")
 
     return value
+
+
+def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -> Dict[str, Any]:
+    field_path = get_field_name(node.field)
+    value = get_value_from_args(field_path, **kwargs)
+    joins: List[Any] = []
+
+    if isinstance(field_path, list):
+        # This is a related field
+        schema_to_inspect = schema
+        while field_path:
+            field = field_path.pop(0)
+            # is this the last one ??
+            if field_path is None:
+                return {"where": op(getattr(schema_to_inspect, field), value), "joins": joins}
+            else:
+                _resolve_joins(schema_to_inspect, field, joins)
+        raise ExecutionError("WTF This should not end here")
+    else:
+        return {"where": op(getattr(schema, field_path), value), "joins": joins}
 
 
 class PostgresqlDriver(QueryDriver):
@@ -207,20 +243,16 @@ class PostgresqlDriver(QueryDriver):
 
     @visit.register
     async def _(self, node: EqualToNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
-        field_path = get_field_name(node.field)
-        value = get_value_from_args(field_path, **kwargs)
-        joins: List[Any] = []
+        return _operate(node, schema, eq, **kwargs)
 
-        if isinstance(field_path, list):
-            # This is a related field
-            schema_to_inspect = schema
-            while field_path:
-                field = field_path.pop(0)
-                # is this the last one ??
-                if field_path is None:
-                    return {"where": getattr(schema_to_inspect, field) == value, "joins": joins}
-                else:
-                    _resolve_joins(schema_to_inspect, field, joins)
-            raise ExecutionError("WTF This should not end here")
-        else:
-            return {"where": getattr(schema, field_path) == value, "joins": joins}
+    @visit.register
+    async def _(self, node: NotEqualNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+        return _operate(node, schema, ne, **kwargs)
+
+    @visit.register
+    async def _(self, node: GreaterThanNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+        return _operate(node, schema, gt, **kwargs)
+
+    @visit.register
+    async def _(self, node: LowerThanNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+        return _operate(node, schema, lt, **kwargs)
