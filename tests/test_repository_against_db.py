@@ -1,10 +1,10 @@
 # configure backend
 import os
-os.environ['backend'] = "winter.drivers.mongo"
 
 # Import backend, so it is configured with MongoDb
 from typing import List, Optional
 import winter.backend as bkd
+from winter.drivers.mongo import MongoDbDriver
 import pydantic as pdc
 from winter.repository.base import repository, raw_method
 from winter.repository.crud_repository import CrudRepository
@@ -24,6 +24,7 @@ class User(pdc.BaseModel):
     address: Optional[Address] = None
 
 
+bkd.Backend.driver = MongoDbDriver()
 bkd.Backend.configure_for_driver(host="localhost", port=27017)
 db = bkd.Backend.get_connection()  # type: ignore
 
@@ -45,9 +46,7 @@ class UserRepository(CrudRepository[User, int]):
     async def find_by_name_or_age_lowerThan(self, *, name: str, age: int) -> List[User]:
         ...
 
-    async def find_by_address__latitude(
-        self, *, address__latitude: float
-    ) -> List[User]:
+    async def find_by_address__latitude(self, *, address__latitude: float) -> List[User]:
         ...
 
 
@@ -176,9 +175,7 @@ async def test_nested_field_find_query(clean):
 
 @pytest.mark.asyncio
 async def test_repository_insert_nested_field(clean):
-    user = User(
-        _id=1, name="test", age=10, address=Address(latitude=3.0, longitude=4.0)
-    )
+    user = User(_id=1, name="test", age=10, address=Address(latitude=3.0, longitude=4.0))
     repo = UserRepository()
     await repo.create(entity=user)
 

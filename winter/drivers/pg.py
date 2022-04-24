@@ -115,7 +115,7 @@ def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -
 class SqlAlchemyDriver(QueryDriver):
     def init(self, settings: WinterSettings):  # type: ignore
         if settings.connection_options.url is not None:
-            engine = create_async_engine(url=settings.connection_options.url, future=True)
+            self._engine = create_async_engine(url=settings.connection_options.url, future=True)
         else:
             host = settings.connection_options.host
             port = settings.connection_options.port
@@ -124,9 +124,11 @@ class SqlAlchemyDriver(QueryDriver):
             db_name = settings.connection_options.database_name
             connector = settings.connection_options.connector
             url = f"{connector}://{username}:{password}@{host}:{port}/{db_name}"
-            engine = create_async_engine(url=url, future=True)
+            self._engine = create_async_engine(url=url, future=True)
 
-        session = orm.sessionmaker(bind=engine, expire_on_commit=False, autocommit=False, class_=AsyncSession)
+        session = orm.sessionmaker(
+            bind=self._engine, expire_on_commit=False, autocommit=False, class_=AsyncSession
+        )
 
         self._sessionmaker: orm.sessionmaker = session
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import declarative_base, relation
 from sqlalchemy import Integer, String, Column, ForeignKey
 from sqlalchemy.exc import CompileError
 
-from winter.query.nodes import Create, Update
+from winter.query.nodes import AndNode, Create, EqualToNode, Find, Get, OrNode, Update
 
 Base: Any = declarative_base()
 
@@ -95,7 +95,7 @@ async def test_pg_driver_panics_when_update_with_no_id() -> None:
     with pytest.raises(ExecutionError):
         query_expr = await driver.get_query_repr(query, UserTable, entity=user.dict(exclude={"id"}))
 
-    
+
 @pytest.mark.asyncio
 async def test_pg_driver_can_update_with_dict() -> None:
     driver = SqlAlchemyDriver()
@@ -106,3 +106,82 @@ async def test_pg_driver_can_update_with_dict() -> None:
     query_expr = await driver.get_query_repr(query, UserTable, entity=user.dict())
 
     assert query_expr == 'UPDATE "Users" SET username=:username WHERE "Users".id = :id_1'
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_handles_find() -> None:
+    driver = SqlAlchemyDriver()
+    query = Find()
+
+    query_expr = await driver.get_query_repr(query, UserTable)
+    query_expr = query_expr.replace("\n", "")
+
+    assert query_expr == '''SELECT "Users".id, "Users".username FROM "Users"'''
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_handles_find_by() -> None:
+    driver = SqlAlchemyDriver()
+    query = Find(AndNode(EqualToNode("username"), None))
+
+    query_expr = await driver.get_query_repr(query, UserTable, username="test")
+    query_expr = query_expr.replace("\n", "")
+
+    assert (
+        query_expr == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".username = :username_1'
+    )
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_handles_find_by_username_or_id() -> None:
+    driver = SqlAlchemyDriver()
+    query = Find(OrNode(EqualToNode("username"), AndNode(EqualToNode("id"), None)))
+
+    query_expr = await driver.get_query_repr(query, UserTable, username="test", id=2)
+    query_expr = query_expr.replace("\n", "")
+
+    assert (
+        query_expr
+        == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".username = :username_1 OR "Users".id = :id_1'
+    )
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_find_by_username_and_id() -> None:
+    driver = SqlAlchemyDriver()
+    query = Find(AndNode(EqualToNode("username"), AndNode(EqualToNode("id"), None)))
+
+    query_expr = await driver.get_query_repr(query, UserTable, username="test", id=2)
+    query_expr = query_expr.replace("\n", "")
+
+    assert (
+        query_expr
+        == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".username = :username_1 AND "Users".id = :id_1'
+    )
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_find_by_username_and_id_or_username() -> None:
+    driver = SqlAlchemyDriver()
+    query = Find(
+        AndNode(EqualToNode("username"), OrNode(EqualToNode("id"), AndNode(EqualToNode("username"), None)))
+    )
+
+    query_expr = await driver.get_query_repr(query, UserTable, username="test", id=2)
+    query_expr = query_expr.replace("\n", "")
+
+    assert (
+        query_expr
+        == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".username = :username_1 AND ("Users".id = :id_1 OR "Users".username = :username_2)'
+    )
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_get_by_id() -> None:
+    driver = SqlAlchemyDriver()
+    query = Get(AndNode(EqualToNode("id"), None))
+
+    query_expr = await driver.get_query_repr(query, UserTable, id=2)
+    query_expr = query_expr.replace("\n", "")
+
+    assert query_expr == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".id = :id_1'

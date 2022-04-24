@@ -1,12 +1,15 @@
 # Configure te mongo driver
 import os
-os.environ['backend'] = "winter.drivers.mongo"
 
 import winter.backend
+from winter.drivers.mongo import MongoDbDriver
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
 from pydantic import BaseModel, Field
 import pytest
+
+
+winter.backend.Backend.driver = MongoDbDriver()
 
 
 class User(BaseModel):
@@ -25,27 +28,17 @@ class Repository(CrudRepository[User, int]):
 async def test_repository_can_create_user():
     repo = Repository()
 
-    str_query = await repo.create(
-        entity=User(_id=10, username="test", password="secret")
-    )
+    str_query = await repo.create(entity=User(_id=10, username="test", password="secret"))
 
-    assert (
-        str_query
-        == "db.users.insert_one({'_id': 10, 'username': 'test', 'password': 'secret'})"
-    )
+    assert str_query == "db.users.insert_one({'_id': 10, 'username': 'test', 'password': 'secret'})"
 
 
 @pytest.mark.asyncio
 async def test_repository_can_update_user():
     repo = Repository()
-    str_query = await repo.update(
-        entity=User(_id=10, username="test", password="secret")
-    )
+    str_query = await repo.update(entity=User(_id=10, username="test", password="secret"))
 
-    assert (
-        str_query
-        == "db.users.update_one({'_id': 10}, {'username': 'test', 'password': 'secret'})"
-    )
+    assert str_query == "db.users.update_one({'_id': 10}, {'username': 'test', 'password': 'secret'})"
 
 
 @pytest.mark.asyncio
