@@ -26,11 +26,12 @@ class Address(pdc.BaseModel):
     longitude: float
 
 
-class User(pdc.BaseModel):
-    id: int
-    name: str
-    age: int
-    address: Address | None = None
+class User:
+    def __init__(self, *, id: int, name: str, age: int, address: Address | None = None) -> None:
+        self.id = id
+        self.name = name
+        self.age = age
+        self.address = address
 
 
 # Define the table schemas
@@ -138,3 +139,19 @@ async def test_repository_can_get_by_id(clean: Any) -> None:
 
     assert isinstance(user, User)
     assert user.name == "test" and user.age == 26
+
+
+@pytest.mark.asyncio
+async def test_repository_can_list_all_users(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+        await session.execute(insert(UserTable).values(id=2, name="test1", age=26))
+        await session.execute(insert(UserTable).values(id=3, name="test2", age=26))
+        await session.execute(insert(UserTable).values(id=4, name="test3", age=26))
+
+    users = await repo.find()
+
+    assert len(users) == 4
+    assert all(isinstance(user, User) for user in users)

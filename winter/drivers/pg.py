@@ -262,11 +262,11 @@ class SqlAlchemyDriver(QueryDriver):
                     return fresh_result.scalar_one_or_none()
 
     @visit.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> None:
-        if isinstance(entity, BaseModel):
-            _id = getattr(entity, "id", None)
-        else:
+    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any] | Any) -> None:
+        if isinstance(entity, dict):
             _id = entity.get("id", None)
+        else:
+            _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
@@ -277,9 +277,15 @@ class SqlAlchemyDriver(QueryDriver):
                 .values(**entity.dict(exclude={"id"}, exclude_unset=True))
                 .execution_options(synchronize_session=False)
             )
-        else:
+        elif isinstance(entity, dict):
             entity.pop("id", None)
             stmt = stmt.filter_by(id=_id).values(**entity).execution_options(synchronize_session=False)
+        else:
+            values = vars(entity)
+            values.pop("id", None)
+            unset_keys = list(filter(lambda k: values[k] is None, values.keys()))
+            for key in unset_keys:
+                values.pop(key)
 
         if self._session is not None:
             await self._session.execute(stmt)
@@ -290,12 +296,19 @@ class SqlAlchemyDriver(QueryDriver):
                     await _session.execute(stmt)
 
     @visit.register
-    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> None:
+    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel | Dict[str, Any] | Any) -> None:
         stmt: InsertStatement = insert(schema)
         if isinstance(entity, BaseModel):
             stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
-        else:
+        elif isinstance(entity, dict):
             stmt = stmt.values(**entity)  # type: ignore
+        else:
+            # Remove NONE
+            values = vars(entity)
+            unset_keys = list(filter(lambda k: values[k] is None, values.keys()))
+            for key in unset_keys:
+                values.pop(key)
+            stmt = stmt.values(**vars(entity))  # type: ignore
 
         if self._session is not None:
             await self._session.execute(stmt)

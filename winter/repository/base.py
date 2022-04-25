@@ -1,17 +1,18 @@
 from functools import lru_cache, partial
-from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
+from typing import Any, Callable, Coroutine, List, Optional, Set, Type, TypeVar
 import inspect
 from pydantic import BaseModel
 
 from winter.backend import Backend
 from winter.orm import __mapper__, __SQL_ENABLED_FLAG__
+import inspect
 
 
 class RepositoryError(Exception):
     pass
 
 
-T = TypeVar("T", bound=BaseModel)
+T = TypeVar("T", Any, BaseModel)
 TDecorated = TypeVar("TDecorated")
 
 RuntimeDecorator = Callable[[Type[TDecorated]], Type[TDecorated]]
@@ -27,33 +28,60 @@ def marked(method: Callable[..., Any]) -> bool:
     return not getattr(method, "_raw_method", False)
 
 
+@lru_cache
+def _get_type_constructor_params(_type: Type[Any]) -> Set[str]:
+    entity_constructor_signature = inspect.signature(_type)
+    return set(entity_constructor_signature.parameters.keys())
+
+
+def _map_result_to_popo(entity: Type[T], result: Any) -> T | None:
+    # This is needed 'cuz when a driver returns an result object,
+    # it is usually populated with weird fields or it is just
+    # augmented with data that our simple entity does not expect
+    # for example ForeignKeys. Lets just get rid of them and try to
+    # make the best effort to use a valid kw to the entity constructor
+
+    # Get entity constructor signature
+    expected_params = _get_type_constructor_params(entity) #type: ignore
+
+    # Get the result values
+    values = vars(result)
+    # find the intersection and remove unwanted keys
+    valid_keys = expected_params.intersection(values.keys())
+    valid_values = {k: values[k] for k in valid_keys}
+    try:
+        return entity(**valid_values)
+    except:
+        return result
+
+
 def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> List[T] | T | None:
     if isinstance(result, list):
         try:
             # Try to build from a list using from_orm
-            return [entity.from_orm(instance) for instance in result]
+            return [entity.from_orm(instance) for instance in result]  # type: ignore
         except:
             try:
                 # try to build from list of dicts
-                return [entity(**instance) for instance in result]
+                return [entity(**instance) for instance in result]  # type: ignore
             except:
                 # try to build from list of objects with no from_orm configuration
                 try:
-                    return [entity(**vars(instance)) for instance in result]
+                    return [_map_result_to_popo(entity, instance) for instance in result]  # type: ignore
                 except:
                     return result
 
     try:
         # try to build from object with from_orm
-        return entity.from_orm(result)
+        return entity.from_orm(result)  # type: ignore
     except:
         try:
-            #try to build from object if it is a dict
+            # try to build from object if it is a dict
             return entity(**result)  # type: ignore
         except:
             # try to build from object using its defined vars
             try:
-                return entity(**vars(result))
+                return _map_result_to_popo(entity, result)
             except:
                 return result
 
@@ -108,7 +136,7 @@ def repository(
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 result = await new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result)
+                return map_result_to_entity(entity, result)  # type: ignore
 
             if isinstance(new_attr, partial):
                 if inspect.iscoroutinefunction(new_attr.func):

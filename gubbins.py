@@ -4,8 +4,8 @@ from sqlalchemy.orm import relation, aliased
 from sqlalchemy import Column, Table, MetaData, Integer, ForeignKey, String, select, update, insert
 from winter.orm import for_model, __mapper__
 from sqlalchemy.orm import declarative_base, RelationshipProperty
-from sqlalchemy import inspect
 from operator import eq
+from inspect import signature
 
 Base = declarative_base()
 
@@ -13,10 +13,9 @@ Base = declarative_base()
 metadata = MetaData()
 
 
-class Address(pdc.BaseModel):
-    street: str
-    id: int
-    user: Optional["User"] = None
+class Address:
+    def __init__(self, id: int, user: Optional["User"]) -> None:
+        pass
 
 
 class User(pdc.BaseModel):
@@ -24,7 +23,7 @@ class User(pdc.BaseModel):
     password: str
     age: int
     id: int
-    addresses: List[Address] = []
+    # addresses: List[Address] = []
 
 
 @for_model(Address)
@@ -53,7 +52,9 @@ stmt = select(UserSchematics).where(eq(UserSchematics.username, "test")).subquer
 aliased_address = aliased(UserSchematics, stmt)
 stmt = select(aliased_address)
 
-user = User(username="test", password="secret", age=26, id=1, addresses=[Address(street="Test", id=2)])
+user = User(username="test", password="secret", age=26, id=1)
 
 stmt = update(UserSchema).values(**user.dict(exclude_unset=True, exclude={"addresses"}))
 print(stmt)
+s = signature(Address)
+set(s.parameters.keys())
