@@ -27,7 +27,7 @@ class Repository(CrudRepository[User, int]):
 
 
 @pytest.mark.asyncio
-async def test_repository_can_create_user():
+async def test_repository_can_create_user() -> None:
     repo = Repository()
 
     str_query = await repo.create(entity=User(_id=10, username="test", password="secret"))
@@ -36,7 +36,7 @@ async def test_repository_can_create_user():
 
 
 @pytest.mark.asyncio
-async def test_repository_can_update_user():
+async def test_repository_can_update_user() -> None:
     repo = Repository()
     str_query = await repo.update(entity=User(_id=10, username="test", password="secret"))
 
@@ -44,7 +44,7 @@ async def test_repository_can_update_user():
 
 
 @pytest.mark.asyncio
-async def test_repository_can_find_simple():
+async def test_repository_can_find_simple() -> None:
     repo = Repository()
     str_query = await repo.find()
 
@@ -52,7 +52,7 @@ async def test_repository_can_find_simple():
 
 
 @pytest.mark.asyncio
-async def test_repository_can_find_by_id():
+async def test_repository_can_find_by_id() -> None:
     repo = Repository()
     str_query = await repo.get_by_id(id=10)
 
@@ -60,7 +60,7 @@ async def test_repository_can_find_by_id():
 
 
 @pytest.mark.asyncio
-async def test_repository_can_delete():
+async def test_repository_can_delete() -> None:
     repo = Repository()
     str_query = await repo.delete_by_id(id=10)
 
@@ -68,7 +68,7 @@ async def test_repository_can_delete():
 
 
 @pytest.mark.asyncio
-async def test_repository_can_delete_all_users():
+async def test_repository_can_delete_all_users() -> None:
     repo = Repository()
     str_query = await repo.delete()
 

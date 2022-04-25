@@ -41,7 +41,7 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> Lis
         return entity.from_orm(result)
     except:
         try:
-            return entity(**result)
+            return entity(**result)  # type: ignore
         except:
             return result
 
@@ -81,12 +81,12 @@ def repository(
     """
 
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
-        if getattr(entity, __SQL_ENABLED_FLAG__, False):
-            target_name = __mapper__[entity]
-        else:
-            target_name = table_name or f"{entity.__name__}s".lower()  # type: ignore
-
         def _getattribute(self: Any, __name: str) -> Any:
+            if getattr(entity, __SQL_ENABLED_FLAG__, False):
+                target_name = __mapper__[entity]
+            else:
+                target_name = table_name or f"{entity.__name__}s".lower()  # type: ignore
+
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
             new_attr = _parse_function_name(__name, attr, target_name, dry)  # type: ignore
 
