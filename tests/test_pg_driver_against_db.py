@@ -79,8 +79,8 @@ async def clean() -> AsyncGenerator[None, None]:
     yield
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(delete(AddressTable))
         await session.execute(delete(UserTable))
+        await session.execute(delete(AddressTable))
         await session.commit()
 
 
@@ -155,3 +155,19 @@ async def test_repository_can_list_all_users(clean: Any) -> None:
 
     assert len(users) == 4
     assert all(isinstance(user, User) for user in users)
+
+
+@pytest.mark.asyncio
+async def test_repository_can_get_object_with_related_data_loaded(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(AddressTable).values(id=1, latitude=3.43, longitude=10.111))
+        await session.execute(insert(UserTable).values(id=1, name="test", age=26, address_id=1))
+
+    user = await repo.get_by_id(id=1)
+
+    assert isinstance(user, User)
+    assert user.address is not None
+    assert user.address.latitude == 3.43 and user.address.longitude == 10.111
+    assert isinstance(user.address, Address)
