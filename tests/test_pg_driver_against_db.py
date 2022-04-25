@@ -1,6 +1,5 @@
 from typing import Any, AsyncGenerator
-from winter import init_backend
-from winter.drivers.pg import SqlAlchemyDriver
+from winter import init_backend, get_connection
 
 from winter.settings import ConnectionOptions, WinterSettings
 
@@ -8,9 +7,10 @@ from winter.settings import ConnectionOptions, WinterSettings
 import winter.backend
 
 from winter.orm import for_model
-from sqlalchemy import Integer, Column, String, ForeignKey, Float, delete, select
+from sqlalchemy import Integer, Column, String, ForeignKey, Float, delete, select, insert
 from sqlalchemy.orm import relation, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine.result import Result
 import pydantic as pdc
 import pytest
 import pytest_asyncio
@@ -76,7 +76,7 @@ async def setup() -> None:
 @pytest_asyncio.fixture
 async def clean() -> AsyncGenerator[None, None]:
     yield
-    session: AsyncSession = winter.backend.Backend.get_connection()
+    session: AsyncSession = get_connection()
     async with session.begin():
         await session.execute(delete(AddressTable))
         await session.execute(delete(UserTable))
@@ -85,12 +85,56 @@ async def clean() -> AsyncGenerator[None, None]:
 
 @pytest.mark.asyncio
 async def test_repository_can_insert(clean: Any) -> None:
-    print(winter.backend.Backend.driver)
     repo = UserRepository()
     user = User(id=2, name="test", age=10)
 
     await repo.create(entity=user)
     session: AsyncSession = winter.backend.Backend.get_connection()
     async with session.begin():
-        results = await session.execute(select(UserTable))
+        results: Result = await session.execute(select(UserTable))
     assert len(results.all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_repository_can_delete(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+
+    await repo.delete()
+
+    async with session.begin():
+        result: Result = await session.execute(select(UserTable))
+        rows = result.all()
+
+    assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_repository_can_delete_by_id(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+
+    await repo.delete_by_id(id=1)
+
+    async with session.begin():
+        result: Result = await session.execute(select(UserTable))
+        rows = result.all()
+
+    assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_repository_can_get_by_id(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+
+    user = await repo.get_by_id(id=1)
+
+    assert isinstance(user, User)
+    assert user.name == "test" and user.age == 26

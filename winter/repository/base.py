@@ -30,20 +30,32 @@ def marked(method: Callable[..., Any]) -> bool:
 def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> List[T] | T | None:
     if isinstance(result, list):
         try:
+            # Try to build from a list using from_orm
             return [entity.from_orm(instance) for instance in result]
         except:
             try:
+                # try to build from list of dicts
                 return [entity(**instance) for instance in result]
             except:
-                return result
+                # try to build from list of objects with no from_orm configuration
+                try:
+                    return [entity(**vars(instance)) for instance in result]
+                except:
+                    return result
 
     try:
+        # try to build from object with from_orm
         return entity.from_orm(result)
     except:
         try:
+            #try to build from object if it is a dict
             return entity(**result)  # type: ignore
         except:
-            return result
+            # try to build from object using its defined vars
+            try:
+                return entity(**vars(result))
+            except:
+                return result
 
 
 def repository(

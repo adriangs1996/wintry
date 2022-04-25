@@ -2,7 +2,8 @@ from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
 from winter.backend import QueryDriver
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncResult
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.engine.result import Result
 import sqlalchemy.orm as orm
 from winter.query.nodes import (
     AndNode,
@@ -233,13 +234,13 @@ class SqlAlchemyDriver(QueryDriver):
             stmt = _apply(stmt, state)
 
         if self._session is not None:
-            result: AsyncResult = await self._session.execute(stmt)
+            result: Result = await self._session.execute(stmt)
             return result.scalars().all()
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
                 async with _session.begin():
-                    fresh_result: AsyncResult = await _session.execute(stmt)
+                    fresh_result: Result = await _session.execute(stmt)
                     return fresh_result.scalars().all()
 
     @visit.register
@@ -251,14 +252,14 @@ class SqlAlchemyDriver(QueryDriver):
             stmt = _apply(stmt, state)
 
         if self._session is not None:
-            result: AsyncResult = await self._session.execute(stmt)
-            return await result.scalar_one_or_none()
+            result: Result = await self._session.execute(stmt)
+            return result.scalar_one_or_none()
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
                 async with _session.begin():
-                    fresh_result: AsyncResult = await _session.execute(stmt)
-                    return await fresh_result.scalar_one_or_none()
+                    fresh_result: Result = await _session.execute(stmt)
+                    return fresh_result.scalar_one_or_none()
 
     @visit.register
     async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> None:
@@ -310,7 +311,7 @@ class SqlAlchemyDriver(QueryDriver):
         stmt = stmt.execution_options(synchronize_session=False)
 
         if node.filters is not None:
-            state = await self.visit(node, schema, **kwargs)
+            state = await self.visit(node.filters, schema, **kwargs)
             stmt = _apply(stmt, state)
 
         if self._session is not None:

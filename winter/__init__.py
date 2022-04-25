@@ -1,6 +1,8 @@
 from winter.backend import QueryDriver, Backend
 from winter.settings import WinterSettings
 import importlib
+from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 class DriverNotFoundError(Exception):
@@ -27,8 +29,6 @@ def init_backend(settings: WinterSettings = WinterSettings()) -> None:
         raise DriverNotFoundError("Provide the absolute path to driver module: Ej: winter.drivers.module")
 
     try:
-        print(driver_module)
-        print(driver_module.factory)
         factory = getattr(driver_module, "factory")
     except AttributeError:
         raise FactoryNotFoundError(
@@ -44,3 +44,7 @@ def init_backend(settings: WinterSettings = WinterSettings()) -> None:
     Backend.driver = driver
     # init the driver
     driver.init(settings)
+
+
+def get_connection() -> AsyncIOMotorDatabase | AsyncSession:
+    return Backend.get_connection()
