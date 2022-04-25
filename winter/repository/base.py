@@ -1,11 +1,19 @@
+from datetime import date, datetime
+from enum import Enum
 from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Set, Type, TypeVar
 import inspect
 from pydantic import BaseModel
 
 from winter.backend import Backend
-from winter.orm import __mapper__, __SQL_ENABLED_FLAG__
+from winter.orm import __SQL_ENABLED_FLAG__
 import inspect
+from winter.orm import __WINTER_MAPPED_CLASS__
+
+
+__mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
+
+__sequences_like__ = (dict, list, set)
 
 
 class RepositoryError(Exception):
@@ -28,31 +36,51 @@ def marked(method: Callable[..., Any]) -> bool:
     return not getattr(method, "_raw_method", False)
 
 
-@lru_cache
-def _get_type_constructor_params(_type: Type[Any]) -> Set[str]:
-    entity_constructor_signature = inspect.signature(_type)
-    return set(entity_constructor_signature.parameters.keys())
+def _map_to_inner_model_class(_table_instance: Any) -> Any:
+    """
+    Generate a new object with keys from `vars` where values are either
+    builins or mapped classes.
+    """
 
-
-def _map_result_to_popo(entity: Type[T], result: Any) -> T | None:
     # This is needed 'cuz when a driver returns an result object,
     # it is usually populated with weird fields or it is just
     # augmented with data that our simple entity does not expect
     # for example ForeignKeys. Lets just get rid of them and try to
     # make the best effort to use a valid kw to the entity constructor
+    instance_class = _table_instance.__class__
+    target_class = getattr(instance_class, __WINTER_MAPPED_CLASS__, None)
 
-    # Get entity constructor signature
-    expected_params = _get_type_constructor_params(entity) #type: ignore
+    if target_class is None:
+        return _table_instance
 
-    # Get the result values
-    values = vars(result)
-    # find the intersection and remove unwanted keys
-    valid_keys = expected_params.intersection(values.keys())
-    valid_values = {k: values[k] for k in valid_keys}
+    initial_dict = vars(_table_instance)
+
+    # Dive recursively into the dictionary, so nested
+    # objects get mapped
+    for key, value in initial_dict.items():
+        class_ = value.__class__
+        if class_ not in __mappings_builtins__:
+            if class_ in __sequences_like__:
+                new_list = [_map_to_inner_model_class(ent) for ent in value]
+                initial_dict[key] = new_list
+            else:
+                new_obj = _map_to_inner_model_class(value)
+                initial_dict[key] = new_obj
+
+    _constructor_params = _get_type_constructor_params(target_class)
+    valid_keys = _constructor_params.intersection(initial_dict.keys())
+    valid_values = {k: initial_dict[k] for k in valid_keys}
+
     try:
-        return entity(**valid_values)
+        return target_class(**valid_values)
     except:
-        return result
+        return _table_instance
+
+
+@lru_cache
+def _get_type_constructor_params(_type: Type[Any]) -> Set[str]:
+    entity_constructor_signature = inspect.signature(_type)
+    return set(entity_constructor_signature.parameters.keys())
 
 
 def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> List[T] | T | None:
@@ -67,7 +95,7 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> Lis
             except:
                 # try to build from list of objects with no from_orm configuration
                 try:
-                    return [_map_result_to_popo(entity, instance) for instance in result]  # type: ignore
+                    return [_map_to_inner_model_class(instance) for instance in result]  # type: ignore
                 except:
                     return result
 
@@ -81,7 +109,7 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> Lis
         except:
             # try to build from object using its defined vars
             try:
-                return _map_result_to_popo(entity, result)
+                return _map_to_inner_model_class(result)
             except:
                 return result
 
@@ -90,7 +118,7 @@ def repository(
     entity: Type[T], table_name: Optional[str] = None, dry: bool = False
 ) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
     """
-    Convert a class into a repository (basically an object factory) of `entity`.
+    Convert a class into a repository (basically an object store) of `entity`.
     Methods not marked with :func:`raw_method` will be compiled and processed by
     the winter engine to automatically generate a query for the given function name.
 
@@ -122,8 +150,8 @@ def repository(
 
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
         def _getattribute(self: Any, __name: str) -> Any:
-            if getattr(entity, __SQL_ENABLED_FLAG__, False):
-                target_name = __mapper__[entity]
+            if (__target := getattr(entity, __SQL_ENABLED_FLAG__, None)) is not None:
+                target_name = __target  # type: ignore
             else:
                 target_name = table_name or f"{entity.__name__}s".lower()  # type: ignore
 
