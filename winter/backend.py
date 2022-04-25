@@ -13,23 +13,23 @@ class BackendException(Exception):
 
 class QueryDriver(abc.ABC):
     @abc.abstractmethod
-    def run(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs):
+    def run(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs):
+    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_query_repr(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs):
+    def get_query_repr(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def init(self, *args, **kwargs):
+    def init(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def init_async(self, *args, **kwargs):
+    async def init_async(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -46,16 +46,18 @@ class Backend:
         return cls.driver.get_connection()
 
     @classmethod
-    def configure_for_driver(cls, *args, **kwargs):
+    def configure_for_driver(cls, *args: Any, **kwargs: Any) -> None:
+        assert cls.driver is not None
         cls.driver.init(*args, **kwargs)
 
     @classmethod
-    async def configure_for_driver_async(cls, *args, **kwargs):
-        await cls.driver.init_async()
+    async def configure_for_driver_async(cls, *args: Any, **kwargs: Any) -> None:
+        assert cls.driver is not None
+        await cls.driver.init_async(*args, **kwargs)
 
     @classmethod
     @classmethod
-    def run(cls, query: str, table_name: str | Type[Any], dry_run: bool = False):
+    def run(cls, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
         if cls.driver is None:
             raise BackendException("Driver is not configured.")
 
@@ -64,7 +66,7 @@ class Backend:
         return partial(cls.driver.run, root_node, table_name)
 
     @classmethod
-    def run_async(cls, query: str, table_name: str | Type[Any], dry_run: bool = False):
+    def run_async(cls, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
         if cls.driver is None:
             raise BackendException("Driver is not configured.")
 

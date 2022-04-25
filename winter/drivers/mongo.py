@@ -1,11 +1,12 @@
 from functools import singledispatchmethod
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Type
 from winter.backend import QueryDriver
 from winter.query.nodes import (
     AndNode,
     Create,
     Delete,
     EqualToNode,
+    FilterNode,
     Find,
     Get,
     GreaterThanNode,
@@ -26,47 +27,47 @@ from pydantic import BaseModel
 from winter.settings import WinterSettings
 
 
-def Eq(field, value):
+def Eq(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$eq": value}}
 
 
-def Lt(field, value):
+def Lt(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$lt": value}}
 
 
-def Gt(field, value):
+def Gt(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$gt": value}}
 
 
-def Lte(field, value):
+def Lte(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$lte": value}}
 
 
-def Gte(field, value):
+def Gte(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$gte": value}}
 
 
-def In(field, value):
+def In(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$in": value}}
 
 
-def Nin(field, value):
+def Nin(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$nin": value}}
 
 
-def Ne(field, value):
+def Ne(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$ne": value}}
 
 
-def NotGt(field, value):
+def NotGt(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$not": {"$gt": value}}}
 
 
-def Notlt(field, value):
+def Notlt(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$not": {"$lt": value}}}
 
 
-def create_expression(node, op, **kwargs):
+def create_expression(node: FilterNode, op: Any, **kwargs: Any) -> Any:
     field_name = node.field
     if "." in field_name:
         value_query = "__".join(field_name.split("."))
@@ -91,61 +92,58 @@ class MongoDbDriver(QueryDriver):
     def get_connection(self) -> Any:
         return self.db
 
-    def init(
-        self,
-        url: Optional[str] = None,
-        host: str = "localhost",
-        port: int = 27017,
-        database_name: str = "tests",
-    ):
-        if url is not None:
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(url)
+    def init(self, settings: WinterSettings) -> None:  # type: ignore
+        if settings.connection_options.url is not None:
+            self.client = motor.motor_asyncio.AsyncIOMotorClient(settings.connection_options.url)
         else:
+            host = settings.connection_options.host
+            port = settings.connection_options.port
             self.client = motor.motor_asyncio.AsyncIOMotorClient(host, port)
 
+        database_name = settings.connection_options.database_name
         self.db = self.client[database_name]
 
-    async def init_async(self, *args, **kwargs):
+    async def init_async(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     async def get_query_repr(
-        self, query_expression: RootNode, table_name: str, **kwargs
-    ):
+        self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any
+    ) -> str:
         return await self.query(query_expression, table_name, **kwargs)
 
-    async def run(self, query_expression: RootNode, table_name: str, **kwargs):
+    async def run(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
         return super().run(query_expression, table_name, **kwargs)
 
-    async def run_async(self, query_expression: RootNode, table_name: str, **kwargs):
+    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
         return await self.visit(query_expression, table_name, **kwargs)
 
     @singledispatchmethod
-    async def query(self, node: OpNode, table_name: str, **kwargs):
+    async def query(self, node: OpNode, table_name: str | Type[Any], **kwargs: Any) -> str:
         return await self.visit(node, table_name, **kwargs)
 
     @query.register
-    async def _(self, node: Find, table_name: str, **kwargs):
+    async def _(self, node: Find, table_name: str, **kwargs: Any) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table_name, **kwargs) or ""
         else:
-            filters = {}
+            filters = {} #type: ignore
         return f"db.{table_name}.find({filters}).to_list()"
 
     @query.register
-    async def _(self, node: Delete, table_name: str, **kwargs):
+    async def _(self, node: Delete, table_name: str, **kwargs: Any) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table_name, **kwargs) or ""
         else:
-            filters = {}
+            filters = {} #type: ignore
         return f"db.{table_name}.delete_many({filters})"
 
     @query.register
-    async def _(self, node: Get, table_name: str, **kwargs):
+    async def _(self, node: Get, table_name: str, **kwargs: Any) -> str:
         filters = await self.query(node.filters, table_name, **kwargs) or ""
         return f"db.{table_name}.find_one({filters})"
 
     @query.register
-    async def _(self, node: Create, table_name: str, **kwargs):
+    async def _(self, node: Create, table_name: str, **kwargs: Any) -> str:
         entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
@@ -156,7 +154,7 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.insert_one({entity})"
 
     @query.register
-    async def _(self, node: Update, table_name: str, *, entity: BaseModel):
+    async def _(self, node: Update, table_name: str, *, entity: BaseModel) -> str:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
@@ -164,11 +162,11 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity.dict(exclude={'id'})})"
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, table_name: str, **kwargs):
+    async def visit(self, node: OpNode, table_name: str, **kwargs: Any) -> Any:
         raise NotImplementedError
 
     @visit.register
-    async def _(self, node: Create, table_name: str, **kwargs):
+    async def _(self, node: Create, table_name: str, **kwargs: Any) -> Any:
         entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
@@ -180,7 +178,7 @@ class MongoDbDriver(QueryDriver):
         return await collection.insert_one(entity)
 
     @visit.register
-    async def _(self, node: Update, table_name: str, *, entity: BaseModel):
+    async def _(self, node: Update, table_name: str, *, entity: BaseModel) -> Any:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
@@ -191,7 +189,7 @@ class MongoDbDriver(QueryDriver):
         )
 
     @visit.register
-    async def _(self, node: Find, table_name: str, **kwargs):
+    async def _(self, node: Find, table_name: str, **kwargs: Any) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table_name, **kwargs) or {}
         else:
@@ -201,7 +199,7 @@ class MongoDbDriver(QueryDriver):
         return await collection.find(filters).to_list(None)
 
     @visit.register
-    async def _(self, node: Delete, table_name: str, **kwargs):
+    async def _(self, node: Delete, table_name: str, **kwargs: Any) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table_name, **kwargs) or {}
         else:
@@ -211,7 +209,7 @@ class MongoDbDriver(QueryDriver):
         return await collection.delete_many(filters)
 
     @visit.register
-    async def _(self, node: Get, table_name: str, **kwargs):
+    async def _(self, node: Get, table_name: str, **kwargs: Any) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table_name, **kwargs) or {}
         else:
@@ -221,7 +219,7 @@ class MongoDbDriver(QueryDriver):
         return await collection.find_one(filters)
 
     @visit.register
-    async def _(self, node: AndNode, table_name: str, **kwargs):
+    async def _(self, node: AndNode, table_name: str, **kwargs: Any) -> Any:
         conditions = await self.visit(node.left, table_name, **kwargs)
 
         # conditions should be a list of tuples name, value where
@@ -240,7 +238,7 @@ class MongoDbDriver(QueryDriver):
         return where
 
     @visit.register
-    async def _(self, node: OrNode, table_name: str, **kwargs):
+    async def _(self, node: OrNode, table_name: str, **kwargs: Any) -> Any:
         or_condition = await self.visit(node.left, table_name, **kwargs)
 
         # or_condition should be a list of tuples name, value where
@@ -260,37 +258,37 @@ class MongoDbDriver(QueryDriver):
         return where
 
     @visit.register
-    async def _(self, node: EqualToNode, table_name: str, **kwargs):
+    async def _(self, node: EqualToNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Eq, **kwargs)
 
     @visit.register
-    async def _(self, node: NotEqualNode, table_name: str, **kwargs):
+    async def _(self, node: NotEqualNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Ne, **kwargs)
 
     @visit.register
-    async def _(self, node: LowerThanNode, table_name: str, **kwargs):
+    async def _(self, node: LowerThanNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Lt, **kwargs)
 
     @visit.register
-    async def _(self, node: NotLowerThanNode, table_name: str, **kwargs):
+    async def _(self, node: NotLowerThanNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Notlt, **kwargs)
 
     @visit.register
-    async def _(self, node: GreaterThanNode, table_name: str, **kwargs):
+    async def _(self, node: GreaterThanNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Gt, **kwargs)
 
     @visit.register
-    async def _(self, node: NotGreaterThanNode, table_name: str, **kwargs):
+    async def _(self, node: NotGreaterThanNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Notlt, **kwargs)
 
     @visit.register
-    async def _(self, node: InNode, table_name: str, **kwargs):
+    async def _(self, node: InNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, In, **kwargs)
 
     @visit.register
-    async def _(self, node: NotInNode, table_name: str, **kwargs):
+    async def _(self, node: NotInNode, table_name: str, **kwargs: Any) -> Any:
         return create_expression(node, Nin, **kwargs)
 
 
-def factory(settings: WinterSettings):
+def factory(settings: WinterSettings) -> MongoDbDriver:
     return MongoDbDriver()

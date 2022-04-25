@@ -1,4 +1,5 @@
 from typing import Any, AsyncGenerator, List, Optional
+from winter import init_backend
 import winter.backend as bkd
 from winter.drivers.mongo import MongoDbDriver
 import pydantic as pdc
@@ -23,8 +24,7 @@ class User(pdc.BaseModel):
 
 @pytest.fixture(scope="module", autouse=True)
 def db() -> AsyncIOMotorDatabase:
-    bkd.Backend.driver = MongoDbDriver()
-    bkd.Backend.configure_for_driver(host="localhost", port=27017)
+    init_backend()
     return bkd.Backend.get_connection()  # type: ignore
 
 

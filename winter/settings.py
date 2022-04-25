@@ -30,15 +30,15 @@ class ConnectionOptions(pdc.BaseSettings):
 
 
 class WinterSettings(pdc.BaseSettings):
-    backend: str = "winter.drivers"
+    backend: str = "winter.drivers.mongo"
     connection_options: ConnectionOptions = ConnectionOptions()
 
     class Config:
         env_file_encoding = "utf-8"
-        env_nested_delimiter = '.'
+        env_nested_delimiter = '__'
 
         @classmethod
-        def customise_sources(cls, init_settings, env_settings, file_secret_settings):
+        def customise_sources(cls, init_settings, env_settings, file_secret_settings): #type: ignore
             return (
                 init_settings,
                 json_config_settings_source,

@@ -1,4 +1,5 @@
 from typing import Any, AsyncGenerator
+from winter import init_backend
 from winter.drivers.pg import SqlAlchemyDriver
 
 from winter.settings import ConnectionOptions, WinterSettings
@@ -61,10 +62,10 @@ class UserRepository(CrudRepository[User, int]):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup() -> None:
-    winter.backend.Backend.driver = SqlAlchemyDriver()
-    winter.backend.Backend.configure_for_driver(
+    init_backend(
         WinterSettings(
-            connection_options=ConnectionOptions(url="postgresql+asyncpg://postgres:secret@localhost/tests")
+            backend="winter.drivers.pg",
+            connection_options=ConnectionOptions(url="postgresql+asyncpg://postgres:secret@localhost/tests"),
         )
     )
     engine = getattr(winter.backend.Backend.driver, "_engine")

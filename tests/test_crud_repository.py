@@ -1,5 +1,6 @@
 # Configure te mongo driver
 import os
+from winter import init_backend
 
 import winter.backend
 from winter.drivers.mongo import MongoDbDriver
@@ -11,7 +12,7 @@ import pytest
 
 @pytest.fixture(scope="module", autouse=True)
 def setup() -> None:
-    winter.backend.Backend.driver = MongoDbDriver()
+    init_backend()
 
 
 class User(BaseModel):
