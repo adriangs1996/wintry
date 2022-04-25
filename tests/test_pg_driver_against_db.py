@@ -1,4 +1,4 @@
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, List
 from winter import init_backend, get_connection
 
 from winter.settings import ConnectionOptions, WinterSettings
@@ -21,9 +21,10 @@ from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
 
 
-class Address(pdc.BaseModel):
-    latitude: float
-    longitude: float
+class Address:
+    def __init__(self, latitude: float, longitude: float) -> None:
+        self.latitude = latitude
+        self.longitude = longitude
 
 
 class User:
@@ -58,7 +59,8 @@ class UserTable(Base):
 
 @repository(User)
 class UserRepository(CrudRepository[User, int]):
-    pass
+    async def find_by_id_or_name_and_age_lowerThan(self, *, id: int, name: str, age: int) -> List[User]:
+        ...
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
@@ -171,3 +173,20 @@ async def test_repository_can_get_object_with_related_data_loaded(clean: Any) ->
     assert user.address is not None
     assert user.address.latitude == 3.43 and user.address.longitude == 10.111
     assert isinstance(user.address, Address)
+
+
+@pytest.mark.asyncio
+async def test_repository_can_make_logical_queries(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+        await session.execute(insert(UserTable).values(id=2, name="test1", age=21))
+        await session.execute(insert(UserTable).values(id=3, name="test2", age=22))
+        await session.execute(insert(UserTable).values(id=4, name="test3", age=23))
+
+    users = await repo.find_by_id_or_name_and_age_lowerThan(id=4, name="test2", age=23)
+    assert len(users) == 2
+
+    ids = [u.id for u in users]
+    assert sorted(ids) == [3, 4]

@@ -185,3 +185,17 @@ async def test_pg_driver_get_by_id() -> None:
     query_expr = query_expr.replace("\n", "")
 
     assert query_expr == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".id = :id_1'
+
+
+@pytest.mark.asyncio
+async def test_pg_driver_get_by_user__id() -> None:
+    driver = SqlAlchemyDriver()
+    query = Get(AndNode(EqualToNode("user.id"), None))
+
+    query_expr = await driver.get_query_repr(query, AddressTable, user__id=1)
+    query_expr = query_expr.replace("\n", "")
+
+    assert (
+        query_expr
+        == 'SELECT "Addresses".id, "Addresses".user_id FROM "Addresses" JOIN "Users" ON "Users".id = "Addresses".user_id WHERE "Users".id = :id_1'
+    )

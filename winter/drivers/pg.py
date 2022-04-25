@@ -65,11 +65,12 @@ def _apply(stmt: Select | DeleteStatement, state: Dict[str, Any]) -> Select | De
     return new_stmt
 
 
-def _resolve_joins(schema_to_inspect: Type[Any], field: str, joins: List[Any]) -> None:
+def _resolve_joins(schema_to_inspect: Type[Any], field: str, joins: List[Any]) -> Any:
     mapper: Mapper = inspect(schema_to_inspect)
     relationships: List[RelationshipProperty] = list(mapper.relationships)
-    schema_to_inspect = next(filter(lambda p: p.key == field, relationships)).entity
+    schema_to_inspect = next(filter(lambda p: p.key == field, relationships)).entity.mapped_table
     joins.append(schema_to_inspect)
+    return schema_to_inspect
 
 
 def get_field_name(field_name: str) -> str | List[str]:
@@ -104,10 +105,10 @@ def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -
         while field_path:
             field = field_path.pop(0)
             # is this the last one ??
-            if field_path is None:
-                return {"where": op(getattr(schema_to_inspect, field), value), "joins": joins}
+            if field_path == []:
+                return {"where": op(getattr(schema_to_inspect.c, field), value), "joins": joins} #type: ignore
             else:
-                _resolve_joins(schema_to_inspect, field, joins)
+                schema_to_inspect = _resolve_joins(schema_to_inspect, field, joins)
         raise ExecutionError("WTF This should not end here")
     else:
         return {"where": op(getattr(schema, field_path), value), "joins": joins}
