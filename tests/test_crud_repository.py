@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field
 import pytest
 
 
-winter.backend.Backend.driver = MongoDbDriver()
+@pytest.fixture(scope="module", autouse=True)
+def setup() -> None:
+    winter.backend.Backend.driver = MongoDbDriver()
 
 
 class User(BaseModel):

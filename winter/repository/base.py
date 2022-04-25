@@ -1,4 +1,4 @@
-from functools import partial
+from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
 import inspect
 from pydantic import BaseModel
@@ -48,7 +48,7 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> Lis
 
 def repository(
     entity: Type[T], table_name: Optional[str] = None, dry: bool = False
-) -> RuntimeDecorator[TDecorated]:
+) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
     """
     Convert a class into a repository (basically an object factory) of `entity`.
     Methods not marked with :func:`raw_method` will be compiled and processed by
@@ -59,7 +59,7 @@ def repository(
     built-in `Set` type, so in-memory testing is posible.
 
     Repository classes are can be used with MongoDB, or any relational DB supported
-    by SQLAlchemy. `entity` does not need to fulfill any special rule, but if it is 
+    by SQLAlchemy. `entity` does not need to fulfill any special rule, but if it is
     recomended that it derives from `pydantic.BaseModel`.
 
     Example
@@ -79,6 +79,7 @@ def repository(
     >>> user = loop.run_until_complete(repo.get_by_id(id=2)) # It works! And if an user exists, it automatically retrieves an `User` instance. Use MongoDB by default
 
     """
+
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
         if getattr(entity, __SQL_ENABLED_FLAG__, False):
             target_name = __mapper__[entity]
@@ -87,7 +88,7 @@ def repository(
 
         def _getattribute(self: Any, __name: str) -> Any:
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
-            new_attr = _parse_function_name(__name, attr, target_name, dry)
+            new_attr = _parse_function_name(__name, attr, target_name, dry)  # type: ignore
 
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 result = new_attr(*args, **kwargs)
@@ -126,6 +127,7 @@ def raw_method(method: FuncT) -> FuncT:
     return method
 
 
+@lru_cache(typed=True, maxsize=1000)
 def _parse_function_name(fname: str, fobject: Func, target: str | Type[Any], dry: bool = False) -> Func:
     if is_processable(fobject):
         if inspect.iscoroutinefunction(fobject):
