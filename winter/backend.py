@@ -13,11 +13,15 @@ class BackendException(Exception):
 
 class QueryDriver(abc.ABC):
     @abc.abstractmethod
-    def run(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
+    def run(
+        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+    ) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
+    async def run_async(
+        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+    ) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -34,6 +38,22 @@ class QueryDriver(abc.ABC):
 
     @abc.abstractmethod
     def get_connection(self) -> Any:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def get_started_session(self) -> Any:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def commit_transaction(self, session: Any) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def abort_transaction(self, session: Any) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def close_session(self, session: Any) -> None:
         raise NotImplementedError
 
 

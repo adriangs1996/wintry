@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, cast
 from winter.backend import QueryDriver
 from winter.query.nodes import (
     AndNode,
@@ -22,9 +22,49 @@ from winter.query.nodes import (
     Update,
 )
 import motor.motor_asyncio
+from motor.core import AgnosticClientSession, AgnosticClient
 from pydantic import BaseModel
 
 from winter.settings import WinterSettings
+
+
+class MongoSession(AgnosticClientSession):
+    """
+    This is a stub class for the benefit of the type-checker, do not
+    instantiate it directly. Instead call :func:`typing.cast()` with
+    `MongoSession` as first argument when calling :func:`motor.motor_asyncio.MotorClient.start_session()`.
+    """
+
+    async def commit_transaction(self) -> None:
+        """
+        Commit a multi-statement transaction
+        """
+        ...
+
+    async def abort_transaction(self) -> None:
+        """
+        Abort a multi-statement transaction.
+        """
+        ...
+
+    async def end_session(self) -> None:
+        """
+        Finish this session. If a transaction has started, abort it.
+
+        It is an error to use the session after the session has ended.
+        """
+        ...
+
+
+class Client(AgnosticClient):
+    """
+    This is a stub class for the benefit of the type-checker, do not
+    instantiate it directly. Instead call :func:`typing.cast()` with
+    `Client` as first argument when instantiating an AsyncioMotorClient.
+    """
+
+    async def start_session(self) -> AgnosticClientSession:
+        ...
 
 
 def Eq(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
@@ -92,13 +132,32 @@ class MongoDbDriver(QueryDriver):
     def get_connection(self) -> Any:
         return self.db
 
+    async def get_started_session(self) -> MongoSession:
+        session = cast(MongoSession, await self.client.start_session())
+        session.start_transaction()
+        return session
+
+    async def commit_transaction(self, session: MongoSession) -> None:
+        if session.in_transaction:
+            await session.commit_transaction()
+
+    async def abort_transaction(self, session: MongoSession) -> None:
+        if session.in_transaction:
+            await session.abort_transaction()
+
+    async def close_session(self, session: MongoSession) -> None:
+        if not session.has_ended:
+            await session.end_session()
+
     def init(self, settings: WinterSettings) -> None:  # type: ignore
         if settings.connection_options.url is not None:
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(settings.connection_options.url)
+            self.client = cast(
+                Client, motor.motor_asyncio.AsyncIOMotorClient(settings.connection_options.url)
+            )
         else:
             host = settings.connection_options.host
             port = settings.connection_options.port
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(host, port)
+            self.client = cast(Client, motor.motor_asyncio.AsyncIOMotorClient(host, port))
 
         database_name = settings.connection_options.database_name
         self.db = self.client[database_name]
@@ -111,11 +170,15 @@ class MongoDbDriver(QueryDriver):
     ) -> str:
         return await self.query(query_expression, table_name, **kwargs)
 
-    async def run(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
-        return super().run(query_expression, table_name, **kwargs)
+    async def run(
+        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+    ) -> Any:
+        return super().run(query_expression, table_name, session=session, **kwargs)
 
-    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
-        return await self.visit(query_expression, table_name, **kwargs)
+    async def run_async(
+        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+    ) -> Any:
+        return await self.visit(query_expression, table_name, session=session, **kwargs)
 
     @singledispatchmethod
     async def query(self, node: OpNode, table_name: str | Type[Any], **kwargs: Any) -> str:
@@ -126,7 +189,7 @@ class MongoDbDriver(QueryDriver):
         if node.filters is not None:
             filters = await self.query(node.filters, table_name, **kwargs) or ""
         else:
-            filters = {} #type: ignore
+            filters = {}  # type: ignore
         return f"db.{table_name}.find({filters}).to_list()"
 
     @query.register
@@ -134,7 +197,7 @@ class MongoDbDriver(QueryDriver):
         if node.filters is not None:
             filters = await self.query(node.filters, table_name, **kwargs) or ""
         else:
-            filters = {} #type: ignore
+            filters = {}  # type: ignore
         return f"db.{table_name}.delete_many({filters})"
 
     @query.register
@@ -162,61 +225,63 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity.dict(exclude={'id'})})"
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, table_name: str, **kwargs: Any) -> Any:
+    async def visit(self, node: OpNode, table_name: str, session: Any = None, **kwargs: Any) -> Any:
         raise NotImplementedError
 
     @visit.register
-    async def _(self, node: Create, table_name: str, **kwargs: Any) -> Any:
+    async def _(self, node: Create, table_name: str, session: Any = None, **kwargs: Any) -> Any:
         entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
 
         if isinstance(entity, BaseModel):
             entity = entity.dict(exclude_unset=True, by_alias=True)
+        elif not isinstance(entity, dict):
+            entity = vars(entity)
 
         collection = self.db[table_name]
-        return await collection.insert_one(entity)
+        return await collection.insert_one(entity, session=session) #type: ignore
 
     @visit.register
-    async def _(self, node: Update, table_name: str, *, entity: BaseModel) -> Any:
+    async def _(self, node: Update, table_name: str, *, entity: BaseModel, session: Any = None) -> Any:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
         collection = self.db[table_name]
-        return await collection.update_one(
-            {"_id": _id}, {"$set": entity.dict(exclude_unset=True, exclude={"id"})}
+        return await collection.update_one(  # type: ignore
+            {"_id": _id}, {"$set": entity.dict(exclude_unset=True, exclude={"id"})}, session=session
         )
 
     @visit.register
-    async def _(self, node: Find, table_name: str, **kwargs: Any) -> Any:
+    async def _(self, node: Find, table_name: str, session: Any = None, **kwargs: Any) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table_name, **kwargs) or {}
         else:
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.find(filters).to_list(None)
+        return await collection.find(filters, session=session).to_list(None)
 
     @visit.register
-    async def _(self, node: Delete, table_name: str, **kwargs: Any) -> Any:
+    async def _(self, node: Delete, table_name: str, session: Any = None, **kwargs: Any) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table_name, **kwargs) or {}
         else:
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.delete_many(filters)
+        return await collection.delete_many(filters, session=session) #type: ignore
 
     @visit.register
-    async def _(self, node: Get, table_name: str, **kwargs: Any) -> Any:
+    async def _(self, node: Get, table_name: str, session: Any = None, **kwargs: Any) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table_name, **kwargs) or {}
         else:
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.find_one(filters)
+        return await collection.find_one(filters, session=session) #type: ignore
 
     @visit.register
     async def _(self, node: AndNode, table_name: str, **kwargs: Any) -> Any:

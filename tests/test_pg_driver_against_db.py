@@ -22,9 +22,10 @@ from winter.repository.crud_repository import CrudRepository
 
 
 class Address:
-    def __init__(self, latitude: float, longitude: float) -> None:
+    def __init__(self, latitude: float, longitude: float, users: List['User'] = []) -> None:
         self.latitude = latitude
         self.longitude = longitude
+        self.users = users
 
 
 class User:
@@ -54,7 +55,7 @@ class UserTable(Base):
     name = Column(String)
     age = Column(Integer)
     address_id = Column(Integer, ForeignKey("Addresses.id"))
-    address = relation(AddressTable, lazy="joined")
+    address = relation(AddressTable, lazy="joined", backref="users")
 
 
 @repository(User)
@@ -190,3 +191,13 @@ async def test_repository_can_make_logical_queries(clean: Any) -> None:
 
     ids = [u.id for u in users]
     assert sorted(ids) == [3, 4]
+
+
+@pytest.mark.asyncio
+async def test_repository_can_update_entity(clean: Any) -> None:
+    repo = UserRepository()
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+
+    

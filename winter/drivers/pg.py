@@ -106,7 +106,7 @@ def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -
             field = field_path.pop(0)
             # is this the last one ??
             if field_path == []:
-                return {"where": op(getattr(schema_to_inspect.c, field), value), "joins": joins} #type: ignore
+                return {"where": op(getattr(schema_to_inspect.c, field), value), "joins": joins}  # type: ignore
             else:
                 schema_to_inspect = _resolve_joins(schema_to_inspect, field, joins)
         raise ExecutionError("WTF This should not end here")
@@ -142,14 +142,33 @@ class SqlAlchemyDriver(QueryDriver):
         else:
             return self._sessionmaker()
 
+    async def get_started_session(self) -> AsyncSession:
+        session: AsyncSession = self._sessionmaker()
+        session.begin()
+        return session
+
+    async def commit_transaction(self, session: AsyncSession) -> None:
+        if session.in_transaction():
+            await session.commit()
+
+    async def abort_transaction(self, session: AsyncSession) -> None:
+        if session.in_transaction():
+            await session.rollback()
+
+    async def close_session(self, session: AsyncSession) -> None:
+        if session.in_transaction():
+            await session.close()
+
     async def init_async(self, *args, **kwargs):  # type: ignore
         pass
 
-    def run(self, query_expression: RootNode, table_name: str, **kwargs):  # type: ignore
-        return super().run(query_expression, table_name, **kwargs)
+    def run(self, query_expression: RootNode, table_name: str, session: Any = None, **kwargs):  # type: ignore
+        return super().run(query_expression, table_name, session=session, **kwargs)
 
-    async def run_async(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
-        return await self.visit(query_expression, table_name, **kwargs)
+    async def run_async(
+        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+    ) -> Any:
+        return await self.visit(query_expression, table_name, session=session, **kwargs)
 
     async def get_query_repr(
         self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any
@@ -227,15 +246,15 @@ class SqlAlchemyDriver(QueryDriver):
         raise NotImplementedError
 
     @visit.register
-    async def _(self, node: Find, schema: Type[T], **kwargs: Any) -> List[T]:
+    async def _(self, node: Find, schema: Type[T], session: Any = None, **kwargs: Any) -> List[T]:
         stmt: Select = select(schema)
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
             stmt = _apply(stmt, state)
 
-        if self._session is not None:
-            result: Result = await self._session.execute(stmt)
+        if session is not None:
+            result: Result = await session.execute(stmt)
             return result.scalars().all()
         else:
             async with self._sessionmaker() as session:
@@ -245,15 +264,15 @@ class SqlAlchemyDriver(QueryDriver):
                     return fresh_result.scalars().all()
 
     @visit.register
-    async def _(self, node: Get, schema: Type[T], **kwargs: Any) -> T | None:
+    async def _(self, node: Get, schema: Type[T], session: Any = None, **kwargs: Any) -> T | None:
         stmt: Select = select(schema)
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
             stmt = _apply(stmt, state)
 
-        if self._session is not None:
-            result: Result = await self._session.execute(stmt)
+        if session is not None:
+            result: Result = await session.execute(stmt)
             return result.scalar_one_or_none()
         else:
             async with self._sessionmaker() as session:
@@ -263,7 +282,14 @@ class SqlAlchemyDriver(QueryDriver):
                     return fresh_result.scalar_one_or_none()
 
     @visit.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any] | Any) -> None:
+    async def _(
+        self,
+        node: Update,
+        schema: Type[Any],
+        *,
+        entity: BaseModel | Dict[str, Any] | Any,
+        session: Any = None,
+    ) -> None:
         if isinstance(entity, dict):
             _id = entity.get("id", None)
         else:
@@ -288,8 +314,8 @@ class SqlAlchemyDriver(QueryDriver):
             for key in unset_keys:
                 values.pop(key)
 
-        if self._session is not None:
-            await self._session.execute(stmt)
+        if session is not None:
+            await session.execute(stmt)
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
@@ -297,7 +323,14 @@ class SqlAlchemyDriver(QueryDriver):
                     await _session.execute(stmt)
 
     @visit.register
-    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel | Dict[str, Any] | Any) -> None:
+    async def _(
+        self,
+        node: Create,
+        schema: Type[Any],
+        *,
+        entity: BaseModel | Dict[str, Any] | Any,
+        session: Any = None,
+    ) -> None:
         stmt: InsertStatement = insert(schema)
         if isinstance(entity, BaseModel):
             stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
@@ -311,8 +344,8 @@ class SqlAlchemyDriver(QueryDriver):
                 values.pop(key)
             stmt = stmt.values(**vars(entity))  # type: ignore
 
-        if self._session is not None:
-            await self._session.execute(stmt)
+        if session is not None:
+            await session.execute(stmt)
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
@@ -320,7 +353,7 @@ class SqlAlchemyDriver(QueryDriver):
                     await _session.execute(stmt)
 
     @visit.register
-    async def _(self, node: Delete, schema: Type[Any], **kwargs: Any) -> None:
+    async def _(self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any) -> None:
         stmt: DeleteStatement = delete(schema)
         stmt = stmt.execution_options(synchronize_session=False)
 
@@ -328,8 +361,8 @@ class SqlAlchemyDriver(QueryDriver):
             state = await self.visit(node.filters, schema, **kwargs)
             stmt = _apply(stmt, state)
 
-        if self._session is not None:
-            await self._session.execute(stmt)
+        if session is not None:
+            await session.execute(stmt)
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
