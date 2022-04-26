@@ -1,16 +1,20 @@
-class A:
-    def __init__(self) -> None:
-        self.x = 10
 
-A._my_prop = 10
 
-print(A._my_prop)
+from typing import Any
 
-a = A()
 
-print(a.__class__._my_prop)
+class Duck:
+    def __init__(self, **kwargs: str | int) -> None:
+        self.args = kwargs
 
-class c(A):
+    def __getattribute__(self, __name: str) -> str | int:
+        try:
+            return self.args[__name]
+        except KeyError:
+            raise AttributeError(__name + " is not found")
+
+
+class Donald(Duck):
     pass
 
-print(c._my_prop)
+print(Donald().y)

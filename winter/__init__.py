@@ -25,7 +25,7 @@ class DriverNotSetError(Exception):
 
 def init_backend(settings: WinterSettings = WinterSettings()) -> None:
     """
-    Initialize the winter engine with the priveded driver in the config.
+    Initialize the winter engine with the provided driver in the config.
     Defaults to `winter.drivers.mongo`.
     """
     # try to get driver
