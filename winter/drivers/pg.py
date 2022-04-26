@@ -176,11 +176,11 @@ class SqlAlchemyDriver(QueryDriver):
         return await self.query(query_expression, table_name, **kwargs)
 
     @singledispatchmethod
-    async def query(self, node: OpNode, schema: Type[Any], **kwargs: Any) -> str:
+    async def query(self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
         raise NotImplementedError
 
     @query.register
-    async def _(self, node: Find, schema: Type[Any], **kwargs: Any) -> str:
+    async def _(self, node: Find, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
         stmt: Select = select(schema)
 
         if node.filters is not None:
@@ -190,7 +190,7 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Get, schema: Type[Any], **kwargs: Any) -> str:
+    async def _(self, node: Get, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
         stmt: Select = select(schema)
 
         if node.filters is not None:
@@ -200,7 +200,7 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Delete, schema: Type[Any], **kwargs: Any) -> str:
+    async def _(self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
         stmt: DeleteStatement = delete(schema)
         stmt = stmt.execution_options(synchronize_session=False)
 
@@ -211,7 +211,9 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any]) -> str:
+    async def _(
+        self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any], session: Any = None
+    ) -> str:
         if isinstance(entity, BaseModel):
             _id = getattr(entity, "id", None)
         else:
@@ -232,7 +234,7 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel) -> str:
+    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel, session: Any = None) -> str:
         stmt: InsertStatement = insert(schema)
         if isinstance(entity, BaseModel):
             stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
@@ -242,7 +244,7 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, schema: Type[Any], **kwargs):  # type: ignore
+    async def visit(self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any):  # type: ignore
         raise NotImplementedError
 
     @visit.register

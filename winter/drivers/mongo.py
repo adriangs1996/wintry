@@ -181,11 +181,13 @@ class MongoDbDriver(QueryDriver):
         return await self.visit(query_expression, table_name, session=session, **kwargs)
 
     @singledispatchmethod
-    async def query(self, node: OpNode, table_name: str | Type[Any], **kwargs: Any) -> str:
+    async def query(
+        self, node: OpNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+    ) -> str:
         return await self.visit(node, table_name, **kwargs)
 
     @query.register
-    async def _(self, node: Find, table_name: str, **kwargs: Any) -> str:
+    async def _(self, node: Find, table_name: str, session: Any = None, **kwargs: Any) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table_name, **kwargs) or ""
         else:
@@ -193,7 +195,7 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.find({filters}).to_list()"
 
     @query.register
-    async def _(self, node: Delete, table_name: str, **kwargs: Any) -> str:
+    async def _(self, node: Delete, table_name: str, session: Any = None, **kwargs: Any) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table_name, **kwargs) or ""
         else:
@@ -201,12 +203,12 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.delete_many({filters})"
 
     @query.register
-    async def _(self, node: Get, table_name: str, **kwargs: Any) -> str:
+    async def _(self, node: Get, table_name: str, session: Any = None, **kwargs: Any) -> str:
         filters = await self.query(node.filters, table_name, **kwargs) or ""
         return f"db.{table_name}.find_one({filters})"
 
     @query.register
-    async def _(self, node: Create, table_name: str, **kwargs: Any) -> str:
+    async def _(self, node: Create, table_name: str, session: Any = None, **kwargs: Any) -> str:
         entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
@@ -217,7 +219,7 @@ class MongoDbDriver(QueryDriver):
         return f"db.{table_name}.insert_one({entity})"
 
     @query.register
-    async def _(self, node: Update, table_name: str, *, entity: BaseModel) -> str:
+    async def _(self, node: Update, table_name: str, *, entity: BaseModel, session: Any = None) -> str:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
@@ -240,7 +242,7 @@ class MongoDbDriver(QueryDriver):
             entity = vars(entity)
 
         collection = self.db[table_name]
-        return await collection.insert_one(entity, session=session) #type: ignore
+        return await collection.insert_one(entity, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: Update, table_name: str, *, entity: BaseModel, session: Any = None) -> Any:
@@ -271,7 +273,7 @@ class MongoDbDriver(QueryDriver):
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.delete_many(filters, session=session) #type: ignore
+        return await collection.delete_many(filters, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: Get, table_name: str, session: Any = None, **kwargs: Any) -> Any:
@@ -281,7 +283,7 @@ class MongoDbDriver(QueryDriver):
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.find_one(filters, session=session) #type: ignore
+        return await collection.find_one(filters, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: AndNode, table_name: str, **kwargs: Any) -> Any:

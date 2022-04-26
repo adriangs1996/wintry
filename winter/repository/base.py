@@ -29,7 +29,10 @@ Func = Callable[..., Any]
 
 
 def is_processable(method: Callable[..., Any]) -> bool:
-    return method.__name__ != "__init__" and not getattr(method, "_raw_method", False)
+    try:
+        return method.__name__ != "__init__" and not getattr(method, "_raw_method", False)
+    except:
+        return False
 
 
 def marked(method: Callable[..., Any]) -> bool:
@@ -144,7 +147,9 @@ def repository(
     >>>
     >>> repo = UserRepository()
     >>> loop = asyncio.get_event_loop()
-    >>> user = loop.run_until_complete(repo.get_by_id(id=2)) # It works! And if an user exists, it automatically retrieves an `User` instance. Use MongoDB by default
+    >>> user = loop.run_until_complete(repo.get_by_id(id=2)) # It works!
+    >>>                                                      # And if an user exists, it automatically retrieves an 
+    >>>                                                      # `User` instance. Use MongoDB by default
 
     """
 
@@ -156,17 +161,28 @@ def repository(
                 target_name = table_name or f"{entity.__name__}s".lower()  # type: ignore
 
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
+            # Need to call super on this because we need to obtain a session without passing
+            # through this method
+            session = super(cls, self).__getattribute__("session")  # type: ignore
+            use_session = False
             new_attr = _parse_function_name(__name, attr, target_name, dry)  # type: ignore
 
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                result = new_attr(*args, **kwargs)
+                if use_session:
+                    result = new_attr(*args, session=session, **kwargs)
+                else:
+                    result = new_attr(*args, **kwargs)
                 return map_result_to_entity(entity, result)
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                result = await new_attr(*args, **kwargs)
+                if use_session:
+                    result = await new_attr(*args, session=session, **kwargs)
+                else:
+                    result = await new_attr(*args, **kwargs)
                 return map_result_to_entity(entity, result)  # type: ignore
 
             if isinstance(new_attr, partial):
+                use_session = True
                 if inspect.iscoroutinefunction(new_attr.func):
                     return async_wrapper
                 else:

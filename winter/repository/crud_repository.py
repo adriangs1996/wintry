@@ -1,13 +1,11 @@
 import abc
-from typing import Any, Generic, List, TypeVar
+from typing import List, TypeVar
 from pydantic import BaseModel
+
+from winter.repository import IRepository
 
 T = TypeVar("T")
 TypeId = TypeVar("TypeId")
-
-
-class IRepository(Generic[T, TypeId]):
-    session: Any = None
 
 
 class CrudRepository(IRepository[T, TypeId]):
