@@ -24,8 +24,8 @@ from winter.query.nodes import (
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
 from pydantic import BaseModel
-
 from winter.settings import WinterSettings
+import jsons
 
 
 class MongoSession(AgnosticClientSession):
@@ -124,6 +124,10 @@ def create_expression(node: FilterNode, op: Any, **kwargs: Any) -> Any:
     return op(field_name, value)
 
 
+def dictify(obj: Any) -> dict[str, Any]:
+    return cast(dict[str, Any], jsons.dump(obj, strip_privates=True))
+
+
 class ExecutionError(Exception):
     pass
 
@@ -215,16 +219,31 @@ class MongoDbDriver(QueryDriver):
 
         if isinstance(entity, BaseModel):
             entity = entity.dict(exclude_unset=True, by_alias=True)
+        elif not isinstance(entity, dict):
+            entity = dictify(entity)
+            if entity.get("id", None) is not None:
+                _id = entity.pop("id")
+                entity["_id"] = _id
 
         return f"db.{table_name}.insert_one({entity})"
 
     @query.register
-    async def _(self, node: Update, table_name: str, *, entity: BaseModel, session: Any = None) -> str:
+    async def _(
+        self, node: Update, table_name: str, *, entity: BaseModel | dict[str, Any] | Any, session: Any = None
+    ) -> str:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
-        return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity.dict(exclude={'id'})})"
+        if isinstance(entity, BaseModel):
+            entity = entity.dict(exclude={"id"})
+        elif not isinstance(entity, dict):
+            entity = dictify(entity)
+            if entity.get("id", None) is not None:
+                _id = entity.pop("id")
+                entity["_id"] = _id
+
+        return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity})"
 
     @singledispatchmethod
     async def visit(self, node: OpNode, table_name: str, session: Any = None, **kwargs: Any) -> Any:
@@ -239,21 +258,32 @@ class MongoDbDriver(QueryDriver):
         if isinstance(entity, BaseModel):
             entity = entity.dict(exclude_unset=True, by_alias=True)
         elif not isinstance(entity, dict):
-            entity = vars(entity)
+            entity = dictify(entity)
+            if entity.get("id", None) is not None:
+                _id = entity.pop("id")
+                entity["_id"] = _id
 
         collection = self.db[table_name]
         return await collection.insert_one(entity, session=session)  # type: ignore
 
     @visit.register
-    async def _(self, node: Update, table_name: str, *, entity: BaseModel, session: Any = None) -> Any:
+    async def _(
+        self, node: Update, table_name: str, *, entity: BaseModel | dict[str, Any] | Any, session: Any = None
+    ) -> Any:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
+        if isinstance(entity, BaseModel):
+            entity = entity.dict(exclude_unset=True, exclude={"id"})
+        elif not isinstance(entity, dict):
+            entity = dictify(entity)
+            if entity.get("id", None) is not None:
+                _id = entity.pop("id")
+                entity["_id"] = _id
+
         collection = self.db[table_name]
-        return await collection.update_one(  # type: ignore
-            {"_id": _id}, {"$set": entity.dict(exclude_unset=True, exclude={"id"})}, session=session
-        )
+        return await collection.update_one({"_id": _id}, {"$set": entity}, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: Find, table_name: str, session: Any = None, **kwargs: Any) -> Any:

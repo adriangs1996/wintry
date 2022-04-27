@@ -11,6 +11,7 @@ pydantic = "^1.9.0"
 motor = "^2.5.1"
 SQLAlchemy = {version = "^1.4.35", optional = true}
 asyncpg = {version = "^0.25.0", optional = true}
+jsons = "^1.6.1"
 
 [tool.poetry.extras]
 postgres = ["SQLAlchemy", "asyncpg"]

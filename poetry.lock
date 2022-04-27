@@ -93,6 +93,20 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "jsons"
+version = "1.6.1"
+description = "For serializing Python objects to JSON (dicts) and back"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[package.dependencies]
+typish = ">=1.9.2"
+
+[package.extras]
+test = ["attrs", "coverage", "codecov", "pytest", "scons", "dataclasses", "tzdata"]
+
+[[package]]
 name = "motor"
 version = "2.5.1"
 description = "Non-blocking MongoDB driver for Tornado or asyncio"
@@ -310,13 +324,24 @@ category = "main"
 optional = false
 python-versions = ">=3.6"
 
+[[package]]
+name = "typish"
+version = "1.9.3"
+description = "Functionality for types"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+test = ["numpy", "nptyping (>=1.3.0)", "pycodestyle", "pylint", "mypy", "pytest", "coverage", "codecov"]
+
 [extras]
 postgres = ["SQLAlchemy", "asyncpg"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "81d6bc1155290cf9e2fbaacf594019b175e3dc451b4fec98b6ba63854771c784"
+content-hash = "0cd25472ff3747d8645ff3d13e83faa6f9a4e6e1177ee319bff97217dde2fdf6"
 
 [metadata.files]
 asyncpg = [
@@ -448,6 +473,9 @@ greenlet = [
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
+]
+jsons = [
+    {file = "jsons-1.6.1-py3-none-any.whl", hash = "sha256:51e7485703aa98f0b35bae3c34bd73b8a60526b5d19cd81ec68e47eee42e03ed"},
 ]
 motor = [
     {file = "motor-2.5.1-py3-none-any.whl", hash = "sha256:961fdceacaae2c7236c939166f66415be81be8bbb762da528386738de3a0f509"},
@@ -706,4 +734,7 @@ tomli = [
 typing-extensions = [
     {file = "typing_extensions-4.1.1-py3-none-any.whl", hash = "sha256:21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2"},
     {file = "typing_extensions-4.1.1.tar.gz", hash = "sha256:1a9462dcc3347a79b1f1c0271fbe79e844580bb598bafa1ed208b94da3cdcd42"},
+]
+typish = [
+    {file = "typish-1.9.3-py3-none-any.whl", hash = "sha256:03cfee5e6eb856dbf90244e18f4e4c41044c8790d5779f4e775f63f982e2f896"},
 ]
