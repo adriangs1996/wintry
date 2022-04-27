@@ -128,6 +128,20 @@ def dictify(obj: Any) -> dict[str, Any]:
     return cast(dict[str, Any], jsons.dump(obj, strip_privates=True))
 
 
+def normalize(documents: dict[str, Any] | list[dict[str, Any]]) -> None:
+    if isinstance(documents, list):
+        for doc in documents:
+            normalize(doc)
+
+    elif isinstance(documents, dict):
+        _id = documents.get("_id", None)
+        if _id is not None:
+            documents["id"] = _id
+
+        for v in documents.values():
+            normalize(v)
+
+
 class ExecutionError(Exception):
     pass
 
@@ -293,7 +307,9 @@ class MongoDbDriver(QueryDriver):
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.find(filters, session=session).to_list(None)
+        documents = await collection.find(filters, session=session).to_list(None)
+        normalize(documents)
+        return documents
 
     @visit.register
     async def _(self, node: Delete, table_name: str, session: Any = None, **kwargs: Any) -> Any:
@@ -313,7 +329,11 @@ class MongoDbDriver(QueryDriver):
             filters = {}
         collection = self.db[table_name]
 
-        return await collection.find_one(filters, session=session)  # type: ignore
+        documents = await collection.find_one(filters, session=session)  # type: ignore
+        if documents is not None:
+            normalize(documents)
+
+        return documents
 
     @visit.register
     async def _(self, node: AndNode, table_name: str, **kwargs: Any) -> Any:

@@ -1,13 +1,14 @@
 from typing import Any, AsyncGenerator, List, Optional
 from winter import init_backend
 import winter.backend as bkd
-from winter.drivers.mongo import MongoDbDriver
 import pydantic as pdc
 from winter.repository.base import repository, raw_method
 from winter.repository.crud_repository import CrudRepository
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from dataclasses import dataclass, field
+from bson import ObjectId
 
 
 class Address(pdc.BaseModel):
@@ -20,6 +21,19 @@ class User(pdc.BaseModel):
     name: str
     age: int
     address: Optional[Address] = None
+
+
+@dataclass
+class City:
+    name: str
+    id: ObjectId = field(default_factory=ObjectId)
+
+
+@dataclass(unsafe_hash=True)
+class Hero:
+    id: int
+    name: str
+    cities: list[City] = field(default_factory=list)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -50,10 +64,16 @@ class UserRepository(CrudRepository[User, int]):
         ...
 
 
+@repository(Hero, table_name="heroes")
+class HeroRepository(CrudRepository[Hero, int]):
+    pass
+
+
 @pytest_asyncio.fixture()
 async def clean(db: AsyncIOMotorDatabase) -> AsyncGenerator[None, None]:
     yield
     await db.users.delete_many({})
+    await db.heroes.delete_many({})
 
 
 @pytest.mark.asyncio
@@ -181,3 +201,33 @@ async def test_repository_insert_nested_field(clean: Any, db: AsyncIOMotorDataba
 
     rows = await db.users.find({}).to_list(None)
     assert len(rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_repository_can_insert_dataclass(clean: Any, db: Any) -> None:
+    hero = Hero(id=1, name="Batman", cities=[City(name="Gotham")])
+    repo = HeroRepository()
+
+    await repo.create(entity=hero)
+
+    rows = await db.heroes.find({}).to_list(None)
+    assert len(rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_repository_can_retrieve_dataclass(clean: Any, db: Any) -> None:
+    await db.heroes.insert_one(
+        {
+            "_id": 2,
+            "name": "test2",
+            "cities": [{"_id": ObjectId(), "name": "Gotham"}],
+        }
+    )
+
+    repo = HeroRepository()
+    hero = await repo.get_by_id(id=2)
+
+    assert hero is not None
+    assert hero.name == "test2"
+    assert len(hero.cities) == 1
+    assert isinstance(hero.cities[0], City)

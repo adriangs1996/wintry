@@ -9,6 +9,7 @@ from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__
 import inspect
 from winter.orm import __WINTER_MAPPED_CLASS__
+import jsons
 
 
 __mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
@@ -80,6 +81,10 @@ def _map_to_inner_model_class(_table_instance: Any) -> Any:
         return _table_instance
 
 
+def build_from_dict(entity: Any, instance: dict[str, Any]) -> Any:
+    return jsons.load(instance, entity)
+
+
 @lru_cache
 def _get_type_constructor_params(_type: Type[Any]) -> Set[str]:
     entity_constructor_signature = inspect.signature(_type)
@@ -94,13 +99,16 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> Lis
         except:
             try:
                 # try to build from list of dicts
-                return [entity(**instance) for instance in result]  # type: ignore
+                return [build_from_dict(entity, instance) for instance in result]  # type: ignore
             except:
                 # try to build from list of objects with no from_orm configuration
                 try:
-                    return [_map_to_inner_model_class(instance) for instance in result]  # type: ignore
+                    return [entity(**instance) for instance in result] #type: ignore
                 except:
-                    return result
+                    try:
+                        return [_map_to_inner_model_class(instance) for instance in result]  # type: ignore
+                    except:
+                        return result
 
     try:
         # try to build from object with from_orm
@@ -108,13 +116,16 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> Lis
     except:
         try:
             # try to build from object if it is a dict
-            return entity(**result)  # type: ignore
+            return build_from_dict(entity, result)  # type: ignore
         except:
-            # try to build from object using its defined vars
             try:
-                return _map_to_inner_model_class(result)
+                return entity(**result) #type: ignore
             except:
-                return result
+            # try to build from object using its defined vars
+                try:
+                    return _map_to_inner_model_class(result)
+                except:
+                    return result
 
 
 def repository(
@@ -148,7 +159,7 @@ def repository(
     >>> repo = UserRepository()
     >>> loop = asyncio.get_event_loop()
     >>> user = loop.run_until_complete(repo.get_by_id(id=2)) # It works!
-    >>>                                                      # And if an user exists, it automatically retrieves an 
+    >>>                                                      # And if an user exists, it automatically retrieves an
     >>>                                                      # `User` instance. Use MongoDB by default
 
     """
