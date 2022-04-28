@@ -95,3 +95,23 @@ async def test_unit_of_work_rollbacks_when_error(clean: Any, db: Any) -> None:
 
     rows = await db.users.find({}).to_list(None)
     assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_makes_context_for_objects_syncrhonization(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one({"id": 1, "age": 28, "name": "Batman"})
+
+    async with uow:
+        user = await uow.users.get_by_id(id=1)
+        assert user is not None
+        user.age = 30
+        user.name = "Superman"
+
+        await uow.commit()
+
+    user_row = await db.users.find_one({"id": 1})
+    assert user_row["name"] == "Superman"
+    assert user_row["age"] == 30
