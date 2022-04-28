@@ -9,8 +9,7 @@ from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__
 import inspect
 from winter.orm import __WINTER_MAPPED_CLASS__
-import jsons
-
+from dataclass_wizard import fromdict, fromlist
 
 __mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
 
@@ -81,8 +80,6 @@ def _map_to_inner_model_class(_table_instance: Any) -> Any:
         return _table_instance
 
 
-def build_from_dict(entity: Any, instance: dict[str, Any]) -> Any:
-    return jsons.load(instance, entity)
 
 
 @lru_cache
@@ -91,41 +88,23 @@ def _get_type_constructor_params(_type: Type[Any]) -> Set[str]:
     return set(entity_constructor_signature.parameters.keys())
 
 
-def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None) -> List[T] | T | None:
-    if isinstance(result, list):
+def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None, alch: bool) -> List[T] | T | None:
+    """
+    If `alch` is true, then we are mapping a SQLAlchemy processed entity, which is already
+    mapped, so the only work is with Mongo
+    """
+    if alch:
+        return result
+    else:
+        # here we need entity to be a dataclass
         try:
-            # Try to build from a list using from_orm
-            return [entity.from_orm(instance) for instance in result]  # type: ignore
+            if isinstance(result, list):
+                return fromlist(entity, result)
+            else:
+                return fromdict(entity, result)
         except:
-            try:
-                # try to build from list of dicts
-                return [build_from_dict(entity, instance) for instance in result]  # type: ignore
-            except:
-                # try to build from list of objects with no from_orm configuration
-                try:
-                    return [entity(**instance) for instance in result] #type: ignore
-                except:
-                    try:
-                        return [_map_to_inner_model_class(instance) for instance in result]  # type: ignore
-                    except:
-                        return result
+            raise RepositoryError(f"Query result could not be mapped. Ensure that {entity} is a dataclass")
 
-    try:
-        # try to build from object with from_orm
-        return entity.from_orm(result)  # type: ignore
-    except:
-        try:
-            # try to build from object if it is a dict
-            return build_from_dict(entity, result)  # type: ignore
-        except:
-            try:
-                return entity(**result) #type: ignore
-            except:
-            # try to build from object using its defined vars
-                try:
-                    return _map_to_inner_model_class(result)
-                except:
-                    return result
 
 
 def repository(
@@ -166,10 +145,12 @@ def repository(
 
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
         def _getattribute(self: Any, __name: str) -> Any:
-            if (__target := getattr(entity, __SQL_ENABLED_FLAG__, None)) is not None:
-                target_name = __target  # type: ignore
+            if getattr(entity, __SQL_ENABLED_FLAG__, False):
+                target_name = entity  # type: ignore
+                alch = True
             else:
                 target_name = table_name or f"{entity.__name__}s".lower()  # type: ignore
+                alch = False
 
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
             # Need to call super on this because we need to obtain a session without passing
@@ -183,14 +164,14 @@ def repository(
                     result = new_attr(*args, session=session, **kwargs)
                 else:
                     result = new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result)
+                return map_result_to_entity(entity, result, alch)
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 if use_session:
                     result = await new_attr(*args, session=session, **kwargs)
                 else:
                     result = await new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result)  # type: ignore
+                return map_result_to_entity(entity, result, alch)  # type: ignore
 
             if isinstance(new_attr, partial):
                 use_session = True

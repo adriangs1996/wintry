@@ -1,7 +1,6 @@
 from typing import Any, AsyncGenerator, List, Optional
 from winter import init_backend
 import winter.backend as bkd
-import pydantic as pdc
 from winter.repository.base import repository, raw_method
 from winter.repository.crud_repository import CrudRepository
 import pytest
@@ -11,13 +10,15 @@ from dataclasses import dataclass, field
 from bson import ObjectId
 
 
-class Address(pdc.BaseModel):
+@dataclass
+class Address:
     latitude: float
     longitude: float
 
 
-class User(pdc.BaseModel):
-    id: int = pdc.Field(..., alias="_id")
+@dataclass
+class User:
+    id: int
     name: str
     age: int
     address: Optional[Address] = None
@@ -80,7 +81,7 @@ async def clean(db: AsyncIOMotorDatabase) -> AsyncGenerator[None, None]:
 async def test_repository_can_create_user_against_db(clean: Any, db: AsyncIOMotorDatabase) -> None:
     repo = UserRepository()
 
-    await repo.create(entity=User(_id=1, name="test", age=26))
+    await repo.create(entity=User(id=1, name="test", age=26))
 
     rows = await db.users.find({}).to_list(None)
     assert len(rows) == 1
@@ -91,7 +92,7 @@ async def test_repository_can_update_against_db(clean: Any, db: AsyncIOMotorData
     await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
 
     repo = UserRepository()
-    await repo.update(entity=User(_id=1, name="test", age=20))
+    await repo.update(entity=User(id=1, name="test", age=20))
 
     new_user = await db.users.find_one({"_id": 1})
     assert new_user["age"] == 20
@@ -195,7 +196,7 @@ async def test_nested_field_find_query(clean: Any, db: AsyncIOMotorDatabase) -> 
 
 @pytest.mark.asyncio
 async def test_repository_insert_nested_field(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    user = User(_id=1, name="test", age=10, address=Address(latitude=3.0, longitude=4.0))
+    user = User(id=1, name="test", age=10, address=Address(latitude=3.0, longitude=4.0))
     repo = UserRepository()
     await repo.create(entity=user)
 

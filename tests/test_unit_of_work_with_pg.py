@@ -4,30 +4,31 @@ from winter.orm import for_model
 from winter.repository import repository
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import declarative_base, relation
-from sqlalchemy import Column, Integer, Float, String, ForeignKey, select, delete, insert
+from sqlalchemy.orm import relation
+from sqlalchemy import Column, Integer, Float, String, ForeignKey, select, delete, insert, MetaData
 from winter.repository.crud_repository import CrudRepository
 from winter.settings import ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest_asyncio
 import pytest
 import winter.backend
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
+@dataclass
 class Address:
-    def __init__(self, latitude: float, longitude: float, users: List["User"] = []) -> None:
-        self.latitude = latitude
-        self.longitude = longitude
-        self.users = users
+    id: int
+    latitude: float
+    longitude: float
+    users: list["User"] = field(default_factory=list)
 
 
+@dataclass
 class User:
-    def __init__(self, *, id: int, name: str, age: int, address: Address | None = None) -> None:
-        self.id = id
-        self.name = name
-        self.age = age
-        self.address = address
+    id: int
+    name: str
+    age: int
+    address: Address | None = None
 
 
 @dataclass(unsafe_hash=True)
@@ -38,33 +39,39 @@ class Hero:
 
 
 # Define the table schemas
-Base: Any = declarative_base()
+metadata = MetaData()
 
 
-@for_model(Address)
-class AddressTable(Base):
-    __tablename__ = "Addresses"
-    id = Column(Integer, primary_key=True)
-    latitude = Column(Float)
-    longitude = Column(Float)
+AddressTable = for_model(
+    Address,
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("latitude", Float),
+    Column("longitude", Float),
+    table_name="Addresses",
+)
 
 
-@for_model(User)
-class UserTable(Base):
-    __tablename__ = "Users"
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    age = Column(Integer)
-    address_id = Column(Integer, ForeignKey("Addresses.id"))
-    address = relation(AddressTable, lazy="joined", backref="users")
+UserTable = for_model(
+    User,
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String),
+    Column("age", Integer),
+    Column("address_id", Integer, ForeignKey("Addresses.id")),
+    table_name="Users",
+    address=relation(Address, lazy="joined", backref="users"),
+)
 
 
-@for_model(Hero)
-class HeroTable(Base):
-    __tablename__ = "Heroes"
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    occupation = Column(String)
+HeroTable = for_model(
+    Hero,
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String),
+    Column("occupation", String),
+    table_name="Heroes",
+)
 
 
 @repository(User)
@@ -104,7 +111,7 @@ async def setup() -> None:
     )
     engine = getattr(winter.backend.Backend.driver, "_engine")
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(metadata.create_all)
 
 
 @pytest_asyncio.fixture

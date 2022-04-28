@@ -1,5 +1,6 @@
-from typing import Any, Callable, Dict, Hashable, Type, TypeVar
-from pydantic import BaseModel
+from typing import Any, Callable, Type, TypeVar
+from sqlalchemy.orm import registry
+from sqlalchemy import Table, Column, MetaData
 
 TEntity = TypeVar("TEntity")
 TSchema = TypeVar("TSchema")
@@ -9,10 +10,22 @@ __SQL_ENABLED_FLAG__ = "__sqlalchemy_managed_entity__"
 __WINTER_MAPPED_CLASS__ = "__winter_mapped_class__"
 
 
-def for_model(cls: Type[Any]) -> Callable[[Type[TSchema]], Type[TSchema]]:
-    def create_map(table_definition: Type[TSchema]) -> Type[TSchema]:
-        setattr(cls, __SQL_ENABLED_FLAG__, table_definition)
-        setattr(table_definition, __WINTER_MAPPED_CLASS__, cls)
-        return table_definition
+mapper_registry = registry()
 
-    return create_map
+TableDef = Callable[[], Table]
+
+
+def for_model(
+    cls: Type[Any], metadata: MetaData, *columns: Column, table_name: str | None = None, **kwargs
+) -> Table:
+
+    setattr(cls, __SQL_ENABLED_FLAG__, True)
+    if table_name is None:
+        table_name = cls.__name__ + "s"
+
+    table = Table(table_name, metadata, *columns)
+    mapper_registry.map_imperatively(cls, table, properties=kwargs)
+    return table
+
+
+__all__ = ["__SQL_ENABLED_FLAG__", "__WINTER_MAPPED_CLASS__", "for_model"]

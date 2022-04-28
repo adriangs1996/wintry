@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Any, Dict, Optional, Type, cast
+from typing import Any, Dict, Type, cast
 from winter.backend import QueryDriver
 from winter.query.nodes import (
     AndNode,
@@ -23,9 +23,9 @@ from winter.query.nodes import (
 )
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
-from pydantic import BaseModel
 from winter.settings import WinterSettings
-import jsons
+from dataclasses import is_dataclass
+from dataclass_wizard import asdict
 
 
 class MongoSession(AgnosticClientSession):
@@ -124,24 +124,6 @@ def create_expression(node: FilterNode, op: Any, **kwargs: Any) -> Any:
     return op(field_name, value)
 
 
-def dictify(obj: Any) -> dict[str, Any]:
-    return cast(dict[str, Any], jsons.dump(obj, strip_privates=True))
-
-
-def normalize(documents: dict[str, Any] | list[dict[str, Any]]) -> None:
-    if isinstance(documents, list):
-        for doc in documents:
-            normalize(doc)
-
-    elif isinstance(documents, dict):
-        _id = documents.get("_id", None)
-        if _id is not None:
-            documents["id"] = _id
-
-        for v in documents.values():
-            normalize(v)
-
-
 class ExecutionError(Exception):
     pass
 
@@ -231,31 +213,19 @@ class MongoDbDriver(QueryDriver):
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
 
-        if isinstance(entity, BaseModel):
-            entity = entity.dict(exclude_unset=True, by_alias=True)
-        elif not isinstance(entity, dict):
-            entity = dictify(entity)
-            if entity.get("id", None) is not None:
-                _id = entity.pop("id")
-                entity["_id"] = _id
+        if is_dataclass(entity):
+            entity = asdict(entity, skip_defaults=True)
 
         return f"db.{table_name}.insert_one({entity})"
 
     @query.register
-    async def _(
-        self, node: Update, table_name: str, *, entity: BaseModel | dict[str, Any] | Any, session: Any = None
-    ) -> str:
+    async def _(self, node: Update, table_name: str, *, entity: Any, session: Any = None) -> str:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
-        if isinstance(entity, BaseModel):
-            entity = entity.dict(exclude={"id"})
-        elif not isinstance(entity, dict):
-            entity = dictify(entity)
-            if entity.get("id", None) is not None:
-                _id = entity.pop("id")
-                entity["_id"] = _id
+        if is_dataclass(entity):
+            entity = asdict(entity, exclude=["id"])
 
         return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity})"
 
@@ -269,32 +239,20 @@ class MongoDbDriver(QueryDriver):
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
 
-        if isinstance(entity, BaseModel):
-            entity = entity.dict(exclude_unset=True, by_alias=True)
-        elif not isinstance(entity, dict):
-            entity = dictify(entity)
-            if entity.get("id", None) is not None:
-                _id = entity.pop("id")
-                entity["_id"] = _id
+        if is_dataclass(entity):
+            entity = asdict(entity, skip_defaults=True)
 
         collection = self.db[table_name]
         return await collection.insert_one(entity, session=session)  # type: ignore
 
     @visit.register
-    async def _(
-        self, node: Update, table_name: str, *, entity: BaseModel | dict[str, Any] | Any, session: Any = None
-    ) -> Any:
+    async def _(self, node: Update, table_name: str, *, entity: Any, session: Any = None) -> Any:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
-        if isinstance(entity, BaseModel):
-            entity = entity.dict(exclude_unset=True, exclude={"id"})
-        elif not isinstance(entity, dict):
-            entity = dictify(entity)
-            if entity.get("id", None) is not None:
-                _id = entity.pop("id")
-                entity["_id"] = _id
+        if is_dataclass(entity):
+            entity = asdict(entity, exclude=["id"])
 
         collection = self.db[table_name]
         return await collection.update_one({"_id": _id}, {"$set": entity}, session=session)  # type: ignore
@@ -308,7 +266,6 @@ class MongoDbDriver(QueryDriver):
         collection = self.db[table_name]
 
         documents = await collection.find(filters, session=session).to_list(None)
-        normalize(documents)
         return documents
 
     @visit.register
@@ -330,9 +287,6 @@ class MongoDbDriver(QueryDriver):
         collection = self.db[table_name]
 
         documents = await collection.find_one(filters, session=session)  # type: ignore
-        if documents is not None:
-            normalize(documents)
-
         return documents
 
     @visit.register

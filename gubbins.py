@@ -1,20 +1,32 @@
+from typing import Any, Callable, Type, TypeVar, overload
+from dataclasses import dataclass, field
+from dataclass_wizard import fromdict, asdict
+
+T = TypeVar("T")
 
 
-from typing import Any
+def deco(cls):
+    cls.__do_something__ = lambda x: print("Hello")
+    return cls
+
+@deco
+class Test:
+    def __init__(self) -> None:
+        pass
 
 
-class Duck:
-    def __init__(self, **kwargs: str | int) -> None:
-        self.__dict__.update(kwargs)
 
-    def __getattribute__(self, __name: str) -> str | int:
-        try:
-            return self.__dict__[__name]
-        except KeyError:
-            raise AttributeError(__name + " is not found")
+@dataclass
+class A:
+    x: int
+    _private: str = field(default="Hello")
 
 
-class Donald(Duck):
-    pass
+@dataclass
+class B:
+    y: int
+    a: A
 
-print(Donald().y)
+b = fromdict(B, {"y": 1, "a": {"x": 2}})
+
+print(asdict(b, skip_defaults=True))

@@ -22,7 +22,6 @@ from winter.query.nodes import (
     RootNode,
     Update,
 )
-from pydantic import BaseModel
 from winter.settings import WinterSettings
 from sqlalchemy import select, update, delete, inspect, insert
 from sqlalchemy.sql import (
@@ -32,6 +31,8 @@ from sqlalchemy.sql import (
     Insert as InsertStatement,
 )
 from sqlalchemy.orm import Mapper, RelationshipProperty
+from dataclass_wizard import asdict
+from dataclasses import is_dataclass
 
 
 class ExecutionError(Exception):
@@ -211,35 +212,29 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(
-        self, node: Update, schema: Type[Any], *, entity: BaseModel | Dict[str, Any], session: Any = None
-    ) -> str:
-        if isinstance(entity, BaseModel):
-            _id = getattr(entity, "id", None)
-        else:
-            _id = entity.get("id", None)
+    async def _(self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None) -> str:
+        if not is_dataclass(entity):
+            raise ExecutionError("Entity must be a dataclass")
+
+        _id = getattr(entity, "id", None)
         if _id is None:
-            raise ExecutionError("Entity must have id field")
+            raise ExecutionError("Entity must have an id field")
 
         stmt: UpdateStatement = update(schema)
-        if isinstance(entity, BaseModel):
-            stmt = (
-                stmt.filter_by(id=_id)
-                .values(**entity.dict(exclude={"id"}, exclude_unset=True))
-                .execution_options(synchronize_session=False)
-            )
-        else:
-            entity.pop("id", None)
-            stmt = stmt.filter_by(id=_id).values(**entity).execution_options(synchronize_session=False)
+        stmt = (
+            stmt.filter_by(id=_id)
+            .values(**asdict(entity, exclude=["id"]))
+            .execution_options(synchronize_session=False)
+        )
         return str(stmt)
 
     @query.register
-    async def _(self, node: Create, schema: Type[Any], *, entity: BaseModel, session: Any = None) -> str:
+    async def _(self, node: Create, schema: Type[Any], *, entity: Any, session: Any = None) -> str:
+        if not is_dataclass(entity):
+            raise ExecutionError("Entity must be a dataclass")
+
         stmt: InsertStatement = insert(schema)
-        if isinstance(entity, BaseModel):
-            stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
-        else:
-            stmt = stmt.values(**entity)  # type: ignore
+        stmt = stmt.values(**asdict(entity))  # type: ignore
 
         return str(stmt)
 
@@ -284,37 +279,20 @@ class SqlAlchemyDriver(QueryDriver):
                     return fresh_result.scalar_one_or_none()
 
     @visit.register
-    async def _(
-        self,
-        node: Update,
-        schema: Type[Any],
-        *,
-        entity: BaseModel | Dict[str, Any] | Any,
-        session: Any = None,
-    ) -> None:
-        if isinstance(entity, dict):
-            _id = entity.get("id", None)
-        else:
-            _id = getattr(entity, "id", None)
+    async def _(self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None) -> None:
+        if not is_dataclass(entity):
+            raise ExecutionError("Entity must be a dataclass")
+
+        _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
         stmt: UpdateStatement = update(schema)
-        if isinstance(entity, BaseModel):
-            stmt = (
-                stmt.filter_by(id=_id)
-                .values(**entity.dict(exclude={"id"}, exclude_unset=True))
-                .execution_options(synchronize_session=False)
-            )
-        elif isinstance(entity, dict):
-            entity.pop("id", None)
-            stmt = stmt.filter_by(id=_id).values(**entity).execution_options(synchronize_session=False)
-        else:
-            values = vars(entity)
-            values.pop("id", None)
-            unset_keys = list(filter(lambda k: values[k] is None, values.keys()))
-            for key in unset_keys:
-                values.pop(key)
+        stmt = (
+            stmt.filter_by(id=_id)
+            .values(**asdict(entity, exclude=["id"], skip_defaults=True))
+            .execution_options(synchronize_session=False)
+        )
 
         if session is not None:
             await session.execute(stmt)
@@ -326,33 +304,18 @@ class SqlAlchemyDriver(QueryDriver):
 
     @visit.register
     async def _(
-        self,
-        node: Create,
-        schema: Type[Any],
-        *,
-        entity: BaseModel | Dict[str, Any] | Any,
-        session: Any = None,
+        self, node: Create, schema: Type[Any], *, entity: Any, session: AsyncSession | None = None
     ) -> None:
-        stmt: InsertStatement = insert(schema)
-        if isinstance(entity, BaseModel):
-            stmt = stmt.values(**entity.dict(exclude_unset=True))  # type: ignore
-        elif isinstance(entity, dict):
-            stmt = stmt.values(**entity)  # type: ignore
-        else:
-            # Remove NONE
-            values = vars(entity)
-            unset_keys = list(filter(lambda k: values[k] is None, values.keys()))
-            for key in unset_keys:
-                values.pop(key)
-            stmt = stmt.values(**vars(entity))  # type: ignore
+        if not is_dataclass(entity):
+            raise ExecutionError("Entity must be a dataclass")
 
         if session is not None:
-            await session.execute(stmt)
+            session.add(entity)
         else:
-            async with self._sessionmaker() as session:
-                _session: AsyncSession = session
+            async with self._sessionmaker() as __session:
+                _session: AsyncSession = __session
                 async with _session.begin():
-                    await _session.execute(stmt)
+                    _session.add(entity)
 
     @visit.register
     async def _(self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any) -> None:
