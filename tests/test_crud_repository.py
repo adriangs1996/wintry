@@ -1,4 +1,5 @@
 # Configure te mongo driver
+from dataclasses import dataclass
 import os
 from winter import init_backend
 
@@ -6,7 +7,6 @@ import winter.backend
 from winter.drivers.mongo import MongoDbDriver
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
-from pydantic import BaseModel, Field
 import pytest
 
 
@@ -15,8 +15,9 @@ def setup() -> None:
     init_backend()
 
 
-class User(BaseModel):
-    id: int = Field(..., alias="_id")
+@dataclass
+class User:
+    id: int
     username: str
     password: str
 
@@ -31,17 +32,17 @@ class Repository(CrudRepository[User, int]):
 async def test_repository_can_create_user() -> None:
     repo = Repository()
 
-    str_query = await repo.create(entity=User(_id=10, username="test", password="secret"))
+    str_query = await repo.create(entity=User(id=10, username="test", password="secret"))
 
-    assert str_query == "db.users.insert_one({'_id': 10, 'username': 'test', 'password': 'secret'})"
+    assert str_query == "db.users.insert_one({'id': 10, 'username': 'test', 'password': 'secret'})"
 
 
 @pytest.mark.asyncio
 async def test_repository_can_update_user() -> None:
     repo = Repository()
-    str_query = await repo.update(entity=User(_id=10, username="test", password="secret"))
+    str_query = await repo.update(entity=User(id=10, username="test", password="secret"))
 
-    assert str_query == "db.users.update_one({'_id': 10}, {'username': 'test', 'password': 'secret'})"
+    assert str_query == "db.users.update_one({'id': 10}, {'username': 'test', 'password': 'secret'})"
 
 
 @pytest.mark.asyncio
@@ -57,7 +58,7 @@ async def test_repository_can_find_by_id() -> None:
     repo = Repository()
     str_query = await repo.get_by_id(id=10)
 
-    assert str_query == "db.users.find_one({'$and': [{'_id': {'$eq': 10}}]})"
+    assert str_query == "db.users.find_one({'$and': [{'id': {'$eq': 10}}]})"
 
 
 @pytest.mark.asyncio
@@ -65,7 +66,7 @@ async def test_repository_can_delete() -> None:
     repo = Repository()
     str_query = await repo.delete_by_id(id=10)
 
-    assert str_query == "db.users.delete_many({'$and': [{'_id': {'$eq': 10}}]})"
+    assert str_query == "db.users.delete_many({'$and': [{'id': {'$eq': 10}}]})"
 
 
 @pytest.mark.asyncio

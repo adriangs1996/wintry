@@ -1,15 +1,13 @@
+import inspect
 from datetime import date, datetime
 from enum import Enum
 from functools import lru_cache, partial
-from typing import Any, Callable, Coroutine, List, Optional, Set, Type, TypeVar
-import inspect
-from pydantic import BaseModel
+from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
 
+from dataclass_wizard import fromdict
+from pydantic import BaseModel
 from winter.backend import Backend
-from winter.orm import __SQL_ENABLED_FLAG__
-import inspect
-from winter.orm import __WINTER_MAPPED_CLASS__
-from dataclass_wizard import fromdict, fromlist
+from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 
 __mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
 
@@ -39,55 +37,6 @@ def marked(method: Callable[..., Any]) -> bool:
     return not getattr(method, "_raw_method", False)
 
 
-def _map_to_inner_model_class(_table_instance: Any) -> Any:
-    """
-    Generate a new object with keys from `vars` where values are either
-    builins or mapped classes.
-    """
-
-    # This is needed 'cuz when a driver returns an result object,
-    # it is usually populated with weird fields or it is just
-    # augmented with data that our simple entity does not expect
-    # for example ForeignKeys. Lets just get rid of them and try to
-    # make the best effort to use a valid kw to the entity constructor
-    instance_class = _table_instance.__class__
-    target_class = getattr(instance_class, __WINTER_MAPPED_CLASS__, None)
-
-    if target_class is None:
-        return _table_instance
-
-    initial_dict = vars(_table_instance)
-
-    # Dive recursively into the dictionary, so nested
-    # objects get mapped
-    for key, value in initial_dict.items():
-        class_ = value.__class__
-        if class_ not in __mappings_builtins__:
-            if class_ in __sequences_like__:
-                new_list = [_map_to_inner_model_class(ent) for ent in value]
-                initial_dict[key] = new_list
-            else:
-                new_obj = _map_to_inner_model_class(value)
-                initial_dict[key] = new_obj
-
-    _constructor_params = _get_type_constructor_params(target_class)
-    valid_keys = _constructor_params.intersection(initial_dict.keys())
-    valid_values = {k: initial_dict[k] for k in valid_keys}
-
-    try:
-        return target_class(**valid_values)
-    except:
-        return _table_instance
-
-
-
-
-@lru_cache
-def _get_type_constructor_params(_type: Type[Any]) -> Set[str]:
-    entity_constructor_signature = inspect.signature(_type)
-    return set(entity_constructor_signature.parameters.keys())
-
-
 def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None, alch: bool) -> List[T] | T | None:
     """
     If `alch` is true, then we are mapping a SQLAlchemy processed entity, which is already
@@ -96,15 +45,21 @@ def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None, alch: 
     if alch:
         return result
     else:
+        # There is no need to map if result is None or already an instance of entity
+        if result is None:
+            return None
+
+        if isinstance(result, entity):
+            return result
+
         # here we need entity to be a dataclass
         try:
             if isinstance(result, list):
-                return fromlist(entity, result)
+                return [map_result_to_entity(entity, instance, alch) for instance in result]  # type: ignore
             else:
                 return fromdict(entity, result)
         except:
             raise RepositoryError(f"Query result could not be mapped. Ensure that {entity} is a dataclass")
-
 
 
 def repository(
@@ -164,14 +119,14 @@ def repository(
                     result = new_attr(*args, session=session, **kwargs)
                 else:
                     result = new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result, alch)
+                return map_result_to_entity(entity, result, alch) if not dry else result
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 if use_session:
                     result = await new_attr(*args, session=session, **kwargs)
                 else:
                     result = await new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result, alch)  # type: ignore
+                return map_result_to_entity(entity, result, alch) if not dry else result
 
             if isinstance(new_attr, partial):
                 use_session = True

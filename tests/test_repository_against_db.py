@@ -7,6 +7,7 @@ import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from dataclasses import dataclass, field
+from dataclass_wizard import fromdict
 from bson import ObjectId
 
 
@@ -27,7 +28,7 @@ class User:
 @dataclass
 class City:
     name: str
-    id: ObjectId = field(default_factory=ObjectId)
+    id: str = field(default_factory=lambda: str(ObjectId()))
 
 
 @dataclass(unsafe_hash=True)
@@ -50,7 +51,7 @@ class UserRepository(CrudRepository[User, int]):
         db = bkd.Backend.get_connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
-            return User(**row)
+            return row
         else:
             return None
 
@@ -89,19 +90,19 @@ async def test_repository_can_create_user_against_db(clean: Any, db: AsyncIOMoto
 
 @pytest.mark.asyncio
 async def test_repository_can_update_against_db(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
 
     repo = UserRepository()
     await repo.update(entity=User(id=1, name="test", age=20))
 
-    new_user = await db.users.find_one({"_id": 1})
+    new_user = await db.users.find_one({"id": 1})
     assert new_user["age"] == 20
 
 
 @pytest.mark.asyncio
 async def test_repository_can_retrieve_all_users_from_db(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
-    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
     repo = UserRepository()
     users = await repo.find()
@@ -112,8 +113,8 @@ async def test_repository_can_retrieve_all_users_from_db(clean: Any, db: AsyncIO
 
 @pytest.mark.asyncio
 async def test_repository_can_get_by_id(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
-    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
     repo = UserRepository()
     user = await repo.get_by_id(id=2)
@@ -124,8 +125,8 @@ async def test_repository_can_get_by_id(clean: Any, db: AsyncIOMotorDatabase) ->
 
 @pytest.mark.asyncio
 async def test_repository_returns_none_when_no_id(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
-    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
     repo = UserRepository()
     user = await repo.get_by_id(id=3)
@@ -134,8 +135,8 @@ async def test_repository_returns_none_when_no_id(clean: Any, db: AsyncIOMotorDa
 
 @pytest.mark.asyncio
 async def test_repository_runs_raw_method(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
-    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
     repo = UserRepository()
     user = await repo.get_user_by_name("test2")
@@ -145,8 +146,8 @@ async def test_repository_runs_raw_method(clean: Any, db: AsyncIOMotorDatabase) 
 
 @pytest.mark.asyncio
 async def test_raw_method_can_call_compiled_method(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
-    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
     repo = UserRepository()
     users = await repo.list()
@@ -157,9 +158,9 @@ async def test_raw_method_can_call_compiled_method(clean: Any, db: AsyncIOMotorD
 
 @pytest.mark.asyncio
 async def test_custom_or_method(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
-    await db.users.insert_one({"_id": 2, "name": "test2", "age": 20})
-    await db.users.insert_one({"_id": 3, "name": "test3", "age": 30})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
+    await db.users.insert_one({"id": 3, "name": "test3", "age": 30})
 
     repo = UserRepository()
     users = await repo.find_by_name_or_age_lowerThan(name="test3", age=15)
@@ -169,10 +170,10 @@ async def test_custom_or_method(clean: Any, db: AsyncIOMotorDatabase) -> None:
 
 @pytest.mark.asyncio
 async def test_nested_field_find_query(clean: Any, db: AsyncIOMotorDatabase) -> None:
-    await db.users.insert_one({"_id": 1, "name": "test", "age": 10})
+    await db.users.insert_one({"id": 1, "name": "test", "age": 10})
     await db.users.insert_one(
         {
-            "_id": 2,
+            "id": 2,
             "name": "test2",
             "age": 20,
             "address": {"latitude": 12.345, "longitude": 1.101},
@@ -180,7 +181,7 @@ async def test_nested_field_find_query(clean: Any, db: AsyncIOMotorDatabase) -> 
     )
     await db.users.insert_one(
         {
-            "_id": 3,
+            "id": 3,
             "name": "test3",
             "age": 30,
             "address": {"latitude": 12.345, "longitude": 1.101},
@@ -219,9 +220,9 @@ async def test_repository_can_insert_dataclass(clean: Any, db: Any) -> None:
 async def test_repository_can_retrieve_dataclass(clean: Any, db: Any) -> None:
     await db.heroes.insert_one(
         {
-            "_id": 2,
+            "id": 2,
             "name": "test2",
-            "cities": [{"_id": ObjectId(), "name": "Gotham"}],
+            "cities": [{"id": ObjectId(), "name": "Gotham"}],
         }
     )
 

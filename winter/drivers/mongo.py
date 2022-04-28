@@ -117,10 +117,6 @@ def create_expression(node: FilterNode, op: Any, **kwargs: Any) -> Any:
     if value is None:
         raise ExecutionError(f"{field_name} was not suplied as argument")
 
-    # This is specific to MongoDb, special handling of _id
-    if field_name == "id":
-        field_name = "_id"
-
     return op(field_name, value)
 
 
@@ -227,7 +223,7 @@ class MongoDbDriver(QueryDriver):
         if is_dataclass(entity):
             entity = asdict(entity, exclude=["id"])
 
-        return f"db.{table_name}.update_one({{'_id': {_id}}}, {entity})"
+        return f"db.{table_name}.update_one({{'id': {_id}}}, {entity})"
 
     @singledispatchmethod
     async def visit(self, node: OpNode, table_name: str, session: Any = None, **kwargs: Any) -> Any:
@@ -243,7 +239,7 @@ class MongoDbDriver(QueryDriver):
             entity = asdict(entity, skip_defaults=True)
 
         collection = self.db[table_name]
-        return await collection.insert_one(entity, session=session)  # type: ignore
+        await collection.insert_one(entity, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: Update, table_name: str, *, entity: Any, session: Any = None) -> Any:
@@ -255,7 +251,7 @@ class MongoDbDriver(QueryDriver):
             entity = asdict(entity, exclude=["id"])
 
         collection = self.db[table_name]
-        return await collection.update_one({"_id": _id}, {"$set": entity}, session=session)  # type: ignore
+        await collection.update_one({"id": _id}, {"$set": entity}, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: Find, table_name: str, session: Any = None, **kwargs: Any) -> Any:
