@@ -51,7 +51,7 @@ class UserRepository(CrudRepository[User, int]):
         db = bkd.Backend.get_connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
-            return row
+            return fromdict(User, row)
         else:
             return None
 

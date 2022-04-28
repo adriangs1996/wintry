@@ -98,7 +98,7 @@ async def test_unit_of_work_rollbacks_when_error(clean: Any, db: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_unit_of_work_makes_context_for_objects_syncrhonization(clean: Any, db: Any) -> None:
+async def test_unit_of_work_makes_context_for_objects_synchronization(clean: Any, db: Any) -> None:
     user_repository = UserRepository()
     uow = Uow(user_repository)
 

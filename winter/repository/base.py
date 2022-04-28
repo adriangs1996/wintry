@@ -42,31 +42,6 @@ def marked(method: Callable[..., Any]) -> bool:
     return not getattr(method, "_raw_method", False)
 
 
-def map_result_to_entity(entity: Type[T], result: List[Any] | Any | None, alch: bool) -> List[T] | T | None:
-    """
-    If `alch` is true, then we are mapping a SQLAlchemy processed entity, which is already
-    mapped, so the only work is with Mongo
-    """
-    if alch:
-        return result
-    else:
-        # There is no need to map if result is None or already an instance of entity
-        if result is None:
-            return None
-
-        if isinstance(result, entity):
-            return result
-
-        # here we need entity to be a dataclass
-        try:
-            if isinstance(result, list):
-                return [map_result_to_entity(entity, instance, alch) for instance in result]  # type: ignore
-            else:
-                return fromdict(entity, result)
-        except:
-            raise RepositoryError(f"Query result could not be mapped. Ensure that {entity} is a dataclass")
-
-
 def repository(
     entity: Type[T], table_name: Optional[str] = None, dry: bool = False
 ) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
@@ -111,22 +86,17 @@ def repository(
             setattr(cls, __RepositoryType__, SQL)
         else:
             setattr(cls, __RepositoryType__, NO_SQL)
+            if table_name is not None:
+                setattr(entity, "__tablename__", table_name)
 
         def _getattribute(self: Any, __name: str) -> Any:
-            if getattr(entity, __SQL_ENABLED_FLAG__, False):
-                target_name = entity  # type: ignore
-                alch = True
-            else:
-                target_name = table_name or f"{entity.__name__}s".lower()  # type: ignore
-                alch = False
-
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
             # Need to call super on this because we need to obtain a session without passing
             # through this method
             session = super(cls, self).__getattribute__("session")  # type: ignore
             use_session = False
             try:
-                new_attr = _parse_function_name(__name, attr, target_name, dry)  # type: ignore
+                new_attr = _parse_function_name(__name, attr, entity, dry)  # type: ignore
             except:
                 return attr
 
@@ -135,14 +105,14 @@ def repository(
                     result = new_attr(*args, session=session, **kwargs)
                 else:
                     result = new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result, alch) if not dry else result
+                return result
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 if use_session:
                     result = await new_attr(*args, session=session, **kwargs)
                 else:
                     result = await new_attr(*args, **kwargs)
-                return map_result_to_entity(entity, result, alch) if not dry else result
+                return result
 
             if isinstance(new_attr, partial):
                 use_session = True
