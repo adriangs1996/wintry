@@ -239,3 +239,27 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
         results: Result = await session.execute(select(Address))
 
     assert len(results.all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_uow_automatically_updates_object(clean: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        await session.execute(insert(User).values(id=1, name="test", age=20))
+
+    async with uow:
+        user = await uow.users.get_by_id(id=1)
+        assert user is not None
+        user.age = 30
+        user.name = "updated"
+
+        await uow.commit()
+
+    async with session.begin():
+        results: Result = await session.execute(select(User))
+
+    user = results.scalars().all()[0]
+    assert user.age == 30 and user.name == "updated"
