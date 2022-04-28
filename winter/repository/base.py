@@ -13,6 +13,11 @@ __mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
 
 __sequences_like__ = (dict, list, set)
 
+__RepositoryType__ = "__winter_repository_type__"
+
+NO_SQL = "NO_SQL"
+SQL = "SQL"
+
 
 class RepositoryError(Exception):
     pass
@@ -76,12 +81,13 @@ def repository(
 
     Repository classes are can be used with MongoDB, or any relational DB supported
     by SQLAlchemy. `entity` does not need to fulfill any special rule, but if it is
-    recomended that it derives from `pydantic.BaseModel`.
+    recomended that it'd be a `dataclass`.
 
     Example
     =======
 
-    >>> class User(BaseModel):
+    >>> @dataclass
+    >>> class User:
     >>>     id: int
     >>>     name: str
     >>>
@@ -99,6 +105,13 @@ def repository(
     """
 
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
+        # Mark the repository type so we can distinguish between drivers
+        # before each run
+        if getattr(entity, __SQL_ENABLED_FLAG__, False):
+            setattr(cls, __RepositoryType__, SQL)
+        else:
+            setattr(cls, __RepositoryType__, NO_SQL)
+
         def _getattribute(self: Any, __name: str) -> Any:
             if getattr(entity, __SQL_ENABLED_FLAG__, False):
                 target_name = entity  # type: ignore
@@ -112,7 +125,10 @@ def repository(
             # through this method
             session = super(cls, self).__getattribute__("session")  # type: ignore
             use_session = False
-            new_attr = _parse_function_name(__name, attr, target_name, dry)  # type: ignore
+            try:
+                new_attr = _parse_function_name(__name, attr, target_name, dry)  # type: ignore
+            except:
+                return attr
 
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 if use_session:

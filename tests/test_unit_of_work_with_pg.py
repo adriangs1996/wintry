@@ -119,9 +119,9 @@ async def clean() -> AsyncGenerator[None, None]:
     yield
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(delete(UserTable))
-        await session.execute(delete(AddressTable))
-        await session.execute(delete(HeroTable))
+        await session.execute(delete(User))
+        await session.execute(delete(Address))
+        await session.execute(delete(Hero))
         await session.commit()
 
 
@@ -136,7 +136,7 @@ async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(UserTable))
+        results: Result = await session.execute(select(User))
 
     assert results.all() == []
 
@@ -153,7 +153,7 @@ async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(UserTable))
+        results: Result = await session.execute(select(User))
 
     assert len(results.all()) == 1
 
@@ -173,7 +173,7 @@ async def test_uow_rollbacks_on_error(clean: Any) -> None:
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(UserTable))
+        results: Result = await session.execute(select(User))
 
     assert results.all() == []
 
@@ -191,8 +191,8 @@ async def test_uow_handles_multiple_repositories_under_the_same_session(clean: A
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        users_results: Result = await session.execute(select(UserTable))
-        heroes_results: Result = await session.execute(select(HeroTable))
+        users_results: Result = await session.execute(select(User))
+        heroes_results: Result = await session.execute(select(Hero))
 
     assert users_results.all() == []
     assert heroes_results.all() == []
@@ -212,8 +212,8 @@ async def test_uow_commit_multiple_repositories_under_the_same_session(clean: An
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        users_results: Result = await session.execute(select(UserTable))
-        heroes_results: Result = await session.execute(select(HeroTable))
+        users_results: Result = await session.execute(select(User))
+        heroes_results: Result = await session.execute(select(Hero))
 
     assert len(users_results.all()) == 1
     assert len(heroes_results.all()) == 1
@@ -226,7 +226,7 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+        await session.execute(insert(User).values(id=1, name="test", age=20))
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
@@ -236,6 +236,6 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
         await uow.commit()
 
     async with session.begin():
-        results: Result = await session.execute(select(AddressTable))
+        results: Result = await session.execute(select(Address))
 
     assert len(results.all()) == 1

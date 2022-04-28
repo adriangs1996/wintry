@@ -15,3 +15,7 @@ services:
     image: mongo:5.0.6-focal
     ports:
       - "27017:27017"
+    restart: always
+    volumes:
+      - ./scripts/rs-init.sh:/scripts/rs-init.sh
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
