@@ -1,5 +1,4 @@
-from dataclasses import is_dataclass
-from dataclass_wizard import asdict
+from dataclasses import is_dataclass, asdict
 from typing import Any
 from winter.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
 from winter.backend import Backend
@@ -30,7 +29,8 @@ class MongoSessionTracker:
 
         for modified_instance in self._modified:
             if (_id := getattr(modified_instance, "id", None)) is not None:
-                values = asdict(modified_instance, exclude=["id"])
+                values = asdict(modified_instance)
+                values.pop("id", None)
                 await collection.update_one({"id": _id}, {"$set": values}, session=session)
 
         self._modified = list()

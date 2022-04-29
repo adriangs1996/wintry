@@ -37,15 +37,38 @@ class Proxy:
     def __init__(self, instance, tracker) -> None:
         super().__setattr__("instance", instance)
         super().__setattr__("tracker", tracker)
+        super().__setattr__("regs", False)
 
     def __getattribute__(self, __name: str) -> Any:
         return getattr(super().__getattribute__("instance"), __name)
 
     def __setattr__(self, __name: str, __value: Any) -> None:
-        tracker: MongoSessionTracker = super().__getattribute__("tracker")
         instance = super().__getattribute__("instance")
-        tracker.add(instance)
-        return setattr(super().__getattribute__("instance"), __name, __value)
+        regs = super().__getattribute__("regs")
+        if not regs:
+            tracker: MongoSessionTracker = super().__getattribute__("tracker")
+            tracker.add(instance)
+            super().__setattr__("regs", True)
+        return setattr(instance, __name, __value)
+
+
+class ProxyList(list):
+    def set_tracking_info(self, tracker, instance):
+        self.tracker = tracker
+        self.instance = instance
+        self.regs = False
+
+    def append(self, __object: Any) -> None:
+        if not self.regs:
+            self.tracker.add(self.instance)
+            self.regs = True
+        return super().append(__object)
+
+    def remove(self, __value: Any) -> None:
+        if not self.regs:
+            self.tracker.add(self.instance)
+            self.regs = True
+        return super().remove(__value)
 
 
 def proxyfied(result: Any | list[Any], tracker, origin: Any):
@@ -54,7 +77,12 @@ def proxyfied(result: Any | list[Any], tracker, origin: Any):
     if not isinstance(result, list):
         for k, v in vars(result).items():
             if not v.__class__ in __mappings_builtins__:
-                setattr(result, k, proxyfied(v, tracker, origin))
+                if isinstance(v, list):
+                    proxy_list = ProxyList(proxyfied(val, tracker, origin) for val in v)
+                    proxy_list.set_tracking_info(tracker, origin)
+                    setattr(result, k, proxy_list)
+                else:
+                    setattr(result, k, proxyfied(v, tracker, origin))
         setattr(result, "__winter_track_target__", origin)
         return Proxy(result, tracker)
     else:

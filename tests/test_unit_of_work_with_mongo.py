@@ -23,6 +23,7 @@ class User:
     name: str
     age: int
     address: Address | None = None
+    heroes: list["Hero"] = field(default_factory=list)
 
 
 @repository(User, mongo_session_managed=True)
@@ -193,3 +194,42 @@ async def test_unit_of_work_respects_ignore_synchronization_flag(clean: Any, db:
 
     rows = await db.heroes.find({}).to_list(None)
     assert len(rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_synchronize_nested_objects(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one(
+        {"id": 1, "age": 28, "name": "Batman", "address": {"latitude": 1.0, "longitude": 2.0}}
+    )
+
+    async with uow:
+        user = await uow.users.get_by_id(id=1)
+        assert user is not None
+        assert user.address is not None
+        user.address.latitude = 3.0
+        await uow.commit()
+
+    user_row = await db.users.find_one({"id": 1})
+    assert user_row["address"] == {"latitude": 3.0, "longitude": 2.0}
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_synchronize_on_list_append(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one(
+        {"id": 1, "age": 28, "name": "Batman", "address": {"latitude": 1.0, "longitude": 2.0}}
+    )
+
+    async with uow:
+        user = await uow.users.get_by_id(id=1)
+        assert user is not None
+        user.heroes.append(Hero(name="Batgirl"))
+        await uow.commit()
+
+    user_row = await db.users.find_one({"id": 1})
+    assert len(user_row["heroes"]) == 1

@@ -1,9 +1,24 @@
-from dataclasses import asdict, dataclass
-from functools import partial
-from typing import Any
+from dataclasses import dataclass, asdict as std_asdict
+from typing import cast
+from winter.repository.base import proxyfied
+from dataclass_wizard import fromdict, asdict
+import pydantic
+
+class AModel(pydantic.BaseModel):
+    x: int
+
+    class Config:
+        orm_mode = True
+
+class Model(pydantic.BaseModel):
+    a: AModel
+    b: int
+
+    class Config:
+        orm_mode = True
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class A:
     x: int
 
@@ -11,32 +26,26 @@ class A:
         print(string)
 
 
-@dataclass
-class Proxy:
-    def __init__(self, instance) -> None:
-        super().__setattr__('instance', instance)
+@dataclass(unsafe_hash=True)
+class B:
+    a: A
+    b: int
 
-    def __getattribute__(self, __name: str) -> Any:
-        return getattr(super().__getattribute__('instance'), __name)
+b = fromdict(B, {"a": {"x": 10}, "b": 20})
 
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        print("PROXYED")
-        return setattr(super().__getattribute__('instance'), __name, __value)
+c = cast(B, proxyfied(b, set(), b))
 
+c.a.x = 1
 
-def _setattr(self, __name, value):
-    print(__name)
-    return super(self.__class__, self).__setattr__(__name, value)
+print(b.a.x)
+print(c.a.x)
+print(asdict(b, cls=B))
+print(asdict(c, cls=B))
 
+print(std_asdict(c))
+print(std_asdict(b))
 
-setattr(A, "dirty", False)
+d = Model.from_orm(c)
 
-a = A(x=1)
-a = Proxy(a)
-
-a.x = 2
-a.some_method("Hello")
-b = A(x=2)
-
-print(asdict(a))
-print(isinstance(a, A))
+e = proxyfied(d, set(), d)
+print(e.dict())
