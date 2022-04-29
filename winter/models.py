@@ -137,3 +137,6 @@ def model(
         return make_proxy_ref
     else:
         return make_proxy_ref(cls)
+
+
+all = ['model', 'is_private_attr']

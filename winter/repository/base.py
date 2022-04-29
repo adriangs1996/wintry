@@ -1,10 +1,8 @@
-from dataclasses import dataclass
 import inspect
 from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
 from winter.models import _is_private_attr
 
-from pydantic import BaseModel
 from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from winter.sessions import MongoSessionTracker
@@ -27,7 +25,7 @@ class RepositoryError(Exception):
     pass
 
 
-T = TypeVar("T", Any, BaseModel)
+T = TypeVar("T")
 TDecorated = TypeVar("TDecorated")
 
 RuntimeDecorator = Callable[[Type[TDecorated]], Type[TDecorated]]
