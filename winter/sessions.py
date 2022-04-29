@@ -16,9 +16,10 @@ class MongoSessionTracker:
         self._modified = list()
 
     def add(self, instance: Any):
-        assert is_dataclass(instance)
-        if instance not in self._modified:
-            self._modified.append(instance)
+        if (target := getattr(instance, "__winter_track_target__", None)) is not None:
+            if target not in self._modified:
+                assert is_dataclass(target)
+                self._modified.append(target)
 
     async def flush(self, session: MongoSession):
         assert Backend.driver is not None

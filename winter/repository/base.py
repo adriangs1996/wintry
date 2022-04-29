@@ -10,7 +10,7 @@ from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from winter.sessions import MongoSessionTracker
 
-__mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
+__mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime, dict, set)
 
 __sequences_like__ = (dict, list, set)
 
@@ -48,13 +48,20 @@ class Proxy:
         return setattr(super().__getattribute__("instance"), __name, __value)
 
 
-def proxyfied(result: Any | list[Any], tracker):
+def proxyfied(result: Any | list[Any], tracker, origin: Any):
     if result is None:
         return result
     if not isinstance(result, list):
+        for k, v in vars(result).items():
+            if not v.__class__ in __mappings_builtins__:
+                setattr(result, k, proxyfied(v, tracker, origin))
+        setattr(result, "__winter_track_target__", origin)
         return Proxy(result, tracker)
     else:
-        return list(proxyfied(r, tracker) for r in result)
+        if isinstance(origin, list):
+            return list(proxyfied(r, tracker, r) for r in result)
+        else:
+            return list(proxyfied(r, tracker, origin) for r in result)
 
 
 def is_processable(method: Callable[..., Any]) -> bool:
@@ -139,7 +146,7 @@ def repository(
                     result = new_attr(*args, session=session, **kwargs)
                     if not using_sqlalchemy and mongo_session_managed:
                         tracker = getattr(cls, "__winter_tracker__")
-                        return proxyfied(result, tracker)  # type: ignore
+                        return proxyfied(result, tracker, result)  # type: ignore
                 else:
                     result = new_attr(*args, **kwargs)
                 return result
@@ -149,7 +156,7 @@ def repository(
                     result = await new_attr(*args, session=session, **kwargs)
                     if not using_sqlalchemy and mongo_session_managed:
                         tracker = getattr(cls, "__winter_tracker__")
-                        return proxyfied(result, tracker)  # type: ignore
+                        return proxyfied(result, tracker, result)  # type: ignore
                 else:
                     result = await new_attr(*args, **kwargs)
                 return result

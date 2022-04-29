@@ -156,6 +156,26 @@ async def test_unit_of_work_automatically_creates_related_objects(clean: Any, db
 
 
 @pytest.mark.asyncio
+async def test_unit_of_work_can_track_objects_in_lists(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one({"id": 1, "age": 28, "name": "Batman"})
+    await db.users.insert_one({"id": 2, "age": 30, "name": "Superman"})
+    await db.users.insert_one({"id": 3, "age": 24, "name": "Flash"})
+    await db.users.insert_one({"id": 4, "age": 26, "name": "Aquaman"})
+    await db.users.insert_one({"id": 5, "age": 29, "name": "IronMan"})
+
+    async with uow:
+        users = await uow.users.find()
+        users[2].name = "Luke"
+        await uow.commit()
+
+    user_row = await db.users.find_one({"name": "Luke"})
+    assert user_row is not None
+
+
+@pytest.mark.asyncio
 async def test_unit_of_work_respects_ignore_synchronization_flag(clean: Any, db: Any) -> None:
     hero_repository = HeroRepository()
     uow = HeroUow(hero_repository)
