@@ -234,3 +234,18 @@ async def test_unit_of_work_synchronize_on_list_append(clean: Any, db: Any) -> N
 
     user_row = await db.users.find_one({"id": 1})
     assert len(user_row["heroes"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_updates_entity_after_creating_it(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    async with uow:
+        user = await uow.users.create(entity=User(id=1, name="Batman", age=28))
+        user.name = "Superman"
+        await uow.commit()
+
+    new_user = await user_repository.get_by_id(id=1)
+    assert new_user is not None
+    assert new_user.name == "Superman"

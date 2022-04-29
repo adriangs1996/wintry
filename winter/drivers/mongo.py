@@ -252,6 +252,7 @@ class MongoDbDriver(QueryDriver):
 
         collection = self.db[get_tablename(table)]
         await collection.insert_one(entity, session=session)  # type: ignore
+        return map_to_table(table, entity)
 
     @visit.register
     async def _(self, node: Update, table: type, *, entity: Any, session: Any = None) -> Any:
