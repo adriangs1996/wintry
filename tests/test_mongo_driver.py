@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from winter.models import model
 from winter.query.nodes import (
     AndNode,
     Create,
@@ -12,7 +12,7 @@ from winter.drivers.mongo import MongoDbDriver
 import pytest
 
 
-@dataclass
+@model
 class User:
     id: int
     name: str

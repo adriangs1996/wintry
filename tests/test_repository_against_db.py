@@ -1,6 +1,7 @@
 from typing import Any, AsyncGenerator, List, Optional
 from winter import init_backend
 import winter.backend as bkd
+from winter.models import model
 from winter.repository.base import repository, raw_method
 from winter.repository.crud_repository import CrudRepository
 import pytest
@@ -11,13 +12,13 @@ from dataclass_wizard import fromdict
 from bson import ObjectId
 
 
-@dataclass
+@model
 class Address:
     latitude: float
     longitude: float
 
 
-@dataclass
+@model
 class User:
     id: int
     name: str
@@ -25,13 +26,13 @@ class User:
     address: Optional[Address] = None
 
 
-@dataclass
+@model
 class City:
     name: str
     id: str = field(default_factory=lambda: str(ObjectId()))
 
 
-@dataclass(unsafe_hash=True)
+@model(unsafe_hash=True)
 class Hero:
     id: int
     name: str

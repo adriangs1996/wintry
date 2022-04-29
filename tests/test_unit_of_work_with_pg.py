@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator, List
 from winter import get_connection, init_backend
+from winter.models import model
 from winter.orm import for_model
 from winter.repository import repository
 from sqlalchemy.engine.result import Result
@@ -15,7 +16,7 @@ import winter.backend
 from dataclasses import dataclass, field
 
 
-@dataclass
+@model
 class Address:
     id: int
     latitude: float
@@ -23,7 +24,7 @@ class Address:
     users: list["User"] = field(default_factory=list)
 
 
-@dataclass
+@model
 class User:
     id: int
     name: str
@@ -31,7 +32,7 @@ class User:
     address: Address | None = None
 
 
-@dataclass(unsafe_hash=True)
+@model(unsafe_hash=True)
 class Hero:
     name: str
     id: int

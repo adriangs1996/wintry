@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator, List
 from winter import init_backend, get_connection
+from winter.models import model
 
 from winter.settings import ConnectionOptions, WinterSettings
 
@@ -8,12 +9,12 @@ import winter.backend
 
 from winter.orm import for_model
 from sqlalchemy import Integer, Column, String, ForeignKey, Float, delete, select, insert, Table, MetaData
-from sqlalchemy.orm import relation, declarative_base
+from sqlalchemy.orm import relation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine.result import Result
 import pytest
 import pytest_asyncio
-from dataclasses import dataclass, field
+from dataclasses import field
 
 
 # Now import the repository
@@ -21,7 +22,7 @@ from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
 
 
-@dataclass
+@model
 class Address:
     id: int
     latitude: float
@@ -29,7 +30,7 @@ class Address:
     users: list["User"] = field(default_factory=list)
 
 
-@dataclass
+@model
 class User:
     id: int
     name: str

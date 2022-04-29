@@ -2,6 +2,7 @@ from dataclasses import is_dataclass, asdict
 from typing import Any
 from winter.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
 from winter.backend import Backend
+from winter.utils.keys import __winter_track_target__
 
 
 class MongoSessionTracker:
@@ -15,7 +16,7 @@ class MongoSessionTracker:
         self._modified = list()
 
     def add(self, instance: Any):
-        if (target := getattr(instance, "__winter_track_target__", None)) is not None:
+        if (target := getattr(instance, __winter_track_target__, None)) is not None:
             if target not in self._modified:
                 assert is_dataclass(target)
                 self._modified.append(target)

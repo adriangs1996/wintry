@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 import pytest
 from winter.drivers.pg import ExecutionError, SqlAlchemyDriver
+from winter.models import model
 from winter.orm import for_model
 from sqlalchemy.orm import relation
 from sqlalchemy import Integer, String, Column, ForeignKey, MetaData
@@ -12,13 +12,13 @@ from winter.query.nodes import AndNode, Create, EqualToNode, Find, Get, OrNode, 
 metadata = MetaData()
 
 
-@dataclass
+@model
 class User:
     id: int
     username: str
 
 
-@dataclass
+@model
 class Address:
     id: int
     user: User

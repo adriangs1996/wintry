@@ -1,10 +1,7 @@
 # Configure te mongo driver
-from dataclasses import dataclass
-import os
 from winter import init_backend
+from winter.models import model
 
-import winter.backend
-from winter.drivers.mongo import MongoDbDriver
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
 import pytest
@@ -15,7 +12,7 @@ def setup() -> None:
     init_backend()
 
 
-@dataclass
+@model
 class User:
     id: int
     username: str

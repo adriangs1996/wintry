@@ -1,13 +1,10 @@
 from typing import Any, Callable, Type, TypeVar
 from sqlalchemy.orm import registry
 from sqlalchemy import Table, Column, MetaData
+from winter.utils.keys import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 
 TEntity = TypeVar("TEntity")
 TSchema = TypeVar("TSchema")
-
-
-__SQL_ENABLED_FLAG__ = "__sqlalchemy_managed_entity__"
-__WINTER_MAPPED_CLASS__ = "__winter_mapped_class__"
 
 
 mapper_registry = registry()

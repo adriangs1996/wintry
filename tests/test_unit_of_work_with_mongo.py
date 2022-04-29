@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Any, AsyncGenerator
 from winter import get_connection, init_backend
+from winter.models import model
 
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
@@ -11,13 +12,13 @@ import pytest_asyncio
 from bson import ObjectId
 
 
-@dataclass
+@model
 class Address:
     latitude: float
     longitude: float
 
 
-@dataclass
+@model
 class User:
     id: int
     name: str
@@ -31,7 +32,7 @@ class UserRepository(CrudRepository[User, int]):
     pass
 
 
-@dataclass
+@model
 class Hero:
     name: str
     id: str = field(default_factory=lambda: str(ObjectId()))

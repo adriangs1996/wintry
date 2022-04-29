@@ -1,23 +1,26 @@
 from dataclasses import dataclass
 import inspect
-from datetime import date, datetime
-from enum import Enum
 from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
+from winter.models import _is_private_attr
 
 from pydantic import BaseModel
 from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from winter.sessions import MongoSessionTracker
-
-__mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime, dict, set)
-
-__sequences_like__ = (dict, list, set)
-
-__RepositoryType__ = "__winter_repository_type__"
-
-NO_SQL = "NO_SQL"
-SQL = "SQL"
+from winter.utils.keys import (
+    __mappings_builtins__,
+    __RepositoryType__,
+    __winter_in_session_flag__,
+    __winter_track_target__,
+    __winter_tracker__,
+    __winter_modified_entity_state__,
+    __winter_old_setattr__,
+    __winter_repo_old_init__,
+    __winter_manage_objects__,
+    SQL,
+    NO_SQL,
+)
 
 
 class RepositoryError(Exception):
@@ -32,59 +35,67 @@ RuntimeParsedMethod = partial[Any], partial[Coroutine[Any, Any, Any]]
 Func = Callable[..., Any]
 
 
-@dataclass
-class Proxy:
-    def __init__(self, instance, tracker) -> None:
-        super().__setattr__("instance", instance)
-        super().__setattr__("tracker", tracker)
-        super().__setattr__("regs", False)
-
-    def __getattribute__(self, __name: str) -> Any:
-        return getattr(super().__getattribute__("instance"), __name)
-
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        instance = super().__getattribute__("instance")
-        regs = super().__getattribute__("regs")
-        if not regs:
-            tracker: MongoSessionTracker = super().__getattribute__("tracker")
-            tracker.add(instance)
-            super().__setattr__("regs", True)
-        return setattr(instance, __name, __value)
-
-
 class ProxyList(list):
     def set_tracking_info(self, tracker, instance):
         self.tracker = tracker
         self.instance = instance
         self.regs = False
 
-    def append(self, __object: Any) -> None:
-        if not self.regs:
+    def track(self):
+        # Check for modified flag, so we ensure that this object is addded just once
+        modified = getattr(self.instance, __winter_modified_entity_state__, False)
+        if not modified and not self.regs:
             self.tracker.add(self.instance)
             self.regs = True
+            setattr(self.instance, __winter_modified_entity_state__, True)
+
+    def append(self, __object: Any) -> None:
+        self.track()
         return super().append(__object)
 
     def remove(self, __value: Any) -> None:
-        if not self.regs:
-            self.tracker.add(self.instance)
-            self.regs = True
+        self.track()
         return super().remove(__value)
 
 
 def proxyfied(result: Any | list[Any], tracker, origin: Any):
+    """
+    When a Domain class (A dataclass) is bound to a repository, it
+    gets overwrite its :func:`__setattr__` to add tracker information
+    on attribute change. This means that we need to augment this instance
+    to comply to the interface defined by the new :func:`__setattr__` implemented
+    with a call to :func:`make_proxy_ref`
+    """
     if result is None:
         return result
+
     if not isinstance(result, list):
         for k, v in vars(result).items():
-            if not v.__class__ in __mappings_builtins__:
+            # Proxify recursively this instance.
+            # Ignore private attributes as well as builtin ones
+            if not _is_private_attr(k) and not v.__class__ in __mappings_builtins__:
                 if isinstance(v, list):
+                    # If this is a list, we must convert it to a proxylist
+                    # to allow for append and remove synchronization
                     proxy_list = ProxyList(proxyfied(val, tracker, origin) for val in v)
+                    # Set tracking information for the list
                     proxy_list.set_tracking_info(tracker, origin)
+                    # Update value for k
                     setattr(result, k, proxy_list)
                 else:
+                    # Update value for K with a Proxified version
                     setattr(result, k, proxyfied(v, tracker, origin))
-        setattr(result, "__winter_track_target__", origin)
-        return Proxy(result, tracker)
+
+        # Augment instance with special variables so tracking is possible
+        # Set track target (this allow to child objects to reference the root entity)
+        setattr(result, __winter_track_target__, origin)
+        # Mark this instance as being tracked by a session
+        setattr(result, __winter_in_session_flag__, True)
+        # Save the repo tracker associated with this instance
+        setattr(result, __winter_tracker__, tracker)
+        # Set the instance state (not modified)
+        setattr(result, __winter_modified_entity_state__, False)
+        return result
     else:
         if isinstance(origin, list):
             return list(proxyfied(r, tracker, r) for r in result)
@@ -140,7 +151,20 @@ def repository(
 
     """
 
+    def __winter_init__(self, *args, **kwargs):
+        original_init = getattr(self, __winter_repo_old_init__)
+        original_init(*args, **kwargs)
+
+        # init tracker in the instance, because we do not
+        # want to share trackers among repositories
+        if mongo_session_managed:
+            setattr(self, __winter_tracker__, MongoSessionTracker(entity))
+
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
+        # update the init method and save the original init
+        setattr(cls, __winter_repo_old_init__, cls.__init__)
+        setattr(cls, "__init__", __winter_init__)
+
         # Mark the repository type so we can distinguish between drivers
         # before each run
         if getattr(entity, __SQL_ENABLED_FLAG__, False):
@@ -155,8 +179,7 @@ def repository(
         # Prepare the repository with augmented properties
         setattr(cls, "session", None)
         if mongo_session_managed:
-            setattr(cls, "__winter_tracker__", MongoSessionTracker(entity))
-            setattr(cls, "__winter_manage_objects__", True)
+            setattr(cls, __winter_manage_objects__, True)
 
         def _getattribute(self: Any, __name: str) -> Any:
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
@@ -173,7 +196,9 @@ def repository(
                 if use_session:
                     result = new_attr(*args, session=session, **kwargs)
                     if not using_sqlalchemy and mongo_session_managed:
-                        tracker = getattr(cls, "__winter_tracker__")
+                        # Track the results, get the tracker instance from
+                        # the repo instance
+                        tracker = getattr(self, __winter_tracker__)
                         return proxyfied(result, tracker, result)  # type: ignore
                 else:
                     result = new_attr(*args, **kwargs)
@@ -183,7 +208,7 @@ def repository(
                 if use_session:
                     result = await new_attr(*args, session=session, **kwargs)
                     if not using_sqlalchemy and mongo_session_managed:
-                        tracker = getattr(cls, "__winter_tracker__")
+                        tracker = getattr(self, __winter_tracker__)
                         return proxyfied(result, tracker, result)  # type: ignore
                 else:
                     result = await new_attr(*args, **kwargs)
