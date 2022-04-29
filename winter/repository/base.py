@@ -69,7 +69,7 @@ def marked(method: Callable[..., Any]) -> bool:
 
 
 def repository(
-    entity: Type[T], table_name: Optional[str] = None, dry: bool = False, mongo_session_managed: bool = True
+    entity: Type[T], table_name: Optional[str] = None, dry: bool = False, mongo_session_managed: bool = False
 ) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
     """
     Convert a class into a repository (basically an object store) of `entity`.

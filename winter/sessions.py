@@ -33,3 +33,6 @@ class MongoSessionTracker:
                 await collection.update_one({"id": _id}, {"$set": values}, session=session)
 
         self._modified = list()
+
+    def clean(self):
+        self._modified = list()

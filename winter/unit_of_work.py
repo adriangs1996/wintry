@@ -59,6 +59,12 @@ class UnitOfWork:
         self.session = None
         for repo in self.repositories.values():
             setattr(repo, "session", None)
+            if (
+                getattr(repo, "__winter_manage_objects__", False)
+                and getattr(repo, __RepositoryType__, None) == NO_SQL
+            ):
+                tracker: MongoSessionTracker = getattr(repo, "__winter_tracker__")
+                tracker.clean()
 
     def __getattribute__(self, __name: str) -> Any:
         """

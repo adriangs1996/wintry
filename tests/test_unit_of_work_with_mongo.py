@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, AsyncGenerator
 from winter import get_connection, init_backend
 
@@ -8,6 +8,7 @@ from winter.settings import ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest
 import pytest_asyncio
+from bson import ObjectId
 
 
 @dataclass
@@ -24,9 +25,28 @@ class User:
     address: Address | None = None
 
 
-@repository(User)
+@repository(User, mongo_session_managed=True)
 class UserRepository(CrudRepository[User, int]):
     pass
+
+
+@dataclass
+class Hero:
+    name: str
+    id: str = field(default_factory=lambda: str(ObjectId()))
+
+
+@repository(Hero, table_name="heroes")
+class HeroRepository(CrudRepository[Hero, str]):
+    async def get_by_name(self, *, name: str) -> Hero | None:
+        ...
+
+
+class HeroUow(UnitOfWork):
+    heroes: HeroRepository
+
+    def __init__(self, heroes: HeroRepository) -> None:
+        super().__init__(heroes=heroes)
 
 
 class Uow(UnitOfWork):
@@ -52,6 +72,7 @@ def db() -> Any:
 async def clean(db: Any) -> AsyncGenerator[None, None]:
     yield
     await db.users.delete_many({})
+    await db.heroes.delete_many({})
 
 
 @pytest.mark.asyncio
@@ -131,4 +152,24 @@ async def test_unit_of_work_automatically_creates_related_objects(clean: Any, db
         await uow.commit()
 
     user_row = await db.users.find_one({"id": 1})
-    assert user_row["address"]["latitude"] == 12.1
+    assert user_row["address"] == {"latitude": 12.1, "longitude": 1.1}
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_respects_ignore_synchronization_flag(clean: Any, db: Any) -> None:
+    hero_repository = HeroRepository()
+    uow = HeroUow(hero_repository)
+
+    await db.heroes.insert_one({"id": str(ObjectId()), "name": "Batman"})
+
+    async with uow:
+        hero = await uow.heroes.get_by_name(name="Batman")
+        assert hero is not None
+        hero.name = "Superman"
+        await uow.commit()
+
+    row = await db.heroes.find_one({"name": "Superman"})
+    assert row is None
+
+    rows = await db.heroes.find({}).to_list(None)
+    assert len(rows) == 1
