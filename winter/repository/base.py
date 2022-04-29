@@ -1,13 +1,14 @@
+from dataclasses import dataclass
 import inspect
 from datetime import date, datetime
 from enum import Enum
 from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
 
-from dataclass_wizard import fromdict
 from pydantic import BaseModel
 from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
+from winter.sessions import MongoSessionTracker
 
 __mappings_builtins__ = (int, str, Enum, float, bool, bytes, date, datetime)
 
@@ -31,6 +32,31 @@ RuntimeParsedMethod = partial[Any], partial[Coroutine[Any, Any, Any]]
 Func = Callable[..., Any]
 
 
+@dataclass
+class Proxy:
+    def __init__(self, instance, tracker) -> None:
+        super().__setattr__("instance", instance)
+        super().__setattr__("tracker", tracker)
+
+    def __getattribute__(self, __name: str) -> Any:
+        return getattr(super().__getattribute__("instance"), __name)
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        tracker: MongoSessionTracker = super().__getattribute__("tracker")
+        instance = super().__getattribute__("instance")
+        tracker.add(instance)
+        return setattr(super().__getattribute__("instance"), __name, __value)
+
+
+def proxyfied(result: Any | list[Any], tracker):
+    if result is None:
+        return result
+    if not isinstance(result, list):
+        return Proxy(result, tracker)
+    else:
+        return list(proxyfied(r, tracker) for r in result)
+
+
 def is_processable(method: Callable[..., Any]) -> bool:
     try:
         return method.__name__ != "__init__" and not getattr(method, "_raw_method", False)
@@ -43,7 +69,7 @@ def marked(method: Callable[..., Any]) -> bool:
 
 
 def repository(
-    entity: Type[T], table_name: Optional[str] = None, dry: bool = False
+    entity: Type[T], table_name: Optional[str] = None, dry: bool = False, mongo_session_managed: bool = True
 ) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
     """
     Convert a class into a repository (basically an object store) of `entity`.
@@ -84,10 +110,18 @@ def repository(
         # before each run
         if getattr(entity, __SQL_ENABLED_FLAG__, False):
             setattr(cls, __RepositoryType__, SQL)
+            using_sqlalchemy = True
         else:
+            using_sqlalchemy = False
             setattr(cls, __RepositoryType__, NO_SQL)
             if table_name is not None:
                 setattr(entity, "__tablename__", table_name)
+
+        # Prepare the repository with augmented properties
+        setattr(cls, "session", None)
+        if mongo_session_managed:
+            setattr(cls, "__winter_tracker__", MongoSessionTracker(entity))
+            setattr(cls, "__winter_manage_objects__", True)
 
         def _getattribute(self: Any, __name: str) -> Any:
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
@@ -103,6 +137,9 @@ def repository(
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 if use_session:
                     result = new_attr(*args, session=session, **kwargs)
+                    if not using_sqlalchemy and mongo_session_managed:
+                        tracker = getattr(cls, "__winter_tracker__")
+                        return proxyfied(result, tracker)  # type: ignore
                 else:
                     result = new_attr(*args, **kwargs)
                 return result
@@ -110,6 +147,9 @@ def repository(
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
                 if use_session:
                     result = await new_attr(*args, session=session, **kwargs)
+                    if not using_sqlalchemy and mongo_session_managed:
+                        tracker = getattr(cls, "__winter_tracker__")
+                        return proxyfied(result, tracker)  # type: ignore
                 else:
                     result = await new_attr(*args, **kwargs)
                 return result

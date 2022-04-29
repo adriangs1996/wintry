@@ -1,14 +1,11 @@
 import abc
-from typing import List, TypeVar
-from pydantic import BaseModel
-
-from winter.repository import IRepository
+from typing import Generic, List, TypeVar
 
 T = TypeVar("T")
 TypeId = TypeVar("TypeId")
 
 
-class CrudRepository(IRepository[T, TypeId]):
+class CrudRepository(Generic[T, TypeId]):
     async def find(self) -> List[T]:
         ...
 

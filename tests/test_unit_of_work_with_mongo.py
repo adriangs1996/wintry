@@ -115,3 +115,20 @@ async def test_unit_of_work_makes_context_for_objects_synchronization(clean: Any
     user_row = await db.users.find_one({"id": 1})
     assert user_row["name"] == "Superman"
     assert user_row["age"] == 30
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_automatically_creates_related_objects(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one({"id": 1, "age": 28, "name": "Batman"})
+
+    async with uow:
+        user = await uow.users.get_by_id(id=1)
+        assert user is not None
+        user.address = Address(latitude=12.1, longitude=1.1)
+        await uow.commit()
+
+    user_row = await db.users.find_one({"id": 1})
+    assert user_row["address"]["latitude"] == 12.1
