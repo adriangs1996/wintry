@@ -237,6 +237,34 @@ async def test_unit_of_work_synchronize_on_list_append(clean: Any, db: Any) -> N
 
 
 @pytest.mark.asyncio
+async def test_unit_of_work_synchronize_on_list_remove(clean: Any, db: Any) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one(
+        {
+            "id": 1,
+            "age": 28,
+            "name": "Batman",
+            "address": {"latitude": 1.0, "longitude": 2.0},
+            "heroes": [{"id": str(ObjectId()), "name": "Batgirl"}],
+        }
+    )
+
+    async with uow:
+        user = await uow.users.get_by_id(id=1)
+        assert user is not None
+        assert user.heroes != []
+        hero = user.heroes[0]
+        user.heroes.remove(hero)
+        await uow.commit()
+
+    user = await db.users.find_one({"id": 1})
+    assert user is not None
+    assert user["heroes"] == []
+
+
+@pytest.mark.asyncio
 async def test_unit_of_work_updates_entity_after_creating_it(clean: Any, db: Any) -> None:
     user_repository = UserRepository()
     uow = Uow(user_repository)

@@ -16,6 +16,7 @@ from winter.utils.keys import (
     __winter_old_setattr__,
     __winter_repo_old_init__,
     __winter_manage_objects__,
+    __winter_session_key__,
     SQL,
     NO_SQL,
 )
@@ -175,7 +176,7 @@ def repository(
                 setattr(entity, "__tablename__", table_name)
 
         # Prepare the repository with augmented properties
-        setattr(cls, "session", None)
+        setattr(cls, __winter_session_key__, None)
         if mongo_session_managed:
             setattr(cls, __winter_manage_objects__, True)
 
@@ -183,37 +184,29 @@ def repository(
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
             # Need to call super on this because we need to obtain a session without passing
             # through this method
-            session = super(cls, self).__getattribute__("session")  # type: ignore
-            use_session = False
+            session = super(cls, self).__getattribute__(__winter_session_key__)  # type: ignore
             try:
                 new_attr = _parse_function_name(__name, attr, entity, dry)  # type: ignore
             except:
                 return attr
 
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                if use_session:
-                    result = new_attr(*args, session=session, **kwargs)
-                    if not using_sqlalchemy and mongo_session_managed:
-                        # Track the results, get the tracker instance from
-                        # the repo instance
-                        tracker = getattr(self, __winter_tracker__)
-                        return proxyfied(result, tracker, result)  # type: ignore
-                else:
-                    result = new_attr(*args, **kwargs)
+                result = new_attr(*args, session=session, **kwargs)
+                if not using_sqlalchemy and mongo_session_managed:
+                    # Track the results, get the tracker instance from
+                    # the repo instance
+                    tracker = getattr(self, __winter_tracker__)
+                    return proxyfied(result, tracker, result)  # type: ignore
                 return result
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                if use_session:
-                    result = await new_attr(*args, session=session, **kwargs)
-                    if not using_sqlalchemy and mongo_session_managed:
-                        tracker = getattr(self, __winter_tracker__)
-                        return proxyfied(result, tracker, result)  # type: ignore
-                else:
-                    result = await new_attr(*args, **kwargs)
+                result = await new_attr(*args, session=session, **kwargs)
+                if not using_sqlalchemy and mongo_session_managed:
+                    tracker = getattr(self, __winter_tracker__)
+                    return proxyfied(result, tracker, result)  # type: ignore
                 return result
 
             if isinstance(new_attr, partial):
-                use_session = True
                 if inspect.iscoroutinefunction(new_attr.func):
                     return async_wrapper
                 else:

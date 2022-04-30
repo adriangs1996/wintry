@@ -48,7 +48,7 @@ def db() -> AsyncIOMotorDatabase:
 @repository(User)
 class UserRepository(CrudRepository[User, int]):
     @raw_method
-    async def get_user_by_name(self, name: str) -> User | None:
+    async def get_user_by_name(self, name: str, session: Any = None) -> User | None:
         db = bkd.Backend.get_connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
@@ -57,7 +57,7 @@ class UserRepository(CrudRepository[User, int]):
             return None
 
     @raw_method
-    async def list(self) -> List[User]:
+    async def list(self, session: Any = None) -> List[User]:
         return await self.find()
 
     async def find_by_name_or_age_lowerThan(self, *, name: str, age: int) -> List[User]:

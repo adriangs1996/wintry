@@ -15,6 +15,7 @@ __winter_modified_entity_state__ = "__winter_modified_entity_state__"
 __winter_old_setattr__ = "__winter_old_setattr__"
 __winter_repo_old_init__ = "__winter_repo_old_init__"
 __winter_manage_objects__ = "__winter_manage_objects__"
+__winter_session_key__ = "__winter_session_key__"
 
 
 NO_SQL = "NO_SQL"
