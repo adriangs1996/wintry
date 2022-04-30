@@ -2,6 +2,7 @@ from typing import Any, TypeVar
 from winter import get_session, commit, close_session, rollback
 from winter.repository.base import __RepositoryType__, NO_SQL
 from winter.sessions import MongoSessionTracker
+from winter.utils.keys import __winter_manage_objects__, __winter_tracker__, __winter_session_key__, __RepositoryType__
 
 T = TypeVar("T")
 TypeId = TypeVar("TypeId")
@@ -19,10 +20,10 @@ class UnitOfWork:
         if self.session is not None:
             for repo in self.repositories.values():
                 if (
-                    getattr(repo, "__winter_manage_objects__", False)
+                    getattr(repo, __winter_manage_objects__, False)
                     and getattr(repo, __RepositoryType__, None) == NO_SQL
                 ):
-                    tracker: MongoSessionTracker = getattr(repo, "__winter_tracker__")
+                    tracker: MongoSessionTracker = getattr(repo, __winter_tracker__)
                     await tracker.flush(self.session)
             await commit(self.session)
 
@@ -44,7 +45,7 @@ class UnitOfWork:
 
         # Trust that the provided session comes already initialized
         for repo in self.repositories.values():
-            setattr(repo, "session", self.session)
+            setattr(repo, __winter_session_key__, self.session)
         return self
 
     async def __aexit__(self, *args: Any, **kwargs: Any) -> None:
@@ -58,12 +59,12 @@ class UnitOfWork:
         await close_session(self.session)
         self.session = None
         for repo in self.repositories.values():
-            setattr(repo, "session", None)
+            setattr(repo, __winter_session_key__, None)
             if (
-                getattr(repo, "__winter_manage_objects__", False)
+                getattr(repo, __winter_manage_objects__, False)
                 and getattr(repo, __RepositoryType__, None) == NO_SQL
             ):
-                tracker: MongoSessionTracker = getattr(repo, "__winter_tracker__")
+                tracker: MongoSessionTracker = getattr(repo, __winter_tracker__)
                 tracker.clean()
 
     def __getattribute__(self, __name: str) -> Any:
