@@ -58,38 +58,36 @@ class QueryDriver(abc.ABC):
 class Backend:
     driver: QueryDriver | None = None
 
-    @classmethod
-    def get_connection(cls) -> Any:
-        assert cls.driver is not None
-        return cls.driver.get_connection()
+    def __init__(self, driver: QueryDriver) -> None:
+        self.driver = driver
 
-    @classmethod
-    def configure_for_driver(cls, *args: Any, **kwargs: Any) -> None:
-        assert cls.driver is not None
-        cls.driver.init(*args, **kwargs)
+    def get_connection(self) -> Any:
+        assert self.driver is not None
+        return self.driver.get_connection()
 
-    @classmethod
-    async def configure_for_driver_async(cls, *args: Any, **kwargs: Any) -> None:
-        assert cls.driver is not None
-        await cls.driver.init_async(*args, **kwargs)
+    def configure_for_driver(self, *args: Any, **kwargs: Any) -> None:
+        assert self.driver is not None
+        self.driver.init(*args, **kwargs)
 
-    @classmethod
-    def run(cls, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
-        if cls.driver is None:
+    async def configure_for_driver_async(self, *args: Any, **kwargs: Any) -> None:
+        assert self.driver is not None
+        await self.driver.init_async(*args, **kwargs)
+
+    def run(self, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
+        if self.driver is None:
             raise BackendException("Driver is not configured.")
 
         parser = QueryParser()
         root_node = parser.parse(query)
-        return partial(cls.driver.run, root_node, table_name)
+        return partial(self.driver.run, root_node, table_name)
 
-    @classmethod
-    def run_async(cls, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
-        if cls.driver is None:
+    def run_async(self, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
+        if self.driver is None:
             raise BackendException("Driver is not configured.")
 
         parser = QueryParser()
         root_node = parser.parse(query)
         if dry_run:
-            return partial(cls.driver.get_query_repr, root_node, table_name)
+            return partial(self.driver.get_query_repr, root_node, table_name)
         else:
-            return partial(cls.driver.run_async, root_node, table_name)
+            return partial(self.driver.run_async, root_node, table_name)

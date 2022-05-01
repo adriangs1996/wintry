@@ -1,5 +1,5 @@
 from typing import Any, AsyncGenerator, List
-from winter import get_connection, init_backend
+from winter import get_connection, init_backends, BACKENDS
 from winter.models import model
 from winter.orm import for_model
 from winter.repository import repository
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relation
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, select, delete, insert, MetaData
 from winter.repository.crud_repository import CrudRepository
-from winter.settings import ConnectionOptions, WinterSettings
+from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest_asyncio
 import pytest
@@ -104,13 +104,19 @@ class MultiUow(UnitOfWork):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup() -> None:
-    init_backend(
+    init_backends(
         WinterSettings(
-            backend="winter.drivers.pg",
-            connection_options=ConnectionOptions(url="postgresql+asyncpg://postgres:secret@localhost/tests"),
+            backends=[
+                BackendOptions(
+                    driver="winter.drivers.pg",
+                    connection_options=ConnectionOptions(
+                        url="postgresql+asyncpg://postgres:secret@localhost/tests"
+                    ),
+                )
+            ],
         )
     )
-    engine = getattr(winter.backend.Backend.driver, "_engine")
+    engine = getattr(BACKENDS["default"].driver, "_engine")
     async with engine.begin() as conn:
         await conn.run_sync(metadata.create_all)
 

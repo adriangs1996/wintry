@@ -1,11 +1,12 @@
 import abc
 from typing import Generic, List, TypeVar
+from winter.repository import IRepository
 
 T = TypeVar("T")
 TypeId = TypeVar("TypeId")
 
 
-class CrudRepository(Generic[T, TypeId]):
+class CrudRepository(IRepository, Generic[T, TypeId]):
     async def find(self) -> List[T]:
         ...
 

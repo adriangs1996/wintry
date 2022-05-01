@@ -1,8 +1,8 @@
 from typing import Any, AsyncGenerator, List
-from winter import init_backend, get_connection
+from winter import init_backends, get_connection, BACKENDS
 from winter.models import model
 
-from winter.settings import ConnectionOptions, WinterSettings
+from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 
 import winter.backend
@@ -72,13 +72,19 @@ class UserRepository(CrudRepository[User, int]):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup() -> None:
-    init_backend(
+    init_backends(
         WinterSettings(
-            backend="winter.drivers.pg",
-            connection_options=ConnectionOptions(url="postgresql+asyncpg://postgres:secret@localhost/tests"),
+            backends=[
+                BackendOptions(
+                    driver="winter.drivers.pg",
+                    connection_options=ConnectionOptions(
+                        url="postgresql+asyncpg://postgres:secret@localhost/tests"
+                    ),
+                )
+            ],
         )
     )
-    engine = getattr(winter.backend.Backend.driver, "_engine")
+    engine = getattr(BACKENDS["default"].driver, "_engine")
     async with engine.begin() as conn:
         await conn.run_sync(metadata.create_all)
 
@@ -99,7 +105,7 @@ async def test_repository_can_insert(clean: Any) -> None:
     user = User(id=2, name="test", age=10)
 
     await repo.create(entity=user)
-    session: AsyncSession = winter.backend.Backend.get_connection()
+    session: AsyncSession = get_connection()
     async with session.begin():
         results: Result = await session.execute(select(UserTable))
     assert len(results.all()) == 1

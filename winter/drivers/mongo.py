@@ -23,7 +23,7 @@ from winter.query.nodes import (
 )
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
-from winter.settings import WinterSettings
+from winter.settings import BackendOptions
 from dataclasses import is_dataclass
 from dataclass_wizard import asdict, fromdict
 
@@ -163,7 +163,7 @@ class MongoDbDriver(QueryDriver):
         if not session.has_ended:
             await session.end_session()
 
-    def init(self, settings: WinterSettings) -> None:  # type: ignore
+    def init(self, settings: BackendOptions) -> None:  # type: ignore
         if settings.connection_options.url is not None:
             self.client = cast(
                 Client, motor.motor_asyncio.AsyncIOMotorClient(settings.connection_options.url)
@@ -370,5 +370,5 @@ class MongoDbDriver(QueryDriver):
         return create_expression(node, Nin, **kwargs)
 
 
-def factory(settings: WinterSettings) -> MongoDbDriver:
+def factory(settings: BackendOptions) -> MongoDbDriver:
     return MongoDbDriver()

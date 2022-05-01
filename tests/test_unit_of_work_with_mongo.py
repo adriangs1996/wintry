@@ -1,11 +1,11 @@
 from dataclasses import field
 from typing import Any, AsyncGenerator
-from winter import get_connection, init_backend
+from winter import get_connection, init_backends
 from winter.models import model
 
 from winter.repository.base import repository
 from winter.repository.crud_repository import CrudRepository
-from winter.settings import ConnectionOptions, WinterSettings
+from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest
 import pytest_asyncio
@@ -60,10 +60,13 @@ class Uow(UnitOfWork):
 
 @pytest.fixture(scope="module", autouse=True)
 def db() -> Any:
-    init_backend(
+    init_backends(
         WinterSettings(
-            backend="winter.drivers.mongo",
-            connection_options=ConnectionOptions(url="mongodb://localhost:27017/?replicaSet=dbrs"),
+            backends=[
+                BackendOptions(
+                    connection_options=ConnectionOptions(url="mongodb://localhost:27017/?replicaSet=dbrs"),
+                )
+            ]
         )
     )
 

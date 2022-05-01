@@ -19,7 +19,7 @@ def json_config_settings_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
         return {}
 
 
-class ConnectionOptions(pdc.BaseSettings):
+class ConnectionOptions(pdc.BaseModel):
     url: str | None = None
     host: str = "localhost"
     port: int = 27017
@@ -29,16 +29,21 @@ class ConnectionOptions(pdc.BaseSettings):
     connector: str | None = "postgresql+asyncpg"
 
 
-class WinterSettings(pdc.BaseSettings):
-    backend: str = "winter.drivers.mongo"
+class BackendOptions(pdc.BaseModel):
+    name: str = "default"
+    driver: str = "winter.drivers.mongo"
     connection_options: ConnectionOptions = ConnectionOptions()
+
+
+class WinterSettings(pdc.BaseSettings):
+    backends: list[BackendOptions] = [BackendOptions()]
 
     class Config:
         env_file_encoding = "utf-8"
-        env_nested_delimiter = '__'
+        env_nested_delimiter = "__"
 
         @classmethod
-        def customise_sources(cls, init_settings, env_settings, file_secret_settings): #type: ignore
+        def customise_sources(cls, init_settings, env_settings, file_secret_settings):  # type: ignore
             return (
                 init_settings,
                 json_config_settings_source,

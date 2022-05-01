@@ -22,7 +22,7 @@ from winter.query.nodes import (
     RootNode,
     Update,
 )
-from winter.settings import WinterSettings
+from winter.settings import BackendOptions
 from sqlalchemy import select, update, delete, inspect, insert
 from sqlalchemy.sql import (
     Select,
@@ -116,7 +116,7 @@ def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -
 
 
 class SqlAlchemyDriver(QueryDriver):
-    def init(self, settings: WinterSettings):  # type: ignore
+    def init(self, settings: BackendOptions):  # type: ignore
         if settings.connection_options.url is not None:
             self._engine = create_async_engine(url=settings.connection_options.url, future=True)
         else:
@@ -377,5 +377,5 @@ class SqlAlchemyDriver(QueryDriver):
         return _operate(node, schema, lt, **kwargs)
 
 
-def factory(settings: WinterSettings) -> SqlAlchemyDriver:
+def factory(settings: BackendOptions) -> SqlAlchemyDriver:
     return SqlAlchemyDriver()

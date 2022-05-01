@@ -3,6 +3,7 @@ from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
 from winter.models import _is_private_attr
 
+from winter import BACKENDS
 from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from winter.sessions import MongoSessionTracker
@@ -17,6 +18,8 @@ from winter.utils.keys import (
     __winter_repo_old_init__,
     __winter_manage_objects__,
     __winter_session_key__,
+    __winter_backend_identifier_key__,
+    __winter_backend_for_repository__,
     SQL,
     NO_SQL,
 )
@@ -114,7 +117,11 @@ def marked(method: Callable[..., Any]) -> bool:
 
 
 def repository(
-    entity: Type[T], table_name: Optional[str] = None, dry: bool = False, mongo_session_managed: bool = False
+    entity: Type[T],
+    for_backend: str = "default",
+    table_name: Optional[str] = None,
+    dry: bool = False,
+    mongo_session_managed: bool = False,
 ) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
     """
     Convert a class into a repository (basically an object store) of `entity`.
@@ -157,9 +164,13 @@ def repository(
         # init tracker in the instance, because we do not
         # want to share trackers among repositories
         if mongo_session_managed:
-            setattr(self, __winter_tracker__, MongoSessionTracker(entity))
+            setattr(self, __winter_tracker__, MongoSessionTracker(entity, for_backend))
 
     def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
+        # Augment the repository with a special property to reference the backend this
+        # repository is going to use
+        setattr(cls, __winter_backend_identifier_key__, for_backend)
+
         # update the init method and save the original init
         setattr(cls, __winter_repo_old_init__, cls.__init__)
         setattr(cls, "__init__", __winter_init__)
@@ -186,7 +197,7 @@ def repository(
             # through this method
             session = super(cls, self).__getattribute__(__winter_session_key__)  # type: ignore
             try:
-                new_attr = _parse_function_name(__name, attr, entity, dry)  # type: ignore
+                new_attr = _parse_function_name(for_backend, __name, attr, entity, dry)  # type: ignore
             except:
                 return attr
 
@@ -236,11 +247,17 @@ def raw_method(method: FuncT) -> FuncT:
 
 
 @lru_cache(typed=True, maxsize=1000)
-def _parse_function_name(fname: str, fobject: Func, target: str | Type[Any], dry: bool = False) -> Func:
+def _parse_function_name(
+    backend: str, fname: str, fobject: Func, target: str | Type[Any], dry: bool = False
+) -> Func:
+    repo_backend = BACKENDS.get(backend, None)
+    if repo_backend is None:
+        raise RepositoryError(f"Not configured backend: {backend}")
+
     if is_processable(fobject):
         if inspect.iscoroutinefunction(fobject):
-            return Backend.run_async(fname, target, dry_run=dry)
+            return repo_backend.run_async(fname, target, dry_run=dry)
         else:
-            return Backend.run(fname, target, dry_run=dry)
+            return repo_backend.run(fname, target, dry_run=dry)
     else:
         return fobject

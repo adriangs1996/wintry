@@ -1,5 +1,5 @@
 # Configure te mongo driver
-from winter import init_backend
+from winter import init_backends
 from winter.models import model
 
 from winter.repository.base import repository
@@ -9,7 +9,7 @@ import pytest
 
 @pytest.fixture(scope="module", autouse=True)
 def setup() -> None:
-    init_backend()
+    init_backends()
 
 
 @model

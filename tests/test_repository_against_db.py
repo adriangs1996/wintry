@@ -1,5 +1,5 @@
 from typing import Any, AsyncGenerator, List, Optional
-from winter import init_backend
+from winter import init_backends, get_connection
 import winter.backend as bkd
 from winter.models import model
 from winter.repository.base import repository, raw_method
@@ -41,15 +41,15 @@ class Hero:
 
 @pytest.fixture(scope="module", autouse=True)
 def db() -> AsyncIOMotorDatabase:
-    init_backend()
-    return bkd.Backend.get_connection()  # type: ignore
+    init_backends()
+    return get_connection()  # type: ignore
 
 
 @repository(User)
 class UserRepository(CrudRepository[User, int]):
     @raw_method
     async def get_user_by_name(self, name: str, session: Any = None) -> User | None:
-        db = bkd.Backend.get_connection()
+        db = self.connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
             return fromdict(User, row)
