@@ -1,9 +1,7 @@
-import asyncio
 from dataclasses import dataclass
-from functools import partial, update_wrapper
+from functools import update_wrapper
 from inspect import iscoroutine, iscoroutinefunction, signature
 from typing import Any, Callable, Coroutine, TypeVar, overload
-from asyncio import ensure_future
 
 
 class EventRegistrationError(Exception):
