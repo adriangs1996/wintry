@@ -12,7 +12,6 @@ from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest_asyncio
 import pytest
-import winter.backend
 from dataclasses import field
 
 

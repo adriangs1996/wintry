@@ -122,6 +122,7 @@ def repository(
     table_name: Optional[str] = None,
     dry: bool = False,
     mongo_session_managed: bool = False,
+    force_nosql: bool = False,
 ) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
     """
     Convert a class into a repository (basically an object store) of `entity`.
@@ -177,7 +178,7 @@ def repository(
 
         # Mark the repository type so we can distinguish between drivers
         # before each run
-        if getattr(entity, __SQL_ENABLED_FLAG__, False):
+        if getattr(entity, __SQL_ENABLED_FLAG__, False) and not force_nosql:
             setattr(cls, __RepositoryType__, SQL)
             using_sqlalchemy = True
         else:
