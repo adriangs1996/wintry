@@ -1,6 +1,7 @@
+import asyncio
 from dataclasses import dataclass
-from functools import update_wrapper
-from inspect import iscoroutine, signature
+from functools import partial, update_wrapper
+from inspect import iscoroutine, iscoroutinefunction, signature
 from typing import Any, Callable, Coroutine, TypeVar, overload
 from asyncio import ensure_future
 
@@ -73,18 +74,12 @@ class MessageQueue:
         handlers = __event_handlers__.get(type(event), [])
         for handler in handlers:
             try:
-                result = handler(self, event)
+                if iscoroutinefunction(handler):
+                    await handler(self, event)  # type: ignore
+                else:
+                    handler(self, event)
             except:
                 pass
-            else:
-                if iscoroutine(result):
-                    fut = ensure_future(result)
-
-                    def callback(f):
-                        if f.cancelled():
-                            return
-
-                    fut.add_done_callback(callback)
 
     async def handle_command(self, cmd: Command):
         handlers = __command_handlers__.get(type(cmd), [])

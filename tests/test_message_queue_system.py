@@ -1,6 +1,16 @@
+import asyncio
 from dataclasses import dataclass, field
+from time import sleep
 import pytest
-from winter.mqs.message_queue_system import MessageQueue, Event, Command, command_handler, event_handler, __command_handlers__, __event_handlers__
+from winter.mqs.message_queue_system import (
+    MessageQueue,
+    Event,
+    Command,
+    command_handler,
+    event_handler,
+    __command_handlers__,
+    __event_handlers__,
+)
 
 
 @dataclass
@@ -34,6 +44,11 @@ class DoneSum(Event):
     result: int
 
 
+@dataclass
+class SleepCalled(Event):
+    seconds: int
+
+
 class TestMessageQueue(MessageQueue):
 
     # Normaly, message queues does not store
@@ -42,7 +57,7 @@ class TestMessageQueue(MessageQueue):
     result: int = 0
 
     @command_handler
-    async def sum(self, command: SumCommand):
+    def sum(self, command: SumCommand):
         result = sum(command.numbers)
         self.register(Summed(result))
 
@@ -62,7 +77,7 @@ class TestMessageQueue(MessageQueue):
         self.result = event.result
 
     @event_handler
-    def finished_sum(self, event: FinishedSum):
+    async def finished_sum(self, event: FinishedSum):
         self.result += event.bias
 
     # Multiple handlers for same event
@@ -71,7 +86,7 @@ class TestMessageQueue(MessageQueue):
         self.result = event.result
 
     @event_handler
-    def add_bias_to_result_after_sum(self, event: DoneSum):
+    async def add_bias_to_result_after_sum(self, event: DoneSum):
         self.result += event.result
 
 
