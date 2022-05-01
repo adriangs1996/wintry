@@ -40,9 +40,6 @@ class MessageQueue:
     def __init__(self) -> None:
         self._message_queue: list[Message] = []
 
-    def event_handler(self):
-        pass
-
     async def handle(self, cmd: Message):
         self._message_queue = [cmd]
         messages_queue = self._message_queue

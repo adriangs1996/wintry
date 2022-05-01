@@ -1,10 +1,8 @@
 import abc
-from typing import Any, Callable, Type
+from typing import Any, Type
 from winter.query.nodes import RootNode
 from winter.query.parsing import QueryParser
 from functools import partial
-import winter.settings
-import importlib
 
 
 class BackendException(Exception):
@@ -75,7 +73,6 @@ class Backend:
         assert cls.driver is not None
         await cls.driver.init_async(*args, **kwargs)
 
-    @classmethod
     @classmethod
     def run(cls, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
         if cls.driver is None:
