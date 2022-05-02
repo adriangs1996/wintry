@@ -13,6 +13,8 @@ asyncpg = {version = "^0.25.0", optional = true}
 dataclass-wizard = "^0.22.0"
 pydantic = "^1.9.0"
 pyee = "^9.0.4"
+fastapi = "^0.75.2"
+Inject = "^4.3.1"
 
 [tool.poetry.extras]
 postgres = ["SQLAlchemy", "asyncpg"]
