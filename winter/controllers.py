@@ -1,4 +1,5 @@
 import dataclasses
+from enum import Enum
 import inspect
 from typing import (
     Any,
@@ -14,10 +15,12 @@ from typing import (
 )
 
 from fastapi import APIRouter, params, Response, Depends
+from fastapi.utils import generate_unique_id
 from fastapi.types import DecoratedCallable
 from fastapi.datastructures import DefaultPlaceholder, Default
 from fastapi.responses import JSONResponse
-from starlette.routing import Route
+from starlette.routing import Route, BaseRoute
+from starlette.types import ASGIApp
 from fastapi.routing import APIRoute
 from winter.dependency_injection import Factory, __mappings__
 from inject import autoparams
@@ -157,7 +160,31 @@ def patch(path: str, **kwargs):
     return decorator
 
 
-def controller(*args, **kwargs) -> Type[Callable[[Type[T]], Type[T]]]:
+def get_controller_name(controller: type[T]) -> str:
+    return controller.__name__.lower().replace("controller", "")
+
+
+def controller(
+    cls: type[T] | None = None,
+    /,
+    *,
+    prefix: str = "",
+    tags: Optional[List[Union[str, Enum]]] = None,
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    default_response_class: Type[Response] = Default(JSONResponse),
+    responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    callbacks: Optional[List[BaseRoute]] = None,
+    routes: Optional[List[BaseRoute]] = None,
+    redirect_slashes: bool = True,
+    default: Optional[ASGIApp] = None,
+    dependency_overrides_provider: Optional[Any] = None,
+    route_class: Type[APIRoute] = APIRoute,
+    on_startup: Optional[Sequence[Callable[[], Any]]] = None,
+    on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
+    deprecated: Optional[bool] = None,
+    include_in_schema: bool = True,
+    generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
+) -> Type[Callable[[Type[T]], Type[T]]]:
     """
     Returns a decorator that makes a Class-Based-View (or a controller)
     out of a regular python class.
@@ -192,13 +219,37 @@ def controller(*args, **kwargs) -> Type[Callable[[Type[T]], Type[T]]]:
     >>>     async def get_users(self, user_id: str = Path(...)):
     >>>         return await self.user_service.get_by_id(user_id)
     """
-    router = ApiController(*args, **kwargs)
 
-    def decorator(cls: Type[T]):
+    def decorator(_cls: Type[T]):
+        _prefix = prefix or f"/{get_controller_name(_cls)}"
+        _tags = tags or [f"{get_controller_name(_cls)} collection"]
+        router = ApiController(
+            prefix=_prefix,
+            tags=_tags,
+            dependencies=dependencies,
+            default_response_class=default_response_class,
+            responses=responses,
+            callbacks=callbacks,
+            routes=routes,
+            redirect_slashes=redirect_slashes,
+            default=default,
+            dependency_overrides_provider=dependency_overrides_provider,
+            route_class=route_class,
+            on_startup=on_startup,
+            on_shutdown=on_shutdown,
+            deprecated=deprecated,
+            include_in_schema=include_in_schema,
+            generate_unique_id_function=generate_unique_id_function,
+        )
+
         # inject the underlying router in the class
-        return _controller(router, cls)
+        return _controller(router, _cls)
 
-    return decorator
+    if cls is None:
+        return decorator
+
+    else:
+        return decorator(cls)
 
 
 def _controller(router: ApiController, cls: Type[T]) -> Type[T]:

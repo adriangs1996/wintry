@@ -31,12 +31,31 @@ class ConnectionOptions(pdc.BaseModel):
 
 class BackendOptions(pdc.BaseModel):
     name: str = "default"
+    """
+    Name that under which the driver is going to be registerd. This has to
+    be unique among drivers. 
+    """
+
     driver: str = "winter.drivers.mongo"
+    """
+    Absolute path to driver's module. This module must contain a top level
+    :func:`factory(settings: BackendOptions)` which is called to get an instance
+    of the driver.
+    """
     connection_options: ConnectionOptions = ConnectionOptions()
+    """
+    A handy way to define connection options to the driver.
+    Most likely, just the url is enough.
+    """
 
 
 class WinterSettings(pdc.BaseSettings):
+
     backends: list[BackendOptions] = [BackendOptions()]
+    """
+    List of configurations for the different drivers the app can use.
+    Defaults to a MongoEngine on localhost, port 27017 under name 'default'.
+    """
 
     class Config:
         env_file_encoding = "utf-8"
