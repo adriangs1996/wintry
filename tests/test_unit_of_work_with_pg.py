@@ -2,12 +2,11 @@ from typing import Any, AsyncGenerator, List
 from winter import get_connection, init_backends, BACKENDS
 from winter.models import model
 from winter.orm import for_model
-from winter.repository import repository
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relation
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, select, delete, insert, MetaData
-from winter.repository.crud_repository import CrudRepository
+from winter.repository import Repository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest_asyncio
@@ -74,14 +73,12 @@ HeroTable = for_model(
 )
 
 
-@repository(User)
-class UserRepository(CrudRepository[User, int]):
+class UserRepository(Repository[User, int], entity=User):
     async def find_by_id_or_name_and_age_lowerThan(self, *, id: int, name: str, age: int) -> List[User]:
         ...
 
 
-@repository(Hero)
-class HeroRepository(CrudRepository[Hero, int]):
+class HeroRepository(Repository[Hero, int], entity=Hero):
     pass
 
 

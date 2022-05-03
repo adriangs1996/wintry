@@ -3,8 +3,7 @@ from typing import Any, AsyncGenerator
 from winter import get_connection, init_backends
 from winter.models import model
 
-from winter.repository.base import repository
-from winter.repository.crud_repository import CrudRepository
+from winter.repository import Repository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from winter.unit_of_work import UnitOfWork
 import pytest
@@ -27,8 +26,7 @@ class User:
     heroes: list["Hero"] = field(default_factory=list)
 
 
-@repository(User, mongo_session_managed=True)
-class UserRepository(CrudRepository[User, int]):
+class UserRepository(Repository[User, int], entity=User, mongo_session_managed=True):
     pass
 
 
@@ -38,8 +36,7 @@ class Hero:
     id: str = field(default_factory=lambda: str(ObjectId()))
 
 
-@repository(Hero, table_name="heroes")
-class HeroRepository(CrudRepository[Hero, str]):
+class HeroRepository(Repository[Hero, str], entity=Hero, table_name="heroes"):
     async def get_by_name(self, *, name: str) -> Hero | None:
         ...
 

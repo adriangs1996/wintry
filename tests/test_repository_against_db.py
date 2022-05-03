@@ -2,12 +2,12 @@ from typing import Any, AsyncGenerator, List, Optional
 from winter import init_backends, get_connection
 import winter.backend as bkd
 from winter.models import model
-from winter.repository.base import repository, raw_method
-from winter.repository.crud_repository import CrudRepository
+from winter.repository import raw_method
+from winter.repository import Repository
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from dataclasses import dataclass, field
+from dataclasses import field
 from dataclass_wizard import fromdict
 from bson import ObjectId
 
@@ -45,8 +45,7 @@ def db() -> AsyncIOMotorDatabase:
     return get_connection()  # type: ignore
 
 
-@repository(User)
-class UserRepository(CrudRepository[User, int]):
+class UserRepository(Repository[User, int], entity=User):
     @raw_method
     async def get_user_by_name(self, name: str, session: Any = None) -> User | None:
         db = self.connection()
@@ -67,8 +66,7 @@ class UserRepository(CrudRepository[User, int]):
         ...
 
 
-@repository(Hero, table_name="heroes")
-class HeroRepository(CrudRepository[Hero, int]):
+class HeroRepository(Repository[Hero, int], entity=Hero, table_name="heroes"):
     pass
 
 

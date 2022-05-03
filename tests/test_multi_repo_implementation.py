@@ -5,8 +5,7 @@ from winter import get_connection, init_backends, BACKENDS
 from winter.models import model
 from winter.orm import for_model
 from winter.unit_of_work import UnitOfWork, UnitOfWorkError
-from winter.repository.base import repository
-from winter.repository.crud_repository import CrudRepository
+from winter.repository import NoSqlCrudRepository, SqlCrudRepository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import MetaData, select, delete, insert, Column, Integer, String
@@ -38,16 +37,16 @@ UserTable = for_model(
 # This is wrong, but winter allows to force this as a nosql repository, even if
 # User has already been mapped to a SQLAlchemy Table. And User could still be used
 # as a regular POPO class, and for MONGO, winter is really powerful
-@repository(User, for_backend="default", force_nosql=True, mongo_session_managed=True)
-class UserMongoRepository(CrudRepository[User, int]):
+class UserMongoRepository(
+    NoSqlCrudRepository[User, int], entity=User, mongo_session_managed=True, for_backend="default"
+):
     pass
 
 
 # this is wrong, like very wrong, the same application should not
 # define two data sources for the same model, at least not in this way.
 # But winter is powerful, and winter is comming, so I will allow it here
-@repository(User, for_backend="postgres")
-class UserPostgressRepository(CrudRepository[User, int]):
+class UserPostgressRepository(SqlCrudRepository[User, int], entity=User, for_backend="postgres"):
     pass
 
 

@@ -4,11 +4,8 @@ from winter.models import model
 
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 
-
-import winter.backend
-
 from winter.orm import for_model
-from sqlalchemy import Integer, Column, String, ForeignKey, Float, delete, select, insert, Table, MetaData
+from sqlalchemy import Integer, Column, String, ForeignKey, Float, delete, select, insert, MetaData
 from sqlalchemy.orm import relation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine.result import Result
@@ -18,8 +15,7 @@ from dataclasses import field
 
 
 # Now import the repository
-from winter.repository.base import repository
-from winter.repository.crud_repository import CrudRepository
+from winter.repository import Repository
 
 
 @model
@@ -64,8 +60,7 @@ UserTable = for_model(
 )
 
 
-@repository(User)
-class UserRepository(CrudRepository[User, int]):
+class UserRepository(Repository[User, int], entity=User):
     async def find_by_id_or_name_and_age_lowerThan(self, *, id: int, name: str, age: int) -> List[User]:
         ...
 
