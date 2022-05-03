@@ -5,7 +5,7 @@ from winter.models import model
 
 from winter.repository import Repository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
-from winter.unit_of_work import UnitOfWork
+from winter.transactions import UnitOfWork
 import pytest
 import pytest_asyncio
 from bson import ObjectId

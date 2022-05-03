@@ -1,6 +1,5 @@
 from typing import Any
 from winter.backend import QueryDriver, Backend
-from winter.drivers.mongo import MongoSession
 from winter.settings import BackendOptions, WinterSettings
 import importlib
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,47 +67,3 @@ def get_connection(backend_name: str = "default") -> AsyncIOMotorDatabase | Asyn
         raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
 
     return backend.get_connection()
-
-
-async def get_session(backend_name: str = "default") -> AsyncSession | MongoSession:
-    backend = BACKENDS.get(backend_name, None)
-    if backend is None:
-        raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
-
-    if backend.driver is None:
-        raise DriverNotSetError()
-
-    return await backend.driver.get_started_session()
-
-
-async def commit(session: Any, backend_name: str = "default") -> None:
-    backend = BACKENDS.get(backend_name, None)
-    if backend is None:
-        raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
-
-    if backend.driver is None:
-        raise DriverNotSetError()
-
-    await backend.driver.commit_transaction(session)
-
-
-async def rollback(session: Any, backend_name: str = "default") -> None:
-    backend = BACKENDS.get(backend_name, None)
-    if backend is None:
-        raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
-
-    if backend.driver is None:
-        raise DriverNotSetError()
-
-    await backend.driver.abort_transaction(session)
-
-
-async def close_session(session: Any, backend_name: str = "default") -> None:
-    backend = BACKENDS.get(backend_name, None)
-    if backend is None:
-        raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
-
-    if backend.driver is None:
-        raise DriverNotSetError()
-
-    await backend.driver.close_session(session)

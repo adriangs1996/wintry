@@ -8,7 +8,7 @@ from sqlalchemy.orm import relation
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, select, delete, insert, MetaData
 from winter.repository import Repository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
-from winter.unit_of_work import UnitOfWork
+from winter.transactions import UnitOfWork
 import pytest_asyncio
 import pytest
 from dataclasses import field

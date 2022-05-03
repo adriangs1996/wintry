@@ -4,7 +4,7 @@ import pytest
 from winter import get_connection, init_backends, BACKENDS
 from winter.models import model
 from winter.orm import for_model
-from winter.unit_of_work import UnitOfWork, UnitOfWorkError
+from winter.transactions.unit_of_work import UnitOfWork, UnitOfWorkError
 from winter.repository import NoSqlCrudRepository, SqlCrudRepository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from sqlalchemy.ext.asyncio import AsyncSession
