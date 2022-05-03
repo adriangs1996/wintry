@@ -57,6 +57,8 @@ class WinterSettings(pdc.BaseSettings):
     Defaults to a MongoEngine on localhost, port 27017 under name 'default'.
     """
 
+    app_root: str = '.'
+
     class Config:
         env_file_encoding = "utf-8"
         env_nested_delimiter = "__"
