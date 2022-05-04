@@ -4,7 +4,6 @@ from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
 from winter.models import _is_private_attr
 
 from winter import BACKENDS
-from winter.backend import Backend
 from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from winter.sessions import MongoSessionTracker
 from winter.utils.keys import (

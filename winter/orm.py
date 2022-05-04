@@ -8,6 +8,7 @@ TSchema = TypeVar("TSchema")
 
 
 mapper_registry = registry()
+metadata = MetaData()
 
 TableDef = Callable[[], Table]
 

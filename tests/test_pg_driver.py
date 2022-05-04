@@ -31,7 +31,7 @@ AddressTable = for_model(
     Address,
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey(UserTable.c.id)),
+    Column("user_id", Integer, ForeignKey(User.id)),
     table_name="Addresses",
     user=relation(User),
 )
