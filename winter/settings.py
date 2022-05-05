@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
+from unicodedata import name
 import pydantic as pdc
 
 
@@ -27,6 +28,12 @@ class ConnectionOptions(pdc.BaseModel):
     user: Optional[str] = None
     password: Optional[str] = None
     connector: str | None = "postgresql+asyncpg"
+
+
+class Middleware(pdc.BaseModel):
+    module: str
+    name: str
+    args: dict[str, Any]
 
 
 class BackendOptions(pdc.BaseModel):
@@ -57,7 +64,45 @@ class WinterSettings(pdc.BaseSettings):
     Defaults to a MongoEngine on localhost, port 27017 under name 'default'.
     """
 
-    app_root: str = '.'
+    auto_discovery_enabled: bool = True
+    """
+    Configure if `Winter` should autodiscover modules on setup.
+    This is useful for not having to import controllers, models,
+    repositories, etc
+    """
+
+    app_root: str = "."
+    """
+    The root of the server implementation. This is not like a wwwroot
+    in .NET, is a config param for auto_discovery tool and for app
+    to know where it is located. Should be a relative path
+    """
+
+    middlewares: list[Middleware] = [
+        Middleware(
+            name="CORSMiddleware",
+            module="fastapi.middleware.cors",
+            args={
+                "allow_origins": ["*"],
+                "allow_credentials": True,
+                "allow_methods": ["*"],
+                "allow_headers": ["*"],
+            },
+        )
+    ]
+    """
+    List of middlewares to use in the application. Middlewares should
+    conform to FastAPI, as them would be constructed and added directly
+    to FastAPI instnace.
+    """
+
+    server_prefix: str = ""
+
+    server_title: str = ""
+
+    server_version: str = "0.1.0"
+
+    include_error_handling: bool = True
 
     class Config:
         env_file_encoding = "utf-8"

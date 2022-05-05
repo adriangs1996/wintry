@@ -60,13 +60,17 @@ class ApiController(APIRouter):
             path_no_slash, include_in_schema=include_in_schema, **kwargs
         )
 
-        add_trailing_slash_path = super().api_route(path_no_slash + "/", include_in_schema=False, **kwargs)
+        add_trailing_slash_path = super().api_route(
+            path_no_slash + "/", include_in_schema=False, **kwargs
+        )
 
         def add_path_and_trailing_slash(func: DecoratedCallable) -> DecoratedCallable:
             add_trailing_slash_path(func)
             return add_nontrailing_slash_path(func)
 
-        return add_trailing_slash_path if given_path == "/" else add_path_and_trailing_slash
+        return (
+            add_trailing_slash_path if given_path == "/" else add_path_and_trailing_slash
+        )
 
 
 __controllers__: List[ApiController] = []
@@ -115,45 +119,290 @@ class RouteArgs:
         arbitrary_types_allowed = True
 
 
-def post(path: str, **kwargs):
+def post(
+    path: str,
+    response_model: Optional[Type[Any]] = None,
+    status_code: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    summary: Optional[str] = None,
+    description: Optional[str] = None,
+    response_description: str = "Successful Response",
+    responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    deprecated: Optional[bool] = None,
+    operation_id: Optional[str] = None,
+    response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_by_alias: bool = True,
+    response_model_exclude_unset: bool = False,
+    response_model_exclude_defaults: bool = False,
+    response_model_exclude_none: bool = False,
+    include_in_schema: bool = True,
+    response_class: Union[Type[Response], DefaultPlaceholder] = Default(JSONResponse),
+    name: Optional[str] = None,
+    route_class_override: Optional[Type[APIRoute]] = None,
+    callbacks: Optional[List[Route]] = None,
+    openapi_extra: Optional[Dict[str, Any]] = None,
+):
     def decorator(fn: Callable[..., Any]):
-        endpoint = RouteArgs(path=path, methods=["POST"], **kwargs)
+        endpoint = RouteArgs(
+            path=path,
+            methods=["POST"],
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            route_class_override=route_class_override,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+        )
         setattr(fn, ENDPOINT_KEY, endpoint)
         return fn
 
     return decorator
 
 
-def get(path: str, **kwargs):
+def get(
+    path: str,
+    response_model: Optional[Type[Any]] = None,
+    status_code: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    summary: Optional[str] = None,
+    description: Optional[str] = None,
+    response_description: str = "Successful Response",
+    responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    deprecated: Optional[bool] = None,
+    operation_id: Optional[str] = None,
+    response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_by_alias: bool = True,
+    response_model_exclude_unset: bool = False,
+    response_model_exclude_defaults: bool = False,
+    response_model_exclude_none: bool = False,
+    include_in_schema: bool = True,
+    response_class: Union[Type[Response], DefaultPlaceholder] = Default(JSONResponse),
+    name: Optional[str] = None,
+    route_class_override: Optional[Type[APIRoute]] = None,
+    callbacks: Optional[List[Route]] = None,
+    openapi_extra: Optional[Dict[str, Any]] = None,
+):
     def decorator(fn: Callable[..., Any]):
-        endpoint = RouteArgs(path=path, methods=["GET"], **kwargs)
+        endpoint = RouteArgs(
+            path=path,
+            methods=["GET"],
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            route_class_override=route_class_override,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+        )
         setattr(fn, ENDPOINT_KEY, endpoint)
         return fn
 
     return decorator
 
 
-def delete(path: str, **kwargs):
+def delete(
+    path: str,
+    response_model: Optional[Type[Any]] = None,
+    status_code: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    summary: Optional[str] = None,
+    description: Optional[str] = None,
+    response_description: str = "Successful Response",
+    responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    deprecated: Optional[bool] = None,
+    operation_id: Optional[str] = None,
+    response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_by_alias: bool = True,
+    response_model_exclude_unset: bool = False,
+    response_model_exclude_defaults: bool = False,
+    response_model_exclude_none: bool = False,
+    include_in_schema: bool = True,
+    response_class: Union[Type[Response], DefaultPlaceholder] = Default(JSONResponse),
+    name: Optional[str] = None,
+    route_class_override: Optional[Type[APIRoute]] = None,
+    callbacks: Optional[List[Route]] = None,
+    openapi_extra: Optional[Dict[str, Any]] = None,
+):
     def decorator(fn: Callable[..., Any]):
-        endpoint = RouteArgs(path=path, methods=["DELETE"], **kwargs)
+        endpoint = RouteArgs(
+            path=path,
+            methods=["DELETE"],
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            route_class_override=route_class_override,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+        )
         setattr(fn, ENDPOINT_KEY, endpoint)
         return fn
 
     return decorator
 
 
-def put(path: str, **kwargs):
+def put(
+    path: str,
+    response_model: Optional[Type[Any]] = None,
+    status_code: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    summary: Optional[str] = None,
+    description: Optional[str] = None,
+    response_description: str = "Successful Response",
+    responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    deprecated: Optional[bool] = None,
+    operation_id: Optional[str] = None,
+    response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_by_alias: bool = True,
+    response_model_exclude_unset: bool = False,
+    response_model_exclude_defaults: bool = False,
+    response_model_exclude_none: bool = False,
+    include_in_schema: bool = True,
+    response_class: Union[Type[Response], DefaultPlaceholder] = Default(JSONResponse),
+    name: Optional[str] = None,
+    route_class_override: Optional[Type[APIRoute]] = None,
+    callbacks: Optional[List[Route]] = None,
+    openapi_extra: Optional[Dict[str, Any]] = None,
+):
     def decorator(fn: Callable[..., Any]):
-        endpoint = RouteArgs(path=path, methods=["PUT"], **kwargs)
+        endpoint = RouteArgs(
+            path=path,
+            methods=["PUT"],
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            route_class_override=route_class_override,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+        )
         setattr(fn, ENDPOINT_KEY, endpoint)
         return fn
 
     return decorator
 
 
-def patch(path: str, **kwargs):
+def patch(
+    path: str,
+    response_model: Optional[Type[Any]] = None,
+    status_code: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    dependencies: Optional[Sequence[params.Depends]] = None,
+    summary: Optional[str] = None,
+    description: Optional[str] = None,
+    response_description: str = "Successful Response",
+    responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    deprecated: Optional[bool] = None,
+    operation_id: Optional[str] = None,
+    response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+    response_model_by_alias: bool = True,
+    response_model_exclude_unset: bool = False,
+    response_model_exclude_defaults: bool = False,
+    response_model_exclude_none: bool = False,
+    include_in_schema: bool = True,
+    response_class: Union[Type[Response], DefaultPlaceholder] = Default(JSONResponse),
+    name: Optional[str] = None,
+    route_class_override: Optional[Type[APIRoute]] = None,
+    callbacks: Optional[List[Route]] = None,
+    openapi_extra: Optional[Dict[str, Any]] = None,
+):
     def decorator(fn: Callable[..., Any]):
-        endpoint = RouteArgs(path=path, methods=["PATCH"], **kwargs)
+        endpoint = RouteArgs(
+            path=path,
+            methods=["PATCH"],
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            route_class_override=route_class_override,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+        )
         setattr(fn, ENDPOINT_KEY, endpoint)
         return fn
 
@@ -305,7 +554,8 @@ def _fix_endpoint_signature(cls: Type[Any], endpoint: Callable[..., Any]):
     # so it tries to inject all the constructor arguments at runtime
     new_self_parameter = old_first_parameter.replace(default=Depends(Factory(cls)))
     new_parameters = [new_self_parameter] + [
-        parameter.replace(kind=inspect.Parameter.KEYWORD_ONLY) for parameter in old_parameters[1:]
+        parameter.replace(kind=inspect.Parameter.KEYWORD_ONLY)
+        for parameter in old_parameters[1:]
     ]
 
     new_signature = old_signature.replace(parameters=new_parameters)

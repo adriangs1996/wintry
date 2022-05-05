@@ -1,12 +1,41 @@
+from enum import Enum
 from typing import Any
 from winter.backend import QueryDriver, Backend
+from winter.dependency_injection import Factory
 from winter.settings import BackendOptions, WinterSettings
 import importlib
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
+import logging
+import inject
+from winter.utils.loaders import autodiscover_modules
+from fastapi import FastAPI
+from winter.controllers import __controllers__
+from winter.errors import (
+    InvalidRequestError,
+    ForbiddenError,
+    NotFoundError,
+    InternalServerError,
+    not_found_exception_handler,
+    forbidden_exception_handler,
+    internal_server_exception_handler,
+    invalid_request_exception_handler,
+)
+
+# Import the services defined by the framework
+import winter.services
 
 
 BACKENDS: dict[str, Backend] = {}
+
+
+class ServerTypes(Enum):
+    API = 0
+    RPC = 1
+
+
+class NotConfiguredFactoryForServerType(Exception):
+    pass
 
 
 class DriverNotFoundError(Exception):
@@ -34,7 +63,9 @@ def init_backend(settings: BackendOptions) -> None:
     try:
         driver_module = importlib.import_module(settings.driver)
     except ModuleNotFoundError:
-        raise DriverNotFoundError("Provide the absolute path to driver module: Ej: winter.drivers.module")
+        raise DriverNotFoundError(
+            "Provide the absolute path to driver module: Ej: winter.drivers.module"
+        )
 
     try:
         factory = getattr(driver_module, "factory")
@@ -67,3 +98,105 @@ def get_connection(backend_name: str = "default") -> AsyncIOMotorDatabase | Asyn
         raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
 
     return backend.get_connection()
+
+
+def _config_logger():
+    FORMAT: str = "%(levelprefix)s %(asctime)s | %(message)s"
+    # create logger
+    logger = logging.getLogger("logger")
+    logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    formatter = uvicorn.logging.DefaultFormatter(FORMAT, datefmt="%Y-%m-%d %H:%M:%S")  # type: ignore
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+
+
+class Winter:
+    @staticmethod
+    def setup(settings: WinterSettings = WinterSettings()):
+        """
+        Launch general configurations for the server.
+        :func:`Winter.setup()` is based on the configurations
+        provided in a settings.json, the default values of
+        the `WinterSettings` or a custom instance passed
+        to this method. It will launch services based on configuration
+        flags, like autodiscovery and DI Configuration
+        """
+        # Configure the builtin logger
+        _config_logger()
+
+        # Load all the modules so DI and mappings works
+        if settings.auto_discovery_enabled:
+            autodiscover_modules()
+
+        # Configure the DI Container
+        from winter.dependency_injection import __mappings__
+
+        def config(binder: inject.Binder):
+            for dependency, factory in __mappings__.items():
+                if isinstance(factory, Factory):
+                    binder.bind_to_provider(dependency, factory)
+                else:
+                    binder.bind(dependency, factory())
+
+        inject.configure_once(config)
+
+        # Initialize the backends
+        if settings.backends:
+            init_backends(settings)
+
+    @staticmethod
+    def factory(settings=WinterSettings(), server_type: ServerTypes = ServerTypes.API):
+        match server_type:
+            case ServerTypes.API:
+                return Winter._get_api_instance(settings)
+            case _:
+                raise NotConfiguredFactoryForServerType
+
+    @staticmethod
+    def _get_api_instance(settings: WinterSettings):
+        api = FastAPI(
+            docs_url=None,
+            redoc_url=f"{settings.server_prefix}/docs",
+            openapi_url=f"{settings.server_prefix}/openapi.json",
+            title=settings.server_title,
+            version=settings.server_version,
+            contact={"name": "NextX Team"},
+        )
+
+        if settings.middlewares:
+            for middleware in settings.middlewares:
+                # Try to import the middleware module
+                module = importlib.import_module(middleware.module)
+                # try to get the middleware object
+                middleware_factory = getattr(module, middleware.name)
+                # register the middleware
+                api.add_middleware(middleware_factory, **middleware.args)
+
+        for controller in __controllers__:
+            api.include_router(controller, prefix=settings.server_prefix)
+
+        if settings.include_error_handling:
+
+            api.add_exception_handler(NotFoundError, not_found_exception_handler)
+            api.add_exception_handler(
+                InternalServerError, internal_server_exception_handler
+            )
+            api.add_exception_handler(ForbiddenError, forbidden_exception_handler)
+            api.add_exception_handler(
+                InvalidRequestError, invalid_request_exception_handler
+            )
+
+        return api
+
+
+__all__ = ["get_connection", "init_backends"]

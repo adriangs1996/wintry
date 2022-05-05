@@ -51,17 +51,16 @@ def provider(cls: type[T], /) -> type[T]:
 
 
 @overload
-def provider(cls: None, /) -> Callable[[type[T] | Callable[..., T]], type[T] | Callable[..., T]]:
+def provider(
+    cls: None, /
+) -> Callable[[type[T] | Callable[..., T]], type[T] | Callable[..., T]]:
     ...
 
 
 @overload
-def provider(*, interface: None, as_provider: bool = True) -> Callable[[type[T]], type[T]]:
-    ...
-
-
-@overload
-def provider(*, interface: type[I] | Hashable, as_provider: bool = True) -> Callable[[type[T]], type[T]]:
+def provider(
+    *, interface: type[T] | None = None, as_provider: bool = True
+) -> Callable[[type[T]], type[T]]:
     ...
 
 

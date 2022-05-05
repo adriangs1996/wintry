@@ -7,8 +7,7 @@ class LoaderError(Exception):
     pass
 
 
-def autodiscover_modules():
-    settings = WinterSettings()
+def autodiscover_modules(settings: WinterSettings = WinterSettings()):
 
     app_root = Path(settings.app_root)
 
