@@ -5,7 +5,17 @@ from winter.models import model
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 from winter.orm import for_model
-from sqlalchemy import Integer, Column, String, ForeignKey, Float, delete, select, insert, MetaData
+from sqlalchemy import (
+    Integer,
+    Column,
+    String,
+    ForeignKey,
+    Float,
+    delete,
+    select,
+    insert,
+    MetaData,
+)
 from sqlalchemy.orm import relation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine.result import Result
@@ -61,7 +71,9 @@ UserTable = for_model(
 
 
 class UserRepository(Repository[User, int], entity=User):
-    async def find_by_id_or_name_and_age_lowerThan(self, *, id: int, name: str, age: int) -> List[User]:
+    async def find_by_id_or_name_and_age_lowerThan(
+        self, *, id: int, name: str, age: int
+    ) -> List[User]:
         ...
 
 
@@ -172,8 +184,12 @@ async def test_repository_can_get_object_with_related_data_loaded(clean: Any) ->
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(AddressTable).values(id=1, latitude=3.43, longitude=10.111))
-        await session.execute(insert(UserTable).values(id=1, name="test", age=26, address_id=1))
+        await session.execute(
+            insert(AddressTable).values(id=1, latitude=3.43, longitude=10.111)
+        )
+        await session.execute(
+            insert(UserTable).values(id=1, name="test", age=26, address_id=1)
+        )
 
     user = await repo.get_by_id(id=1)
 

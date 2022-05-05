@@ -4,8 +4,7 @@ from winter.models import entity
 
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 
-from winter.orm import metadata
-from sqlalchemy import delete, select, insert
+from sqlalchemy import delete, select, insert, MetaData
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine.result import Result
 import pytest
@@ -18,7 +17,10 @@ from winter.transactions import UnitOfWork
 from winter.repository import Repository
 
 
-@entity(create_metadata=True, name="Addresses")
+metadata = MetaData()
+
+
+@entity(create_metadata=True, name="Addresses", metadata=metadata)
 class Address:
     id: int
     latitude: float
@@ -26,7 +28,7 @@ class Address:
     users: list["User"] = field(default_factory=list)
 
 
-@entity(create_metadata=True)
+@entity(create_metadata=True, metadata=metadata)
 class User:
     id: int
     name: str
@@ -35,7 +37,9 @@ class User:
 
 
 class UserRepository(Repository[User, int], entity=User):
-    async def find_by_id_or_name_and_age_lowerThan(self, *, id: int, name: str, age: int) -> List[User]:
+    async def find_by_id_or_name_and_age_lowerThan(
+        self, *, id: int, name: str, age: int
+    ) -> List[User]:
         ...
 
 
@@ -154,8 +158,12 @@ async def test_repository_can_get_object_with_related_data_loaded(clean: Any) ->
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(Address).values(id=1, latitude=3.43, longitude=10.111))
-        await session.execute(insert(User).values(id=1, name="test", age=26, address_id=1))
+        await session.execute(
+            insert(Address).values(id=1, latitude=3.43, longitude=10.111)
+        )
+        await session.execute(
+            insert(User).values(id=1, name="test", age=26, address_id=1)
+        )
 
     user = await repo.get_by_id(id=1)
 

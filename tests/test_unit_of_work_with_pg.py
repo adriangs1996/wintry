@@ -5,7 +5,17 @@ from winter.orm import for_model
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relation
-from sqlalchemy import Column, Integer, Float, String, ForeignKey, select, delete, insert, MetaData
+from sqlalchemy import (
+    Column,
+    Integer,
+    Float,
+    String,
+    ForeignKey,
+    select,
+    delete,
+    insert,
+    MetaData,
+)
 from winter.repository import Repository
 from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 from winter.transactions import UnitOfWork
@@ -74,7 +84,9 @@ HeroTable = for_model(
 
 
 class UserRepository(Repository[User, int], entity=User):
-    async def find_by_id_or_name_and_age_lowerThan(self, *, id: int, name: str, age: int) -> List[User]:
+    async def find_by_id_or_name_and_age_lowerThan(
+        self, *, id: int, name: str, age: int
+    ) -> List[User]:
         ...
 
 
@@ -182,7 +194,9 @@ async def test_uow_rollbacks_on_error(clean: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_uow_handles_multiple_repositories_under_the_same_session(clean: Any) -> None:
+async def test_uow_handles_multiple_repositories_under_the_same_session(
+    clean: Any,
+) -> None:
     user_repo = UserRepository()
     hero_repo = HeroRepository()
     uow = MultiUow(user_repo, hero_repo)
@@ -202,7 +216,9 @@ async def test_uow_handles_multiple_repositories_under_the_same_session(clean: A
 
 
 @pytest.mark.asyncio
-async def test_uow_commit_multiple_repositories_under_the_same_session(clean: Any) -> None:
+async def test_uow_commit_multiple_repositories_under_the_same_session(
+    clean: Any,
+) -> None:
     user_repo = UserRepository()
     hero_repo = HeroRepository()
     uow = MultiUow(user_repo, hero_repo)

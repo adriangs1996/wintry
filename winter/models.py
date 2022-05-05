@@ -8,6 +8,7 @@ from winter.utils.keys import (
     __winter_track_target__,
     __winter_modified_entity_state__,
     __winter_old_setattr__,
+    __SQL_ENABLED_FLAG__
 )
 from winter.sessions import MongoSessionTracker
 from sqlalchemy import (
@@ -279,6 +280,7 @@ def entity(
     match_args=True,
     kw_only=False,
     slots=False,
+    metadata=metadata
 ) -> type[T] | Callable[[type[T]], type[T]]:
     def _create_metadata(_cls: type[T]) -> type[T]:
         _cls = model(
@@ -311,6 +313,8 @@ def entity(
             table = Table(table_name, metadata, *columns)
 
             mapper_registry.map_imperatively(_cls, table, properties=properties)
+
+            setattr(_cls, __SQL_ENABLED_FLAG__, True)
 
         return _cls
 

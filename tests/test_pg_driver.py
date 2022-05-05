@@ -24,7 +24,9 @@ class Address:
     user: User
 
 
-UserTable = for_model(User, metadata, Column("id", Integer, primary_key=True), Column("username", String))
+UserTable = for_model(
+    User, metadata, Column("id", Integer, primary_key=True), Column("username", String)
+)
 
 
 AddressTable = for_model(
@@ -80,7 +82,9 @@ async def test_pg_driver_panics_when_update_with_no_id() -> None:
     query = Update()
 
     with pytest.raises(ExecutionError):
-        query_expr = await driver.get_query_repr(query, User, entity=asdict(user, exclude=["id"]))
+        query_expr = await driver.get_query_repr(
+            query, User, entity=asdict(user, exclude=["id"])
+        )
 
 
 @pytest.mark.asyncio
@@ -103,7 +107,8 @@ async def test_pg_driver_handles_find_by() -> None:
     query_expr = query_expr.replace("\n", "")
 
     assert (
-        query_expr == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".username = :username_1'
+        query_expr
+        == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".username = :username_1'
     )
 
 
@@ -139,7 +144,10 @@ async def test_pg_driver_find_by_username_and_id() -> None:
 async def test_pg_driver_find_by_username_and_id_or_username() -> None:
     driver = SqlAlchemyDriver()
     query = Find(
-        AndNode(EqualToNode("username"), OrNode(EqualToNode("id"), AndNode(EqualToNode("username"), None)))
+        AndNode(
+            EqualToNode("username"),
+            OrNode(EqualToNode("id"), AndNode(EqualToNode("username"), None)),
+        )
     )
 
     query_expr = await driver.get_query_repr(query, User, username="test", id=2)
@@ -159,7 +167,10 @@ async def test_pg_driver_get_by_id() -> None:
     query_expr = await driver.get_query_repr(query, User, id=2)
     query_expr = query_expr.replace("\n", "")
 
-    assert query_expr == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".id = :id_1'
+    assert (
+        query_expr
+        == 'SELECT "Users".id, "Users".username FROM "Users" WHERE "Users".id = :id_1'
+    )
 
 
 @pytest.mark.asyncio
