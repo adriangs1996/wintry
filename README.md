@@ -229,6 +229,9 @@ CQRS, etc.)
 
 * Settings based on Pydantic
 
+This is the continuation of NEXTX, which would be deprecated
+in favor of this
+
 ## ROADMAP
 
 * Create documentation
