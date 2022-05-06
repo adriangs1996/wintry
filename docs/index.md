@@ -21,25 +21,17 @@ Beign accured, if you have used FastAPI, you would feel at home, winter is heavi
 inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of 
 'cool' stuff on top.
 
-Let me tell you a story, that would give an idea from where this project come from.
-
-## Inspirations
+## Installation
 ---------------
+<div class="termy">
 
-I have used FastAPI a lot for the last year, and I am absolutely fascinated about it.
-Speed + Python on the same sentence, that's something to really appreciate. I know, a big
-thanks to starlette project which is the real hero on that movie, but, FastAPI adds a ton
-of cool features on top, if I would describe them in one word, it would be: Pydantic.
+```console
+$ pip install winter
 
-Ok, but, Django has a lot of cool features too, it is even called 'Batteries included
-framework', and it is true, I mean, who doesn't love the Django's builtin Admin Interface,
-or Django Forms?, not to mention DjangoRestFramework which is a REAALLY cool piece of software.
+---> 100%
+```
 
-Enough flattering, Winter will try to be the new Kid in Town, to provide a DDD
-focused experience, with builtin Dependency Injection system, a dataclasses based
-Repository Pattern implementation, Unit Of Work, Events Driven Components and a lot more.
-Actually, I aimed to provide a similar experience with Repositories than that of
-Spring JPA. Just look at the examples, it is really easy to write decoupled and modularized applications with **Winter**.
+</div>
 
 Let's see what **Winter** looks like:
 
@@ -74,6 +66,59 @@ comming and this penguin framework would prepare you for it.
 
 Besides all that, **Winter** is fully build with type-annotations, which make
 a developer's editor best friend.
+
+## Run it
+---------
+You can either create a python file:
+
+```py linenums="1" title="main.py"
+if __name__ == '__main__':
+    from winter import Winter
+    from winter.settings import WinterSettings
+    Winter.serve(with_settings=WinterSettings(app_path="app:api"))
+```
+
+and run it with:
+
+```console
+$ python main.py
+
+INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [124387] using statreload
+INFO:     Started server process [124390]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+
+```
+
+or you can just call uvicorn directly on it
+
+```console
+$ uvicorn app:api --reload
+
+INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [124387] using statreload
+INFO:     Started server process [124390]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+## Check it
+-----------
+Go to <a href=http://localhost:8000/marvel class="external-link" target=_blank>http://localhost:8000/marvel</a> and you should see:
+
+```JSON
+"Hello World"
+```
+
+## Interactive API docs
+-----------------------
+
+Go to <a href=http://localhost:8000/swag class="external-link" target=_blank>http://localhost:8000/swag</a>
+
+You will see the automatic API Documentation, just as like you are used from FastAPI:
+
+<img src="img/index.md.swag.png" />
 
 ## Contributions
 ----------------

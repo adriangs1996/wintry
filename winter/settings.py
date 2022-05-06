@@ -110,7 +110,7 @@ class WinterSettings(pdc.BaseSettings):
         http://localhost:8000/api/v1
     """
 
-    server_title: str = ""
+    server_title: str = "Winter Server"
     """Server title for docs and web page"""
 
     server_version: str = "0.1.0"

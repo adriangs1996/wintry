@@ -12,6 +12,12 @@ repo_name: adriangs1996/winter
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/custom.css
+  - stylesheets/termynal.css
+
+extra_javascript:
+- js/termy.js
+- js/custom.js
 
 markdown_extensions:
   - pymdownx.highlight:
