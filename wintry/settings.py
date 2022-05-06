@@ -42,7 +42,7 @@ class BackendOptions(pdc.BaseModel):
     be unique among drivers. 
     """
 
-    driver: str = "winter.drivers.mongo"
+    driver: str = "wintry.drivers.mongo"
     """
     Absolute path to driver's module. This module must contain a top level
     :func:`factory(settings: BackendOptions)` which is called to get an instance

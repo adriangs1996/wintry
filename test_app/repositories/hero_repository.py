@@ -1,5 +1,5 @@
-from winter.repository import Repository
-from winter.dependency_injection import provider
+from wintry.repository import Repository
+from wintry.dependency_injection import provider
 from test_app.models.hero import Hero
 
 

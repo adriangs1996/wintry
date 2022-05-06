@@ -1,11 +1,11 @@
 from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
-from winter.backend import QueryDriver
+from wintry.backend import QueryDriver
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.engine.result import Result
 import sqlalchemy.orm as orm
-from winter.query.nodes import (
+from wintry.query.nodes import (
     AndNode,
     Create,
     Delete,
@@ -22,7 +22,7 @@ from winter.query.nodes import (
     RootNode,
     Update,
 )
-from winter.settings import BackendOptions
+from wintry.settings import BackendOptions
 from sqlalchemy import select, update, delete, inspect, insert
 from sqlalchemy.sql import (
     Select,

@@ -1,7 +1,7 @@
 from functools import singledispatchmethod
 from typing import Any, Dict, Type, cast
-from winter.backend import QueryDriver
-from winter.query.nodes import (
+from wintry.backend import QueryDriver
+from wintry.query.nodes import (
     AndNode,
     Create,
     Delete,
@@ -23,7 +23,7 @@ from winter.query.nodes import (
 )
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
-from winter.settings import BackendOptions
+from wintry.settings import BackendOptions
 from dataclasses import is_dataclass
 from dataclass_wizard import asdict, fromdict
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import pytest
-from winter.mqs import (
+from wintry.mqs import (
     MessageQueue,
     Event,
     Command,

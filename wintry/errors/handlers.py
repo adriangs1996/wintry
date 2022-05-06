@@ -2,8 +2,8 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from winter.responses import DataResponse
-from winter.errors.definitions import (
+from wintry.responses import DataResponse
+from wintry.errors.definitions import (
     NotFoundError,
     ForbiddenError,
     InternalServerError,

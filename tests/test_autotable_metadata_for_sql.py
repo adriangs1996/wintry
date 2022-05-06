@@ -1,8 +1,8 @@
 from typing import Any, AsyncGenerator, List
-from winter import init_backends, get_connection, BACKENDS
-from winter.models import entity
+from wintry import init_backends, get_connection, BACKENDS
+from wintry.models import entity
 
-from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 from sqlalchemy import delete, select, insert, MetaData
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +10,11 @@ from sqlalchemy.engine.result import Result
 import pytest
 import pytest_asyncio
 from dataclasses import field
-from winter.transactions import UnitOfWork
+from wintry.transactions import UnitOfWork
 
 
 # Now import the repository
-from winter.repository import Repository
+from wintry.repository import Repository
 
 
 metadata = MetaData()
@@ -57,7 +57,7 @@ async def setup() -> None:
         WinterSettings(
             backends=[
                 BackendOptions(
-                    driver="winter.drivers.pg",
+                    driver="wintry.drivers.pg",
                     connection_options=ConnectionOptions(
                         url="postgresql+asyncpg://postgres:secret@localhost/tests"
                     ),

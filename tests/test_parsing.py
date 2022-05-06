@@ -1,4 +1,4 @@
-from winter.query.nodes import (
+from wintry.query.nodes import (
     AndNode,
     Create,
     EqualToNode,
@@ -6,7 +6,7 @@ from winter.query.nodes import (
     LowerThanNode,
     OrNode,
 )
-from winter.query.parsing import ParsingError, QueryParser, QueryTokenizer, TokenType
+from wintry.query.parsing import ParsingError, QueryParser, QueryTokenizer, TokenType
 import pytest
 
 

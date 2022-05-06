@@ -3,7 +3,7 @@ from types import GenericAlias, NoneType
 from typing import Any, Callable, Iterable, Tuple, TypeVar, Union, get_args, overload
 from dataclass_wizard import fromdict, fromlist
 from dataclasses import Field, dataclass, fields, is_dataclass
-from winter.utils.keys import (
+from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
     __winter_track_target__,
@@ -11,7 +11,7 @@ from winter.utils.keys import (
     __winter_old_setattr__,
     __SQL_ENABLED_FLAG__
 )
-from winter.sessions import MongoSessionTracker
+from wintry.sessions import MongoSessionTracker
 from sqlalchemy import (
     Column,
     Integer,
@@ -27,7 +27,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relation
 from enum import Enum as std_enum
-from winter.orm import metadata, mapper_registry
+from wintry.orm import metadata, mapper_registry
 
 _mapper: dict[type, type] = {
     int: Integer,

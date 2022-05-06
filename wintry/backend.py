@@ -1,7 +1,7 @@
 import abc
 from typing import Any, Type
-from winter.query.nodes import RootNode
-from winter.query.parsing import QueryParser
+from wintry.query.nodes import RootNode
+from wintry.query.parsing import QueryParser
 from functools import partial
 
 

@@ -1,10 +1,10 @@
 from typing import Any, AsyncGenerator, List
-from winter import init_backends, get_connection, BACKENDS
-from winter.models import model
+from wintry import init_backends, get_connection, BACKENDS
+from wintry.models import model
 
-from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
-from winter.orm import for_model
+from wintry.orm import for_model
 from sqlalchemy import (
     Integer,
     Column,
@@ -25,7 +25,7 @@ from dataclasses import field
 
 
 # Now import the repository
-from winter.repository import Repository
+from wintry.repository import Repository
 
 
 @model
@@ -83,7 +83,7 @@ async def setup() -> None:
         WinterSettings(
             backends=[
                 BackendOptions(
-                    driver="winter.drivers.pg",
+                    driver="wintry.drivers.pg",
                     connection_options=ConnectionOptions(
                         url="postgresql+asyncpg://postgres:secret@localhost/tests"
                     ),

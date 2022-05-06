@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "winter"
-version = "0.1.0"
-description = "Python web development's future rely on magic, and magic is coming (like winter in GOT)"
+name = "wintry"
+version = "0.1.0-alpha"
+description = "A Web Framework for you, the developer, in a clean way, a cool way"
 authors = ["adriangs1996 <adriangonzalezsanchez1996@gmail.com>"]
 license = "MIT"
 

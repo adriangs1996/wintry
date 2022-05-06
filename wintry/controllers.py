@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse
 from starlette.routing import Route, BaseRoute
 from starlette.types import ASGIApp
 from fastapi.routing import APIRoute
-from winter.dependency_injection import Factory, __mappings__
+from wintry.dependency_injection import Factory, __mappings__
 from inject import autoparams
 from dataclasses import dataclass
 

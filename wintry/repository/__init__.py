@@ -1,8 +1,8 @@
 import abc
 from typing import Any, Generic, TypeVar
 from .base import raw_method, repository
-from winter import get_connection
-from winter.utils.keys import __winter_backend_identifier_key__
+from wintry import get_connection
+from wintry.utils.keys import __winter_backend_identifier_key__
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

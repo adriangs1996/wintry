@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from winter.dependency_injection import service, provider, __mappings__, Factory
+from wintry.dependency_injection import service, provider, __mappings__, Factory
 import inject
 import pytest
 

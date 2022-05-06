@@ -1,8 +1,8 @@
 # Configure te mongo driver
-from winter import init_backends
-from winter.models import model
+from wintry import init_backends
+from wintry.models import model
 
-from winter.repository import Repository
+from wintry.repository import Repository
 import pytest
 
 

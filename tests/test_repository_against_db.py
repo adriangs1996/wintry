@@ -1,9 +1,9 @@
 from typing import Any, AsyncGenerator, List, Optional
-from winter import init_backends, get_connection
-import winter.backend as bkd
-from winter.models import model
-from winter.repository import raw_method
-from winter.repository import Repository
+from wintry import init_backends, get_connection
+import wintry.backend as bkd
+from wintry.models import model
+from wintry.repository import raw_method
+from wintry.repository import Repository
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase

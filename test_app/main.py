@@ -1,5 +1,5 @@
-from winter import ServerTypes, Winter
-from winter.settings import WinterSettings
+from wintry import ServerTypes, Winter
+from wintry.settings import WinterSettings
 
 if __name__ == "__main__":
     Winter.serve(

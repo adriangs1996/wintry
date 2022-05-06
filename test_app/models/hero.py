@@ -1,5 +1,5 @@
 from dataclasses import field
-from winter.models import entity
+from wintry.models import entity
 from bson import ObjectId
 
 

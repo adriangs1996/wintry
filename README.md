@@ -1,4 +1,4 @@
-# Winter ==> A new python web framework with cool features for ... everybody
+# Wintry ==> A new python web framework with cool features for ... everybody
 
 
 
@@ -9,15 +9,15 @@
 ![](https://img.shields.io/static/v1?label=pypi%20package&message=v0.1.0&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 
 
-Hello, friend, welcome to winter. You may have stumble with this project searching
+Hello, friend, welcome to Wintry. You may have stumble with this project searching
 for a python web framework, well, you got what you want.
 
 Pherhaps you know many other frameworks, pherhaps you know Django, or maybe Flask,
 or hopefully FastAPI. And odds are that you are willing to take a new project for a
-ride with a new alternative. Well, winter is this, your new alternative, one that
+ride with a new alternative. Well, Wintry is this, your new alternative, one that
 do not push you out of your confort zone, but do not take the "written before" path.
 
-Beign accured, if you have used FastAPI, you would feel at home, winter is heavilly
+Beign accured, if you have used FastAPI, you would feel at home, Wintry is heavilly
 inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of 
 'cool' stuff on top.
 
@@ -35,25 +35,25 @@ Ok, but, Django has a lot of cool features too, it is even called 'Batteries inc
 framework', and it is true, I mean, who doesn't love the Django's builtin Admin Interface,
 or Django Forms?, not to mention DjangoRestFramework which is a REAALLY cool piece of software.
 
-Enough flattering, Winter will try to be the new Kid in Town, to provide a DDD
+Enough flattering, Wintry will try to be the new Kid in Town, to provide a DDD
 focused experience, with builtin Dependency Injection system, a dataclasses based
 Repository Pattern implementation, Unit Of Work, Events Driven Components and a lot more.
 Actually, I aimed to provide a similar experience with Repositories than that of
-Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with **Winter**.
+Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with **Wintry**.
 
-Let's see what **Winter** looks like:
+Let's see what **Wintry** looks like:
 
 ```python
-from winter.models import entity, fromdict
-from winter.repository import Repository
-from winter.controllers import controller, post, get
-from winter.dependency_injection import provider
-from winter.errors import NotFoundError
+from wintry.models import entity, fromdict
+from wintry.repository import Repository
+from wintry.controllers import controller, post, get
+from wintry.dependency_injection import provider
+from wintry.errors import NotFoundError
 from dataclasses import field
 from bson import ObjectId
 from pydantic import BaseModel
-from winter import ServerTypes, Winter
-from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry import ServerTypes, Winter
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 @entity(create_metadata=True)
 class Hero:
@@ -171,18 +171,18 @@ You can look for a complete example under [test_app](https://github.com/adriangs
 As simple as use
 
 ```
-$ pip install winter
+$ pip install wintry
 ```
 
 or with poetry
 
 ```
-$ poetry add winter
+$ poetry add wintry
 ```
 
 ## Features
 -----------
-There is a lot more to know about winter:
+There is a lot more to know about Wintry:
 
 * Stack of patterns (RepositoryPattern, UnitOfWork, ProxyPattern,
 MVC, Event-Driven-Desing,

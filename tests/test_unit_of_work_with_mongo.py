@@ -1,11 +1,11 @@
 from dataclasses import field
 from typing import Any, AsyncGenerator
-from winter import get_connection, init_backends
-from winter.models import model
+from wintry import get_connection, init_backends
+from wintry.models import model
 
-from winter.repository import Repository
-from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
-from winter.transactions import UnitOfWork
+from wintry.repository import Repository
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry.transactions import UnitOfWork
 import pytest
 import pytest_asyncio
 from bson import ObjectId

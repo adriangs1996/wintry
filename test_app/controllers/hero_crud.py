@@ -1,11 +1,11 @@
 from logging import Logger
 from test_app.models.hero import Hero
 from test_app.services.unit_of_work import UnitOfWork
-from winter.controllers import controller, delete, get, post
-from winter.responses import DataResponse
-from winter.errors import NotFoundError
+from wintry.controllers import controller, delete, get, post
+from wintry.responses import DataResponse
+from wintry.errors import NotFoundError
 from test_app.views import HeroCreateModel, HeroViewModel
-from winter.models import fromdict
+from wintry.models import fromdict
 
 
 @controller

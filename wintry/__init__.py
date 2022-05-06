@@ -1,17 +1,17 @@
 from enum import Enum
 from typing import Any
-from winter.backend import QueryDriver, Backend
-from winter.dependency_injection import Factory
-from winter.settings import BackendOptions, WinterSettings
+from wintry.backend import QueryDriver, Backend
+from wintry.dependency_injection import Factory
+from wintry.settings import BackendOptions, WinterSettings
 import importlib
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 import inject
-from winter.utils.loaders import autodiscover_modules
+from wintry.utils.loaders import autodiscover_modules
 from fastapi import FastAPI
-from winter.controllers import __controllers__
-from winter.errors import (
+from wintry.controllers import __controllers__
+from wintry.errors import (
     InvalidRequestError,
     ForbiddenError,
     NotFoundError,
@@ -24,7 +24,7 @@ from winter.errors import (
 import uvicorn
 
 # Import the services defined by the framework
-import winter.services
+import wintry.services
 
 
 BACKENDS: dict[str, Backend] = {}
@@ -140,7 +140,7 @@ class Winter:
             autodiscover_modules(settings)
 
         # Configure the DI Container
-        from winter.dependency_injection import __mappings__
+        from wintry.dependency_injection import __mappings__
 
         def config(binder: inject.Binder):
             for dependency, factory in __mappings__.items():

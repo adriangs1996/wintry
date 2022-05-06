@@ -1,13 +1,13 @@
 import pytest
-from winter.drivers.pg import ExecutionError, SqlAlchemyDriver
-from winter.models import model
-from winter.orm import for_model
+from wintry.drivers.pg import ExecutionError, SqlAlchemyDriver
+from wintry.models import model
+from wintry.orm import for_model
 from sqlalchemy.orm import relation
 from sqlalchemy import Integer, String, Column, ForeignKey, MetaData
 from sqlalchemy.exc import CompileError
 from dataclass_wizard import asdict
 
-from winter.query.nodes import AndNode, Create, EqualToNode, Find, Get, OrNode, Update
+from wintry.query.nodes import AndNode, Create, EqualToNode, Find, Get, OrNode, Update
 
 metadata = MetaData()
 

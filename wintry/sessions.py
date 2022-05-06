@@ -1,8 +1,8 @@
 from dataclasses import is_dataclass, asdict
 from typing import Any
-from winter.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
-from winter.utils.keys import __winter_track_target__
-from winter import BACKENDS
+from wintry.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
+from wintry.utils.keys import __winter_track_target__
+from wintry import BACKENDS
 
 
 class MongoSessionTracker:

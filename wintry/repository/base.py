@@ -1,12 +1,12 @@
 import inspect
 from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
-from winter.models import _is_private_attr
+from wintry.models import _is_private_attr
 
-from winter import BACKENDS
-from winter.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
-from winter.sessions import MongoSessionTracker
-from winter.utils.keys import (
+from wintry import BACKENDS
+from wintry.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
+from wintry.sessions import MongoSessionTracker
+from wintry.utils.keys import (
     __mappings_builtins__,
     __RepositoryType__,
     __winter_in_session_flag__,

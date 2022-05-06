@@ -1,6 +1,6 @@
 from typing import TypeVar
 from pyee.cls import evented, on
-from winter.mqs.keys import new_event
+from wintry.mqs.keys import new_event
 
 
 _T = TypeVar("_T")

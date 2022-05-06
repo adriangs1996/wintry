@@ -1,5 +1,5 @@
-from winter import ServerTypes, Winter
-from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry import ServerTypes, Winter
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 settings = WinterSettings(
     backends=[

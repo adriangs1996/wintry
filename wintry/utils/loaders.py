@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from typing import Any
-from winter.settings import WinterSettings
+from wintry.settings import WinterSettings
 import importlib
 
 

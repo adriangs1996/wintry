@@ -1,7 +1,7 @@
 from typing import Any, AsyncGenerator, List
-from winter import get_connection, init_backends, BACKENDS
-from winter.models import model
-from winter.orm import for_model
+from wintry import get_connection, init_backends, BACKENDS
+from wintry.models import model
+from wintry.orm import for_model
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relation
@@ -16,9 +16,9 @@ from sqlalchemy import (
     insert,
     MetaData,
 )
-from winter.repository import Repository
-from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
-from winter.transactions import UnitOfWork
+from wintry.repository import Repository
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry.transactions import UnitOfWork
 import pytest_asyncio
 import pytest
 from dataclasses import field
@@ -116,7 +116,7 @@ async def setup() -> None:
         WinterSettings(
             backends=[
                 BackendOptions(
-                    driver="winter.drivers.pg",
+                    driver="wintry.drivers.pg",
                     connection_options=ConnectionOptions(
                         url="postgresql+asyncpg://postgres:secret@localhost/tests"
                     ),

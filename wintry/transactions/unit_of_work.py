@@ -1,10 +1,10 @@
 from typing import Any, TypeVar
-from winter.drivers.mongo import MongoSession
+from wintry.drivers.mongo import MongoSession
 from sqlalchemy.ext.asyncio import AsyncSession
-from winter import BACKENDS, DriverNotFoundError, DriverNotSetError
-from winter.repository.base import __RepositoryType__, NO_SQL
-from winter.sessions import MongoSessionTracker
-from winter.utils.keys import (
+from wintry import BACKENDS, DriverNotFoundError, DriverNotSetError
+from wintry.repository.base import __RepositoryType__, NO_SQL
+from wintry.sessions import MongoSessionTracker
+from wintry.utils.keys import (
     __winter_manage_objects__,
     __winter_tracker__,
     __winter_session_key__,
