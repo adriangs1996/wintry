@@ -285,7 +285,7 @@ class MongoDbDriver(QueryDriver):
             filters = {}
         collection = self.db[get_tablename(table)]
 
-        return await collection.delete_many(filters, session=session)  # type: ignore
+        await collection.delete_many(filters, session=session)  # type: ignore
 
     @visit.register
     async def _(self, node: Get, table: type, session: Any = None, **kwargs: Any) -> Any:

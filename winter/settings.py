@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
-from unicodedata import name
 import pydantic as pdc
 
 
@@ -15,7 +14,7 @@ def json_config_settings_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
     """
     encoding = settings.__config__.env_file_encoding
     try:
-        return json.loads(Path("config.json").read_text(encoding))
+        return json.loads(Path("settings.json").read_text(encoding))
     except FileNotFoundError:
         return {}
 

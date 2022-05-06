@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from types import GenericAlias, NoneType
 from typing import Any, Callable, Iterable, Tuple, TypeVar, Union, get_args, overload
+from dataclass_wizard import fromdict, fromlist
 from dataclasses import Field, dataclass, fields, is_dataclass
 from winter.utils.keys import (
     __winter_in_session_flag__,

@@ -15,6 +15,7 @@ pydantic = "^1.9.0"
 pyee = "^9.0.4"
 fastapi = "^0.75.2"
 Inject = "^4.3.1"
+uvicorn = "^0.17.6"
 
 [tool.poetry.extras]
 postgres = ["SQLAlchemy", "asyncpg"]

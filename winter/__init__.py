@@ -21,6 +21,7 @@ from winter.errors import (
     internal_server_exception_handler,
     invalid_request_exception_handler,
 )
+import uvicorn
 
 # Import the services defined by the framework
 import winter.services
@@ -136,7 +137,7 @@ class Winter:
 
         # Load all the modules so DI and mappings works
         if settings.auto_discovery_enabled:
-            autodiscover_modules()
+            autodiscover_modules(settings)
 
         # Configure the DI Container
         from winter.dependency_injection import __mappings__
@@ -164,8 +165,9 @@ class Winter:
 
     @staticmethod
     def _get_api_instance(settings: WinterSettings):
+        logger = logging.getLogger("logger")
         api = FastAPI(
-            docs_url=None,
+            docs_url=f"{settings.server_prefix}/swag",
             redoc_url=f"{settings.server_prefix}/docs",
             openapi_url=f"{settings.server_prefix}/openapi.json",
             title=settings.server_title,
@@ -183,6 +185,7 @@ class Winter:
                 api.add_middleware(middleware_factory, **middleware.args)
 
         for controller in __controllers__:
+            logger.info(f"Loaded Controller: {controller.tags}")
             api.include_router(controller, prefix=settings.server_prefix)
 
         if settings.include_error_handling:
