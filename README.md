@@ -1,12 +1,16 @@
+# Winter ==> A new python web framework with cool features for ... everybody
+
+
+
+
 ![](https://img.shields.io/static/v1?label=code&message=python&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 ![](https://img.shields.io/static/v1?label=web&message=framework&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 ![](https://img.shields.io/static/v1?label=Tests&message=Passing&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 ![](https://img.shields.io/static/v1?label=pypi%20package&message=v0.1.0&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 
-# Winter
 
 Hello, friend, welcome to winter. You may have stumble with this project searching
-for a python web framework, well, not quite, but you almost got what you want.
+for a python web framework, well, you got what you want.
 
 Pherhaps you know many other frameworks, pherhaps you know Django, or maybe Flask,
 or hopefully FastAPI. And odds are that you are willing to take a new project for a
@@ -20,9 +24,10 @@ inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of
 Let me tell you a story, that would give an idea from where this project come from.
 
 ## Inspirations
+---------------
 
 I have used FastAPI a lot for the last year, and I am absolutely fascinated about it.
-Speed + Python on the same sentence, that something really to appreciate. I know, a big
+Speed + Python on the same sentence, that's something to really appreciate. I know, a big
 thanks to starlette project which is the real hero on that movie, but, FastAPI adds a ton
 of cool features on top, if I would describe them in one word, it would be: Pydantic.
 
@@ -30,81 +35,13 @@ Ok, but, Django has a lot of cool features too, it is even called 'Batteries inc
 framework', and it is true, I mean, who doesn't love the Django's builtin Admin Interface,
 or Django Forms?, not to mention DjangoRestFramework which is a REAALLY cool piece of software.
 
-Ok, enough flattering, where is the problem then ? Well, there is no problem at all, that's the
-point. All this well behaved framworks makes you want to use them all. But wait, there are
-actually some inconvenients.
+Enough flattering, Winter will try to be the new Kid in Town, to provide a DDD
+focused experience, with builtin Dependency Injection system, a dataclasses based
+Repository Pattern implementation, Unit Of Work, Events Driven Components and a lot more.
+Actually, I aimed to provide a similar experience with Repositories than that of
+Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with **Winter**.
 
-Let's start with FastAPI first (just because it is my preference and I am biased :).
-
-A normal implementation of an endpoint from a FastAPI app looks like
-(let's assume we have a Postgres db running on our localhost, and we are using sqlalchemy for this):
-
-```python
-router = ApiRouter()
-
-@router.post('')
-async def save(db: AsyncSession = Depends(get_db), user_data: UserFormData = Body(...)):
-    user = User(**user_data.dict())
-
-    async with db.begin():
-        user = await db.add(user)
-
-    return user
-```
-
-This is cool, but wait a minute, there is a lot's going on there. First of all, we are calling domain logic inside a controller (this is not a good idea, controllers should take care only of handling parameters and responses at the HTTP layer and calling the respective services).
-Second, we have stablish that our controller endpoint have a dependency on a db connection, and this is cool because we can
-make use of FastAPI dependency injection for resolving this, but
-here is the catch, FastAPI DI only triggers on endpoint call (this is
-not exactly true, but the idea is that you have to leverage the dependes at endpoint level or wrap them on function calls)
-
-It would be nice if we could do something like:
-
-```python
-router = ApiRouter()
-
-@router.post('')
-async def save(user_service = Depends(get_user_service), user_data: UserFormData = Body(...)):
-    user = User(**user_data.dict())
-    inserted_user = await user_service.save(user)
-    return inserted_user
-```
-
-Even better:
-
-
-```python
-router = ApiRouter()
-
-user_service = UserService()
-
-@router.post('')
-async def save(user_data: UserFormData = Body(...)):
-    user = User(**user_data.dict())
-    inserted_user = await user_service.save(user)
-    return inserted_user
-```
-
-It is not a simple matter of taste, handling scopes with these dependencies
-is not easy. And one big problema is that now **user_service** is global to all the importers of this module. That may not seen as a problem
-but on big complex applications, these "Singletons" tends to be the cause
-of a big ball of mud, specially if they are stateful. Besides, there is one big drawback,
-We cant use Dependency Injection in the constructor of the **UserService**, for that we must call it inside a depends on an endpoint.
-
-Winter is build following the clean architecture principle, and builds 
-on top of FastAPI to achieve that. The main idea is to put Domain Models as the center of the development, and try to leave as many
-details to framework as possible.
-
-Let me give you a hint about that: most libraries provide a Model
-centric aproach to map entities in databases. For FastAPI, there is
-an awesome library called SQLModel, wrote by the same author of FastAPI
-that really makes easy to bring the gap between domain models and
-tables (SQLAlchemy Models). But it leave you with two little problems.
-You must be somewhat aware of configuring your database relations and
-it only support SQLAlchemy (ie, only relational databases). So moving to mongo is not as straight forward, for example if you
-rely on a repository implementation using this as your input and output model, switching may not be as easy as it looks.
-
-Let's see what winter looks like:
+Let's see what **Winter** looks like:
 
 ```python
 from winter.models import entity, fromdict
@@ -198,9 +135,6 @@ Winter.setup(settings)
 api = Winter.factory(settings, server_type=ServerTypes.API)
 ```
 
-Yeah, I know, is a lot more than the FastAPI examples, but of, course
-there is a lot's going on there. Just consider, to extend the FastAPI
-example to do the same thing this is doing, you would need a lot more.
 Note that the method **get_by_name** is NOT IMPLEMENTED, but it somewhow still works :). The thing is Repositories are query compilers,
 and you dont need to implement them, only learn a very simple
 query syntax. That's not the only thing, the **@provider** decorator
@@ -211,7 +145,7 @@ Note that my Hero and Villain entities, does not contain anything special, they 
 we call **get_villain** if the **Villain** has any **Hero** assigned.
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
-to change the configuration in a settings.json, and THERE IS NO NEED TO CHANGE THE CODE,
+to change the configuration url, and THERE IS NO NEED TO CHANGE THE CODE,
 it would just work. In fact, for consistency, the only recomended change to the code would
 be to remove the create_metadata=True from the @entity decorator:
 
@@ -232,7 +166,22 @@ class Villain:
 
 You can look for a complete example under [test_app](https://github.com/adriangs1996/winter/tree/master/test_app)
 
+## Installation
+---------------
+As simple as use
+
+```
+$ pip install winter
+```
+
+or with poetry
+
+```
+$ poetry add winter
+```
+
 ## Features
+-----------
 There is a lot more to know about winter:
 
 * Stack of patterns (RepositoryPattern, UnitOfWork, ProxyPattern,
@@ -259,7 +208,7 @@ This is the continuation of NEXTX, which would be deprecated
 in favor of this
 
 ## ROADMAP
-
+----------
 * Create documentation
 
 * Add more features to the feature list with links to
@@ -280,6 +229,7 @@ the corresponding documentation
 * Maybe some ViewEngine (Jinja, or we could go deep and try Brython ??? IDK)
 
 ## Contributions
+----------------
 
 Every single contribution is very appreciated. From ideas, issues,
 PR, criticism, anything you can imagine.
@@ -289,7 +239,7 @@ give at least some tests for the feature, I try my best
 mantaining a pool of tests that will be growing with time
 
 ## Thanks
-
+--------
 To @tiangolo for the amazing [SQLModel](https://github.com/tiangolo/sqlmodel) and [FastAPI](https://github.com/tiangolo/fastapi)
 
 To the amazing [Django Team](https://github.com/django/django)
