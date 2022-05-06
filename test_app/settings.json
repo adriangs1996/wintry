@@ -1,0 +1,35 @@
+{
+    "backends": [
+        {
+            "name": "default",
+            "driver": "winter.drivers.mongo",
+            "connection_options": {
+                "url": "mongodb://localhost:27017/?replicaSet=dbrs"
+            }
+        }
+    ],
+    "auto_discovery_enabled": true,
+    "app_root": "./test_app",
+    "middlewares": [
+        {
+            "name": "CORSMiddleware",
+            "module": "fastapi.middleware.cors",
+            "args": {
+                "allow_origins": [
+                    "*"
+                ],
+                "allow_credentials": true,
+                "allow_methods": [
+                    "*"
+                ],
+                "allow_headers": [
+                    "*"
+                ]
+            }
+        }
+    ],
+    "server_prefix": "test",
+    "server_title": "Testing Server",
+    "server_version": "0.0.1",
+    "include_error_handling": true
+}
