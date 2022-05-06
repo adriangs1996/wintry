@@ -95,13 +95,38 @@ class WinterSettings(pdc.BaseSettings):
     to FastAPI instnace.
     """
 
+    app_path: str = "main:api"
+    """
+    Importable path to the app instance that winter will load.
+    Winter uses `uvicorn` behind scenes to load APIs, so hot
+    reload and other features are possible.
+    """
+
     server_prefix: str = ""
+    """
+    This prepend a prefix to the server url. For example,
+    if `server_prefix` = "api/v1" and Winter is running on localhost
+    with port 8000, then the access url will be:
+        http://localhost:8000/api/v1
+    """
 
     server_title: str = ""
+    """Server title for docs and web page"""
 
     server_version: str = "0.1.0"
+    """Server version"""
 
     include_error_handling: bool = True
+    """Provide handling of Winter predefined errors, returning `DataResponse`."""
+
+    host: str = "localhost"
+    """Host to bind server to"""
+
+    port: int = 8000
+    """Port to bind server to"""
+
+    hot_reload: bool = True
+    """Enabled hot reloading. Disable this for production environments"""
 
     class Config:
         env_file_encoding = "utf-8"

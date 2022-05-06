@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 from winter.settings import WinterSettings
 import importlib
 
@@ -21,6 +22,18 @@ def to_package_format(path: Path) -> str:
 
 
 def autodiscover_modules(settings: WinterSettings = WinterSettings()):
+    """Utility to automatically import the app's modules so there is
+    no need to manual importing controllers, services, etc, to provide
+    the necessary registry for DI
+    
+    Args:
+        settings(WinterSettings): App global configuration. If omitted, will be
+        constructed with defaults and .env variables
+        
+    Returns:
+        None
+    
+    """
     logger = logging.getLogger("logger")
     app_root = Path(settings.app_root)
 
@@ -37,7 +50,8 @@ def autodiscover_modules(settings: WinterSettings = WinterSettings()):
                 if sub_module.name.endswith(".py"):
                     try:
                         mod = to_package_format(sub_module)
-                        logger.info(f"Loading module {mod}")
-                        importlib.import_module(mod)
+                        if mod not in settings.app_path:
+                            logger.info(f"Loading module {mod}")
+                            importlib.import_module(mod)
                     except ModuleNotFoundError as e:
                         raise LoaderError(str(e))

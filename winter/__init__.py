@@ -164,8 +164,22 @@ class Winter:
                 raise NotConfiguredFactoryForServerType
 
     @staticmethod
+    def serve(
+        server_type=ServerTypes.API, with_settings: WinterSettings = WinterSettings()
+    ):
+        match server_type:
+            case ServerTypes.API:
+                uvicorn.run(
+                    with_settings.app_path,
+                    reload=with_settings.hot_reload,
+                    host=with_settings.host,
+                    port=with_settings.port,
+                )
+            case _:
+                raise NotConfiguredFactoryForServerType
+
+    @staticmethod
     def _get_api_instance(settings: WinterSettings):
-        logger = logging.getLogger("logger")
         api = FastAPI(
             docs_url=f"{settings.server_prefix}/swag",
             redoc_url=f"{settings.server_prefix}/docs",
@@ -185,7 +199,6 @@ class Winter:
                 api.add_middleware(middleware_factory, **middleware.args)
 
         for controller in __controllers__:
-            logger.info(f"Loaded Controller: {controller.tags}")
             api.include_router(controller, prefix=settings.server_prefix)
 
         if settings.include_error_handling:
