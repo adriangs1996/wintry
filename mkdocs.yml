@@ -1,5 +1,5 @@
-site_name: Winter Documentation
-site_url: "https://adriangs1996.github.io/winter"
+site_name: Wintry Documentation
+site_url: "https://adriangs1996.github.io/wintry"
 
 nav:
   - Home: index.md
@@ -7,8 +7,8 @@ nav:
   - User Guide: 
     - Installation: user-guide/installation.md
 
-repo_url: https://github.com/adriangs1996/winter
-repo_name: adriangs1996/winter
+repo_url: https://github.com/adriangs1996/wintry
+repo_name: adriangs1996/wintry
 
 extra_css:
   - stylesheets/extra.css

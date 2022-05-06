@@ -1,4 +1,4 @@
-# Winter ==> A new python web framework with cool features for ... everybody
+# Wintry: A Web Framework for you, the developer, in a clean way, a cool way
 
 
 
@@ -9,15 +9,15 @@
 ![](https://img.shields.io/static/v1?label=pypi%20package&message=v0.1.0&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 
 
-Hello, friend, welcome to winter. You may have stumble with this project searching
+Hello, friend, welcome to Wintry. You may have stumble with this project searching
 for a python web framework, well, you got what you want.
 
 Pherhaps you know many other frameworks, pherhaps you know Django, or maybe Flask,
 or hopefully FastAPI. And odds are that you are willing to take a new project for a
-ride with a new alternative. Well, winter is this, your new alternative, one that
+ride with a new alternative. Well, Wintry is this, your new alternative, one that
 do not push you out of your confort zone, but do not take the "written before" path.
 
-Beign accured, if you have used FastAPI, you would feel at home, winter is heavilly
+Beign accured, if you have used FastAPI, you would feel at home, Wintry is heavilly
 inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of 
 'cool' stuff on top.
 
@@ -26,18 +26,18 @@ inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of
 <div class="termy">
 
 ```console
-$ pip install winter
+$ pip install wintry
 
 ---> 100%
 ```
 
 </div>
 
-Let's see what **Winter** looks like:
+Let's see what **Wintry** looks like:
 
 ```python title="app.py" linenums="1"
-from winter.controllers import controller, get
-from winter import ServerTypes, Winter
+from wintry.controllers import controller, get
+from wintry import ServerTypes, Winter
 
 @controller
 class MarvelController:
@@ -59,12 +59,12 @@ frameworks like .NET Core or NestJS
 
 * An API Factory, which automatically recognizes your controller, and register it.
 
-**Winter** aims to provide a lot of things, and at the very least, it ease the process
+**Wintry** aims to provide a lot of things, and at the very least, it ease the process
 of writting FastAPI endpoints. But we are just scratching the surface here, this is the tip
 of the Iceberg. Grab your cough, make a hot coffee, and embrace the 'cool', because winter is
 comming and this penguin framework would prepare you for it.
 
-Besides all that, **Winter** is fully build with type-annotations, which make
+Besides all that, **Wintry** is fully build with type-annotations, which make
 a developer's editor best friend.
 
 ## Run it
@@ -73,8 +73,8 @@ You can either create a python file:
 
 ```py linenums="1" title="main.py"
 if __name__ == '__main__':
-    from winter import Winter
-    from winter.settings import WinterSettings
+    from wintry import Winter
+    from wintry.settings import WinterSettings
     Winter.serve(with_settings=WinterSettings(app_path="app:api"))
 ```
 
@@ -130,9 +130,9 @@ If you are willing to provide a PR for a feature, just try to
 give at least some tests for the feature, I try my best
 mantaining a pool of tests that will be growing with time
 
-- [Issue Tracker](https://github.com/adriangs1996/winter/issues)
+- [Issue Tracker](https://github.com/adriangs1996/wintry/issues)
 
-- [Fork the repo, change it, and make a PR](https://github.com/adriangs1996/winter)
+- [Fork the repo, change it, and make a PR](https://github.com/adriangs1996/wintry)
 
 ## Thanks
 --------
