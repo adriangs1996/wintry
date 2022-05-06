@@ -19,6 +19,14 @@ class HeroesController:
         # no need for start a transaction here
         return DataResponse(data=await self.uow.heroes.find())
 
+    @get("/hero/{name}", response_model=DataResponse[HeroViewModel])
+    async def get_hero_by_name(self, name: str):
+        hero = await self.uow.heroes.get_by_name(name=name)
+        if hero is None:
+            raise NotFoundError("Hero")
+
+        return DataResponse(data=hero)
+
     @get("/{hero_id}/salute", response_model=DataResponse[str])
     async def get_hero_salute(self, hero_id: str):
         hero = await self.uow.heroes.get_by_id(id=hero_id)

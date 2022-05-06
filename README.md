@@ -8,7 +8,7 @@
 Hello, friend, welcome to winter. You may have stumble with this project searching
 for a python web framework, well, not quite, but you almost got what you want.
 
-Pherhaps you know many other frameworks, pherphas you know Django, or maybe Flask,
+Pherhaps you know many other frameworks, pherhaps you know Django, or maybe Flask,
 or hopefully FastAPI. And odds are that you are willing to take a new project for a
 ride with a new alternative. Well, winter is this, your new alternative, one that
 do not push you out of your confort zone, but do not take the "written before" path.
