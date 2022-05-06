@@ -115,18 +115,20 @@ from winter.errors import NotFoundError
 from dataclasses import field
 from bson import ObjectId
 from pydantic import BaseModel
+from winter import ServerTypes, Winter
+from winter.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 @entity(create_metadata=True)
 class Hero:
     city: str
     name: str
-    id: str = field(default_factory=str(ObjectId()))
+    id: str = field(default_factory=lambda: str(ObjectId()))
 
 @entity(create_metadata=True)
 class Villain:
     name: str
     city: str
-    id: str = field(default_factory=str(ObjectId()))
+    id: str = field(default_factory=lambda: str(ObjectId()))
     hero: Hero | None = None
 
 class HeroForm(BaseModel):
@@ -176,6 +178,24 @@ class MarvelController:
             raise NotFoundError()
 
         return villain
+
+
+settings = WinterSettings(
+    backends=[
+        BackendOptions(
+            connection_options=ConnectionOptions(
+                url="postgresql+asyncpg://postgres:secret@localhost/tests"
+            )
+        )
+    ],
+    app_root="test_app",
+    server_title="Testing Server API",
+    server_version="0.0.1",
+)
+
+Winter.setup(settings)
+
+api = Winter.factory(settings, server_type=ServerTypes.API)
 ```
 
 Yeah, I know, is a lot more than the FastAPI examples, but of, course
@@ -187,8 +207,7 @@ query syntax. That's not the only thing, the **@provider** decorator
 allows the repositories to be injected inside the marvel controller
 constructor, just like happens in .NET Core or Java Spring.
 
-Note that my Hero and Villain entities, does not contain nothing special, they are merely dataclasses (That's the only restriction, models needs to be dataclasses), and the relation is being auto
-matically build for us. We even get an instance of **Hero** when
+Note that my Hero and Villain entities, does not contain anything special, they are merely dataclasses (That's the only restriction, models needs to be dataclasses), and the relation is being automatically build for us. We even get an instance of **Hero** when
 we call **get_villain** if the **Villain** has any **Hero** assigned.
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
@@ -210,6 +229,8 @@ class Villain:
 
 ...
 ```
+
+You can look for a complete example under [test_app](https://github.com/adriangs1996/winter/tree/master/test_app)
 
 ## Features
 There is a lot more to know about winter:
@@ -266,3 +287,11 @@ PR, criticism, anything you can imagine.
 If you are willing to provide a PR for a feature, just try to
 give at least some tests for the feature, I try my best
 mantaining a pool of tests that will be growing with time
+
+## Thanks
+
+To @tiangolo for the amazing [SQLModel](https://github.com/tiangolo/sqlmodel) and [FastAPI](https://github.com/tiangolo/fastapi)
+
+To the amazing [Django Team](https://github.com/django/django)
+
+To the Spring Project and [NestJS](https://nestjs.com/) for such amazing frameworks
