@@ -238,6 +238,10 @@ If you are willing to provide a PR for a feature, just try to
 give at least some tests for the feature, I try my best
 mantaining a pool of tests that will be growing with time
 
+- [Issue Tracker](https://github.com/adriangs1996/winter/issues)
+
+- [Fork the repo, change it, and make a PR](https://github.com/adriangs1996/winter)
+
 ## Thanks
 --------
 To @tiangolo for the amazing [SQLModel](https://github.com/tiangolo/sqlmodel) and [FastAPI](https://github.com/tiangolo/fastapi)
@@ -245,3 +249,9 @@ To @tiangolo for the amazing [SQLModel](https://github.com/tiangolo/sqlmodel) an
 To the amazing [Django Team](https://github.com/django/django)
 
 To the Spring Project and [NestJS](https://nestjs.com/) for such amazing frameworks
+
+
+License
+-------
+
+This project is licensed under the MIT License
