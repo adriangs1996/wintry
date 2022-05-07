@@ -65,7 +65,7 @@ class WinterSettings(pdc.BaseSettings):
 
     auto_discovery_enabled: bool = True
     """
-    Configure if `Winter` should autodiscover modules on setup.
+    Configure if `Wintry` should autodiscover modules on setup.
     This is useful for not having to import controllers, models,
     repositories, etc
     """
@@ -97,8 +97,8 @@ class WinterSettings(pdc.BaseSettings):
 
     app_path: str = "main:api"
     """
-    Importable path to the app instance that winter will load.
-    Winter uses `uvicorn` behind scenes to load APIs, so hot
+    Importable path to the app instance that Wintry will load.
+    Wintry uses `uvicorn` behind scenes to load APIs, so hot
     reload and other features are possible.
     """
 
@@ -110,14 +110,14 @@ class WinterSettings(pdc.BaseSettings):
         http://localhost:8000/api/v1
     """
 
-    server_title: str = "Winter Server"
+    server_title: str = "Wintry Server"
     """Server title for docs and web page"""
 
     server_version: str = "0.1.0"
     """Server version"""
 
     include_error_handling: bool = True
-    """Provide handling of Winter predefined errors, returning `DataResponse`."""
+    """Provide handling of Wintry predefined errors, returning `DataResponse`."""
 
     host: str = "localhost"
     """Host to bind server to"""

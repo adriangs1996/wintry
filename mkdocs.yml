@@ -6,6 +6,15 @@ nav:
   - Quick Start: quickstart.md
   - User Guide: 
     - Installation: user-guide/installation.md
+    - Controllers: user-guide/controllers.md
+    - Dependency Injection: user-guide/di.md
+    - Models: user-guide/models.md
+    - Repositories: user-guide/repository.md
+    - Unit Of Work: user-guide/unitofwork.md
+    - Events and Commands Handling: user-guide/eventshandlers.md
+    - Middlewares: user-guide/middlewares.md
+    - Settings: user-guide/settings.md
+    - Bootstraping and API registration: user-guide/autodiscovery.md
 
 repo_url: https://github.com/adriangs1996/wintry
 repo_name: adriangs1996/wintry
