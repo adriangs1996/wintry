@@ -80,6 +80,8 @@ if __name__ == '__main__':
 
 and run it with:
 
+<div class="termy">
+
 ```console
 $ python main.py
 
@@ -90,8 +92,11 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 
 ```
+</div>
 
 or you can just call uvicorn directly on it
+
+<div class="termy">
 
 ```console
 $ uvicorn app:api --reload
@@ -101,7 +106,9 @@ INFO:     Started reloader process [124387] using statreload
 INFO:     Started server process [124390]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+
 ```
+</div>
 
 ## Check it
 -----------
