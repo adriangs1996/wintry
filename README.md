@@ -164,7 +164,7 @@ class Villain:
 ...
 ```
 
-You can look for a complete example under [test_app](https://github.com/adriangs1996/winter/tree/master/test_app)
+You can look for a complete example under [test_app](https://github.com/adriangs1996/wintry/tree/master/test_app)
 
 ## Installation
 ---------------
@@ -238,9 +238,9 @@ If you are willing to provide a PR for a feature, just try to
 give at least some tests for the feature, I try my best
 mantaining a pool of tests that will be growing with time
 
-- [Issue Tracker](https://github.com/adriangs1996/winter/issues)
+- [Issue Tracker](https://github.com/adriangs1996/wintry/issues)
 
-- [Fork the repo, change it, and make a PR](https://github.com/adriangs1996/winter)
+- [Fork the repo, change it, and make a PR](https://github.com/adriangs1996/wintry)
 
 ## Thanks
 --------

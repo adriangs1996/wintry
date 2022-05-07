@@ -1,9 +1,20 @@
 [tool.poetry]
 name = "wintry"
-version = "0.1.0-alpha"
+version = "0.1.1-alpha"
 description = "A Web Framework for you, the developer, in a clean way, a cool way"
 authors = ["adriangs1996 <adriangonzalezsanchez1996@gmail.com>"]
 license = "MIT"
+readme="README.md"
+keywords=[
+    "orm", 
+    "web-framework", 
+    "api-rest", 
+    "repository", 
+    "wintry", 
+]
+
+repository="https://github.com/adriangs1996/wintry"
+homepage="https://adriangs1996.github.io/wintry"
 
 [tool.poetry.dependencies]
 python = "^3.10"
