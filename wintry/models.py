@@ -1,6 +1,16 @@
 from datetime import date, datetime
 from types import GenericAlias, NoneType
-from typing import Any, Callable, Iterable, Tuple, TypeVar, Union, get_args, overload
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Iterable,
+    Tuple,
+    TypeVar,
+    Union,
+    get_args,
+    overload,
+)
 from dataclass_wizard import fromdict, fromlist
 from dataclasses import Field, dataclass, fields, is_dataclass
 from wintry.utils.keys import (
@@ -9,7 +19,7 @@ from wintry.utils.keys import (
     __winter_track_target__,
     __winter_modified_entity_state__,
     __winter_old_setattr__,
-    __SQL_ENABLED_FLAG__
+    __SQL_ENABLED_FLAG__,
 )
 from wintry.sessions import MongoSessionTracker
 from sqlalchemy import (
@@ -130,7 +140,9 @@ def model(
         def _winter_proxied_setattr_(self, __name: str, __value: Any) -> None:
             # Check for presence of some state flag
             # same as self.__winter_in_session_flag__
-            if getattr(self, __winter_in_session_flag__, False) and not _is_private_attr(__name):
+            if getattr(self, __winter_in_session_flag__, False) and not _is_private_attr(
+                __name
+            ):
                 # all instances marked with __winter_in_session_flag__ should be augmented with
                 # a __winter_track_target__ which contains the tracker
                 # being marked for a session and not contain the tracker is an error
@@ -179,7 +191,9 @@ def get_primary_key(_type: type) -> Field:
         if field.name.lower() == "id" or field.metadata.get("id", False):
             return field
 
-    raise ModelError(f"Model {_type} has not an id field or a field with metadata marked as an id")
+    raise ModelError(
+        f"Model {_type} has not an id field or a field with metadata marked as an id"
+    )
 
 
 def discard_nones(iterable: Iterable[type]) -> list[type]:
@@ -224,7 +238,9 @@ def resolve_generic_type_or_die(_type: type):
     return resolve_generic_type_or_die(cleaned_types[0])
 
 
-def make_column_from_field(model: type, field: Field) -> Column | tuple[Column, dict[str, Any]] | None:
+def make_column_from_field(
+    model: type, field: Field
+) -> Column | tuple[Column, dict[str, Any]] | None:
     if field.type in _mapper:
         sql_type = _mapper[field.type]
         # Check a configuration from metadata to check if this is
@@ -253,13 +269,17 @@ def make_column_from_field(model: type, field: Field) -> Column | tuple[Column, 
         foreign_key = get_primary_key(_type)
         foreign_key_type = _mapper.get(foreign_key.type)
         foreign_key_column = Column(
-            f"{field.name}_id", foreign_key_type, ForeignKey(getattr(_type, foreign_key.name))
+            f"{field.name}_id",
+            foreign_key_type,
+            ForeignKey(getattr(_type, foreign_key.name)),
         )
 
         for f in fields(_type):
             if f.type == list[model]:  # type: ignore
                 # if isinstance(f.type, list) and get_args(f.type) == field.type:
-                related_column = {field.name: relation(_type, lazy="joined", backref=f.name)}
+                related_column = {
+                    field.name: relation(_type, lazy="joined", backref=f.name)
+                }
                 return foreign_key_column, related_column
 
         return foreign_key_column, {field.name: relation(_type, lazy="joined")}
@@ -281,7 +301,7 @@ def entity(
     match_args=True,
     kw_only=False,
     slots=False,
-    metadata=metadata
+    metadata=metadata,
 ) -> type[T] | Callable[[type[T]], type[T]]:
     def _create_metadata(_cls: type[T]) -> type[T]:
         _cls = model(
@@ -323,6 +343,49 @@ def entity(
         return _create_metadata
     else:
         return _create_metadata(cls)
+
+
+class Relation(std_enum):
+    one_to_many = 0
+    many_to_one = 1
+    one_to_one = 2
+    one_to_none = 4
+    many_to_none = 8
+
+
+class ModelsRegistry:
+    """
+    Mantains a record of every model registered with @model
+    decorator. At setup time, the ModelsRegistry can create
+    a GRAPH of Models Depedencies, and Translate that GRAPH to
+    a Relational Model Graph, ie, database tables and relationsships
+    (only for Relational Sources). Entity Relations (edges) can
+    be tagged, so we define the type of relation to configure
+    at resolve time. This process can be slow depending of the
+    graph, (Think of a Kn graph) but should be ok for most applications.
+    Even more, this type of mapping is done at startup time, so
+    application (request/response) performance is not affected.
+    """
+
+    model_relations: ClassVar[dict[type, list[type]]]
+    """
+    Adjacency list for each type and its related entities
+    """
+
+    @staticmethod
+    def get_relation_between(model: type, related_model: type) -> Relation:
+        return Relation.one_to_many
+
+
+    @staticmethod
+    def annotate_graph() -> dict[tuple[type, type], Relation]:
+        relations: dict[tuple[type, type], Relation] = {}
+        for ent, rels in ModelsRegistry.model_relations.items():
+            for related in rels:
+                relations[ent, related] = ModelsRegistry.get_relation_between(
+                    ent, related
+                )
+        return relations
 
 
 __all__ = ["model", "_is_private_attr", "entity"]

@@ -1,4 +1,4 @@
-# Wintry ==> A new python web framework with cool features for ... everybody
+# Wintry: A new python web framework with cool features for ... everybody
 
 
 
