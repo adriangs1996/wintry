@@ -252,13 +252,13 @@ class SqlAlchemyDriver(QueryDriver):
 
         if session is not None:
             result: Result = await session.execute(stmt)
-            return result.scalars().all()
+            return result.scalars().unique().all()
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
                 async with _session.begin():
                     fresh_result: Result = await _session.execute(stmt)
-                    return fresh_result.scalars().all()
+                    return fresh_result.scalars().unique().all()
 
     @visit.register
     async def _(self, node: Get, schema: Type[T], session: Any = None, **kwargs: Any) -> T | None:
@@ -270,13 +270,13 @@ class SqlAlchemyDriver(QueryDriver):
 
         if session is not None:
             result: Result = await session.execute(stmt)
-            return result.scalar_one_or_none()
+            return result.unique().scalar_one_or_none()
         else:
             async with self._sessionmaker() as session:
                 _session: AsyncSession = session
                 async with _session.begin():
                     fresh_result: Result = await _session.execute(stmt)
-                    return fresh_result.scalar_one_or_none()
+                    return fresh_result.unique().scalar_one_or_none()
 
     @visit.register
     async def _(self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None) -> None:

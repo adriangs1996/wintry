@@ -3,6 +3,7 @@ from types import GenericAlias, NoneType
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Iterable,
     Sequence,
     Tuple,
@@ -11,8 +12,9 @@ from typing import (
     get_args,
     overload,
 )
+from typing_extensions import Self
 from dataclass_wizard import fromdict, fromlist
-from dataclasses import Field, dataclass, field, fields, is_dataclass
+from dataclasses import Field, asdict, dataclass, field, fields, is_dataclass
 from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
@@ -20,6 +22,7 @@ from wintry.utils.keys import (
     __winter_modified_entity_state__,
     __winter_old_setattr__,
     __SQL_ENABLED_FLAG__,
+    __winter_model_collection_name__,
 )
 from sqlalchemy import (
     Column,
@@ -34,6 +37,7 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     MetaData,
+    inspect
 )
 from sqlalchemy.orm import relation, relationship
 from enum import Enum as std_enum
@@ -48,6 +52,18 @@ _mapper: dict[type, type] = {
     bool: Boolean,
     std_enum: Enum,
     bytes: BINARY,
+}
+
+
+_builtin_str_mapper: dict[str, type] = {
+    "int": int,
+    "str": str,
+    "float": float,
+    "date": date,
+    "datetime": datetime,
+    "bool": bool,
+    "Enum": std_enum,
+    "bytes": bytes,
 }
 
 sequences = [list, set, Iterable, Sequence]
@@ -80,6 +96,29 @@ def _is_private_attr(attr: str):
     return attr.startswith("_")
 
 
+class ModelRegistry:
+    models: ClassVar[dict[str, type["Model"]]] = {}
+
+    @classmethod
+    def get_all_models(cls) -> list[type["Model"]]:
+        return list(cls.models.values())
+
+    @classmethod
+    def get_model_by_str(cls, model_str: str) -> type["Model"] | None:
+        return cls.models.get(model_str, None)
+
+    @classmethod
+    def register(cls, model_declaration: type["Model"]):
+        model_name = model_declaration.__name__
+        cls.models[model_name] = model_declaration
+
+
+def get_type_by_str(type_str: str):
+    return ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
+        type_str, None
+    )
+
+
 @overload
 @__dataclass_transform__()
 def model(cls: type[T], /) -> type[T]:
@@ -105,6 +144,7 @@ def model(
     match_args=True,
     kw_only=False,
     slots=False,
+    name=None,
 ) -> Callable[[type[T]], type[T]]:
     ...
 
@@ -123,6 +163,7 @@ def model(
     match_args=True,
     kw_only=False,
     slots=False,
+    name=None,
 ) -> type[T] | Callable[[type[T]], type[T]]:
     def make_proxy_ref(cls: type[T]) -> type[T]:
         """
@@ -183,7 +224,12 @@ def model(
 
         # save the old __setattr__ just in case. For future use
         setattr(cls, __winter_old_setattr__, cls.__setattr__)
+        table_name = name or cls.__name__.lower() + "s"
+        setattr(cls, __winter_model_collection_name__, table_name)
         cls.__setattr__ = _winter_proxied_setattr_  # type: ignore
+
+        # Register model
+        ModelRegistry.register(cls)  # type: ignore
         return cls
 
     if cls is None:
@@ -398,10 +444,15 @@ class TableMetadata:
         # Here we have a many_to relation, the other endpoint must define either
         # a foreign_key to this model, either if it is not explicit
         target_model = resolve_generic_type_or_die(field.type)  # type: ignore
+        if isinstance(target_model, str):
+            target_model = ModelRegistry.get_model_by_str(target_model)
+
+        if target_model is None:
+            raise ModelError(f"{field.type} is not registered as Model.")
         # Specify the foreign key as a reverse foreing key on the target_model.
         # For this we need to append the foreign key to the target model virtual
         # table schema, if it does not already exists
-        foreign_key = ForeignKeyInfo(self.model, f"{self.model.__name__}_id")
+        foreign_key = ForeignKeyInfo(self.model, f"{self.model.__name__.lower()}_id")
 
         # Resolve the other endpoint table
         target_virtual_table = VirtualDatabaseSchema[target_model]
@@ -409,7 +460,7 @@ class TableMetadata:
             # Create the table but do not autobegin it
             target_virtual_table = TableMetadata(
                 metadata=self.metadata,
-                table_name=target_model.__name__.lower() + "s",
+                table_name=getattr(target_model, __winter_model_collection_name__),
                 model=target_model,
             )
         # Add the foreign key
@@ -420,6 +471,8 @@ class TableMetadata:
         return Relation(target_model, field.name, RelationTag.many_to_one)
 
     def dispatch_column_type_for_field(self, field: Field) -> None:
+        if isinstance(field.type, str):
+            field.type = get_type_by_str(field.type)
         if field.type in _mapper:
             self.columns.append(field)
             return
@@ -429,6 +482,9 @@ class TableMetadata:
             return
 
         _type = resolve_generic_type_or_die(field.type)
+
+        if isinstance(_type, str):
+            _type = get_type_by_str(_type)
 
         # If type is not an instance of dataclass, then also ignores it
         if not is_dataclass(_type):
@@ -484,6 +540,7 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
                     fk.key_name,
                     foreign_key_type,
                     ForeignKey(getattr(fk.target, foreign_key.name)),
+                    nullable=True
                 )
             )
 
@@ -512,15 +569,37 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
         )
 
     @classmethod
-    def use_sqlalchemy(cls):
+    def use_sqlalchemy(cls, metadata: MetaData = metadata):
         """Configure the registered models to use sqlalchemy as the database engine.
-        This method Remains empty for now, as there is no specific (yet) config to do
-        for either engine. Here we should augment model with special variables, but this is
-        discourage, unless there is not other choice. This is also the place where we can
-        build DatabaseSchemas. Right now this is only supported for SQLAlchemy, but in the future,
-        Also MongoDB would be configured with sharded documents, refs relations, etc."""
+        This is also the place where we can build DatabaseSchemas. Right now this is
+        only supported for SQLAlchemy, but in the future, Also MongoDB would be configured
+        with sharded documents, refs relations, etc.
+
+        Args:
+            metadata(MetaData): the metadata to use for SQLAlchemy Tables.
+
+        Returns:
+            None
+
+        """
+        for model in ModelRegistry.get_all_models():
+            table = cls[model]
+            if table is None:
+                table = TableMetadata(
+                    metadata=metadata,
+                    table_name=getattr(model, __winter_model_collection_name__),
+                    model=model,
+                )
+                cls[model] = table
+
+            table.autobegin()
+
         for model, table_metadata in cls.tables.items():
-            VirtualDatabaseSchema.create_table_for_model(model, table_metadata)
+            if not inspect(model, raiseerr=False):
+                # only create tables for models that are not already
+                # mapped. This is needed to ensure compatibility with
+                # the for_model function from orm module
+                VirtualDatabaseSchema.create_table_for_model(model, table_metadata)
 
     @classmethod
     def use_nosql(cls):
@@ -540,7 +619,6 @@ class Model(metaclass=ModelMeta):
     def __init_subclass__(
         cls,
         name: str | None = None,
-        create_metadata: bool = False,
         init=True,
         repr=True,
         eq=True,
@@ -549,7 +627,6 @@ class Model(metaclass=ModelMeta):
         frozen=False,
         match_args=True,
         kw_only=False,
-        metadata=metadata,
     ) -> None:
         cls = model(
             init=init,
@@ -561,30 +638,27 @@ class Model(metaclass=ModelMeta):
             match_args=match_args,
             kw_only=kw_only,
             slots=False,
+            name=name,
         )(cls)
 
-        if create_metadata:
-            try:
-                table = VirtualDatabaseSchema[cls]
-            except Exception as e:
-                print(e)
-                raise e
+    @overload
+    @classmethod
+    def build(cls, _dict: dict[str, Any]) -> Self:
+        ...
 
-            if table is None:
-                table = TableMetadata(
-                    table_name=name or cls.__name__.lower() + "s",
-                    metadata=metadata,
-                    model=cls,
-                )
-                VirtualDatabaseSchema[cls] = table
-            else:
-                # Table was created before reference in class creation
-                # so it must be defined by a relation. So we need to update
-                # its metadata and its name
-                table.metadata = metadata
-                table.table_name = name or cls.__name__.lower() + "s"
+    @overload
+    @classmethod
+    def build(cls, _dict: list[dict[str, Any]]) -> list[Self]:
+        ...
 
-            table.autobegin()
+    @classmethod
+    def build(cls, _dict: dict[str, Any] | list[dict[str, Any]]) -> Self | list[Self]:
+        if isinstance(_dict, list):
+            return fromlist(cls, _dict)
+        return fromdict(cls, _dict)
+
+    def to_dict(self):
+        return asdict(self)
 
 
 __all__ = ["model", "_is_private_attr", "entity"]

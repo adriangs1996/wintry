@@ -1,6 +1,6 @@
 from typing import Any, AsyncGenerator, List
 from wintry import init_backends, get_connection, BACKENDS
-from wintry.models import entity, VirtualDatabaseSchema, Model
+from wintry.models import VirtualDatabaseSchema, Model
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
@@ -20,24 +20,25 @@ from wintry.repository import Repository, RepositoryRegistry
 metadata = MetaData()
 
 
-class Address(Model, create_metadata=True, name="Addresses", metadata=metadata):
+class UserAddress(Model):
     id: int
     latitude: float
     longitude: float
-    users: list["User"] = field(default_factory=list)
+    users: list["TestUser"] = field(default_factory=list)
 
 
-class User(Model, create_metadata=True, metadata=metadata):
+class TestUser(Model):
     id: int
     name: str
     age: int
-    address: Address | None = None
+    address: UserAddress | None = None
 
 
-class UserRepository(Repository[User, int], entity=User):
+
+class UserRepository(Repository[TestUser, int], entity=TestUser):
     async def find_by_id_or_name_and_age_lowerThan(
         self, *, id: int, name: str, age: int
-    ) -> List[User]:
+    ) -> List[TestUser]:
         ...
 
 
@@ -50,8 +51,8 @@ class Uow(UnitOfWork):
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
-async def setup() -> None:
-    VirtualDatabaseSchema.use_sqlalchemy()
+async def setup():
+    VirtualDatabaseSchema.use_sqlalchemy(metadata=metadata)
     RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
@@ -75,21 +76,21 @@ async def clean() -> AsyncGenerator[None, None]:
     yield
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(delete(User))
-        await session.execute(delete(Address))
+        await session.execute(delete(TestUser))
+        await session.execute(delete(UserAddress))
         await session.commit()
 
 
 @pytest.mark.asyncio
 async def test_repository_can_insert(clean: Any) -> None:
     repo = UserRepository()
-    user = User(id=2, name="test", age=10)
+    user = TestUser(id=2, name="test", age=10)
 
     await repo.create(entity=user)
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(User))
-    assert len(results.all()) == 1
+        results: Result = await session.execute(select(TestUser))
+    assert len(results.unique().all()) == 1
 
 
 @pytest.mark.asyncio
@@ -97,12 +98,12 @@ async def test_repository_can_delete(clean: Any) -> None:
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=26))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
 
     await repo.delete()
 
     async with session.begin():
-        result: Result = await session.execute(select(User))
+        result: Result = await session.execute(select(TestUser))
         rows = result.all()
 
     assert rows == []
@@ -113,12 +114,12 @@ async def test_repository_can_delete_by_id(clean: Any) -> None:
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=26))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
 
     await repo.delete_by_id(id=1)
 
     async with session.begin():
-        result: Result = await session.execute(select(User))
+        result: Result = await session.execute(select(TestUser))
         rows = result.all()
 
     assert rows == []
@@ -129,11 +130,11 @@ async def test_repository_can_get_by_id(clean: Any) -> None:
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=26))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
 
     user = await repo.get_by_id(id=1)
 
-    assert isinstance(user, User)
+    assert isinstance(user, TestUser)
     assert user.name == "test" and user.age == 26
 
 
@@ -142,15 +143,15 @@ async def test_repository_can_list_all_users(clean: Any) -> None:
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=26))
-        await session.execute(insert(User).values(id=2, name="test1", age=26))
-        await session.execute(insert(User).values(id=3, name="test2", age=26))
-        await session.execute(insert(User).values(id=4, name="test3", age=26))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
+        await session.execute(insert(TestUser).values(id=2, name="test1", age=26))
+        await session.execute(insert(TestUser).values(id=3, name="test2", age=26))
+        await session.execute(insert(TestUser).values(id=4, name="test3", age=26))
 
     users = await repo.find()
 
     assert len(users) == 4
-    assert all(isinstance(user, User) for user in users)
+    assert all(isinstance(user, TestUser) for user in users)
 
 
 @pytest.mark.asyncio
@@ -159,18 +160,18 @@ async def test_repository_can_get_object_with_related_data_loaded(clean: Any) ->
     session: AsyncSession = get_connection()
     async with session.begin():
         await session.execute(
-            insert(Address).values(id=1, latitude=3.43, longitude=10.111)
+            insert(UserAddress).values(id=1, latitude=3.43, longitude=10.111)
         )
         await session.execute(
-            insert(User).values(id=1, name="test", age=26, address_id=1)
+            insert(TestUser).values(id=1, name="test", age=26, address_id=1)
         )
 
     user = await repo.get_by_id(id=1)
 
-    assert isinstance(user, User)
+    assert isinstance(user, TestUser)
     assert user.address is not None
     assert user.address.latitude == 3.43 and user.address.longitude == 10.111
-    assert isinstance(user.address, Address)
+    assert isinstance(user.address, UserAddress)
 
 
 @pytest.mark.asyncio
@@ -178,10 +179,10 @@ async def test_repository_can_make_logical_queries(clean: Any) -> None:
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=20))
-        await session.execute(insert(User).values(id=2, name="test1", age=21))
-        await session.execute(insert(User).values(id=3, name="test2", age=22))
-        await session.execute(insert(User).values(id=4, name="test3", age=23))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=20))
+        await session.execute(insert(TestUser).values(id=2, name="test1", age=21))
+        await session.execute(insert(TestUser).values(id=3, name="test2", age=22))
+        await session.execute(insert(TestUser).values(id=4, name="test3", age=23))
 
     users = await repo.find_by_id_or_name_and_age_lowerThan(id=4, name="test2", age=23)
     assert len(users) == 2
@@ -196,12 +197,12 @@ async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
     uow = Uow(repo)
 
     async with uow:
-        user = User(id=2, name="test", age=10)
+        user = TestUser(id=2, name="test", age=10)
         await uow.users.create(entity=user)
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(User))
+        results: Result = await session.execute(select(TestUser))
 
     assert results.all() == []
 
@@ -212,15 +213,15 @@ async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
     uow = Uow(repo)
 
     async with uow:
-        user = User(id=2, name="test", age=10)
+        user = TestUser(id=2, name="test", age=10)
         await uow.users.create(entity=user)
         await uow.commit()
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(User))
+        results: Result = await session.execute(select(TestUser))
 
-    assert len(results.all()) == 1
+    assert len(results.unique().all()) == 1
 
 
 @pytest.mark.asyncio
@@ -230,15 +231,15 @@ async def test_uow_rollbacks_on_error(clean: Any) -> None:
 
     with pytest.raises(ZeroDivisionError):
         async with uow:
-            user = User(id=2, name="test", age=10)
+            user = TestUser(id=2, name="test", age=10)
             await uow.users.create(entity=user)
-            user2 = User(id=1, name="test", age=int(10 / 0))
+            user2 = TestUser(id=1, name="test", age=int(10 / 0))
             await uow.users.create(entity=user2)
             await uow.commit()
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(User))
+        results: Result = await session.execute(select(TestUser))
 
     assert results.all() == []
 
@@ -250,19 +251,19 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=20))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=20))
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
         assert user is not None
-        user.address = Address(id=3, latitude=1.12, longitude=4.13)
+        user.address = UserAddress(id=3, latitude=1.12, longitude=4.13)
 
         await uow.commit()
 
     async with session.begin():
-        results: Result = await session.execute(select(Address))
+        results: Result = await session.execute(select(UserAddress))
 
-    assert len(results.all()) == 1
+    assert len(results.unique().all()) == 1
 
 
 @pytest.mark.asyncio
@@ -272,7 +273,7 @@ async def test_uow_automatically_updates_object(clean: Any) -> None:
 
     session: AsyncSession = get_connection()
     async with session.begin():
-        await session.execute(insert(User).values(id=1, name="test", age=20))
+        await session.execute(insert(TestUser).values(id=1, name="test", age=20))
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
@@ -283,7 +284,7 @@ async def test_uow_automatically_updates_object(clean: Any) -> None:
         await uow.commit()
 
     async with session.begin():
-        results: Result = await session.execute(select(User))
+        results: Result = await session.execute(select(TestUser))
 
-    user = results.scalars().all()[0]
+    user = results.unique().scalars().all()[0]
     assert user.age == 30 and user.name == "updated"

@@ -1,4 +1,5 @@
 from typing import Any, TypeVar
+from typing_extensions import Self
 from wintry.drivers.mongo import MongoSession
 from sqlalchemy.ext.asyncio import AsyncSession
 from wintry import BACKENDS, DriverNotFoundError, DriverNotSetError
@@ -104,7 +105,7 @@ class UnitOfWork:
         if self.session is not None:
             await rollback(self.session, self.backend)
 
-    async def __aenter__(self) -> "UnitOfWork":
+    async def __aenter__(self) -> Self:
         """
         Make a unify interface for sesssion management between
         repositories. `get_session()` returns a session based on

@@ -111,7 +111,7 @@ class MultiUow(UnitOfWork):
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
-async def setup() -> None:
+async def setup():
     RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
