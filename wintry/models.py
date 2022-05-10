@@ -37,7 +37,7 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     MetaData,
-    inspect
+    inspect,
 )
 from sqlalchemy.orm import relation, relationship
 from enum import Enum as std_enum
@@ -145,6 +145,7 @@ def model(
     kw_only=False,
     slots=False,
     name=None,
+    mapped=True,
 ) -> Callable[[type[T]], type[T]]:
     ...
 
@@ -164,6 +165,7 @@ def model(
     kw_only=False,
     slots=False,
     name=None,
+    mapped=True,
 ) -> type[T] | Callable[[type[T]], type[T]]:
     def make_proxy_ref(cls: type[T]) -> type[T]:
         """
@@ -228,8 +230,9 @@ def model(
         setattr(cls, __winter_model_collection_name__, table_name)
         cls.__setattr__ = _winter_proxied_setattr_  # type: ignore
 
-        # Register model
-        ModelRegistry.register(cls)  # type: ignore
+        # Register model if it is mapped
+        if mapped:
+            ModelRegistry.register(cls)  # type: ignore
         return cls
 
     if cls is None:
@@ -540,7 +543,7 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
                     fk.key_name,
                     foreign_key_type,
                     ForeignKey(getattr(fk.target, foreign_key.name)),
-                    nullable=True
+                    nullable=True,
                 )
             )
 
@@ -627,6 +630,7 @@ class Model(metaclass=ModelMeta):
         frozen=False,
         match_args=True,
         kw_only=False,
+        mapped=True,
     ) -> None:
         cls = model(
             init=init,
@@ -639,6 +643,7 @@ class Model(metaclass=ModelMeta):
             kw_only=kw_only,
             slots=False,
             name=name,
+            mapped=mapped,
         )(cls)
 
     @overload
