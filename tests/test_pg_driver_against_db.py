@@ -25,7 +25,7 @@ from dataclasses import field
 
 
 # Now import the repository
-from wintry.repository import Repository
+from wintry.repository import Repository, RepositoryRegistry
 
 
 @model
@@ -79,6 +79,7 @@ class UserRepository(Repository[User, int], entity=User):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup() -> None:
+    RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
             backends=[

@@ -18,6 +18,8 @@ __winter_manage_objects__ = "__winter_manage_objects__"
 __winter_session_key__ = "__winter_session_key__"
 __winter_backend_identifier_key__ = "__winter_backend_identifier_key__"
 __winter_backend_for_repository__ = "__winter_backend_for_repository__"
+__winter_repository_for_model__ = "__winter_repository_for_model__"
+__winter_repository_is_using_sqlalchemy__ = "__winter_repository_is_using_sqlalchemy__"
 
 
 NO_SQL = "NO_SQL"

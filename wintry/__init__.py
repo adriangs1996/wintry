@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any
 from wintry.backend import QueryDriver, Backend
 from wintry.dependency_injection import Factory
-from wintry.settings import BackendOptions, WinterSettings
+from wintry.settings import BackendOptions, EngineType, WinterSettings
 import importlib
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -21,6 +21,7 @@ from wintry.errors import (
     internal_server_exception_handler,
     invalid_request_exception_handler,
 )
+from wintry.models import VirtualDatabaseSchema
 import uvicorn
 
 # Import the services defined by the framework
@@ -52,6 +53,10 @@ class InvalidDriverInterface(Exception):
 
 
 class DriverNotSetError(Exception):
+    pass
+
+
+class InvalidEngineOption(Exception):
     pass
 
 
@@ -150,6 +155,20 @@ class Winter:
                     binder.bind(dependency, factory())
 
         inject.configure_once(config)
+
+        from wintry.repository import RepositoryRegistry
+
+        match settings.autogenerate_models_metadata_for_engine:
+            case EngineType.NoSql:
+                VirtualDatabaseSchema.use_nosql()
+                RepositoryRegistry.configure_for_nosql()
+            case EngineType.Sql:
+                VirtualDatabaseSchema.use_sqlalchemy()
+                RepositoryRegistry.configure_for_nosql()
+            case EngineType.NoEngine:
+                pass
+            case _:
+                raise InvalidEngineOption()
 
         # Initialize the backends
         if settings.backends:

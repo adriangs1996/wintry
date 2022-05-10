@@ -1,6 +1,6 @@
 from typing import Any, AsyncGenerator, List
 from wintry import init_backends, get_connection, BACKENDS
-from wintry.models import entity
+from wintry.models import entity, VirtualDatabaseSchema, Model
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
@@ -14,22 +14,20 @@ from wintry.transactions import UnitOfWork
 
 
 # Now import the repository
-from wintry.repository import Repository
+from wintry.repository import Repository, RepositoryRegistry
 
 
 metadata = MetaData()
 
 
-@entity(create_metadata=True, name="Addresses", metadata=metadata)
-class Address:
+class Address(Model, create_metadata=True, name="Addresses", metadata=metadata):
     id: int
     latitude: float
     longitude: float
     users: list["User"] = field(default_factory=list)
 
 
-@entity(create_metadata=True, metadata=metadata)
-class User:
+class User(Model, create_metadata=True, metadata=metadata):
     id: int
     name: str
     age: int
@@ -53,6 +51,8 @@ class Uow(UnitOfWork):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup() -> None:
+    VirtualDatabaseSchema.use_sqlalchemy()
+    RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
             backends=[

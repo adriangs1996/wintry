@@ -19,8 +19,8 @@ from wintry.utils.keys import (
     __winter_session_key__,
     __winter_backend_identifier_key__,
     __winter_backend_for_repository__,
-    SQL,
-    NO_SQL,
+    __winter_repository_for_model__,
+    __winter_repository_is_using_sqlalchemy__,
 )
 
 
@@ -175,16 +175,8 @@ def repository(
         setattr(cls, __winter_repo_old_init__, cls.__init__)
         setattr(cls, "__init__", __winter_init__)
 
-        # Mark the repository type so we can distinguish between drivers
-        # before each run
-        if getattr(entity, __SQL_ENABLED_FLAG__, False) and not force_nosql:
-            setattr(cls, __RepositoryType__, SQL)
-            using_sqlalchemy = True
-        else:
-            using_sqlalchemy = False
-            setattr(cls, __RepositoryType__, NO_SQL)
-            if table_name is not None:
-                setattr(entity, "__tablename__", table_name)
+        if table_name is not None:
+            setattr(entity, "__tablename__", table_name)
 
         # Prepare the repository with augmented properties
         setattr(cls, __winter_session_key__, None)
@@ -192,6 +184,9 @@ def repository(
             setattr(cls, __winter_manage_objects__, True)
 
         def _getattribute(self: Any, __name: str) -> Any:
+            using_sqlalchemy = super(cls, self).__getattribute__(  # type: ignore
+                __winter_repository_is_using_sqlalchemy__
+            )
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
             # Need to call super on this because we need to obtain a session without passing
             # through this method

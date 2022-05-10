@@ -3,8 +3,8 @@ from types import GenericAlias, NoneType
 from typing import (
     Any,
     Callable,
-    ClassVar,
     Iterable,
+    Sequence,
     Tuple,
     TypeVar,
     Union,
@@ -12,7 +12,7 @@ from typing import (
     overload,
 )
 from dataclass_wizard import fromdict, fromlist
-from dataclasses import Field, dataclass, fields, is_dataclass
+from dataclasses import Field, dataclass, field, fields, is_dataclass
 from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
@@ -21,7 +21,6 @@ from wintry.utils.keys import (
     __winter_old_setattr__,
     __SQL_ENABLED_FLAG__,
 )
-from wintry.sessions import MongoSessionTracker
 from sqlalchemy import (
     Column,
     Integer,
@@ -34,8 +33,9 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Table,
+    MetaData,
 )
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import relation, relationship
 from enum import Enum as std_enum
 from wintry.orm import metadata, mapper_registry
 
@@ -50,11 +50,17 @@ _mapper: dict[type, type] = {
     bytes: BINARY,
 }
 
+sequences = [list, set, Iterable, Sequence]
+
 
 T = TypeVar("T")
 
 
 class ModelError(Exception):
+    pass
+
+
+class ModelOperationError(Exception):
     pass
 
 
@@ -148,7 +154,7 @@ def model(
                 # being marked for a session and not contain the tracker is an error
 
                 # leave it to fail if no tracker present
-                tracker: MongoSessionTracker = getattr(self, __winter_tracker__)
+                tracker = getattr(self, __winter_tracker__)
                 target = getattr(self, __winter_track_target__)
 
                 # Check for modified flag, so we ensure that this object is addded just once
@@ -345,7 +351,7 @@ def entity(
         return _create_metadata(cls)
 
 
-class Relation(std_enum):
+class RelationTag(std_enum):
     one_to_many = 0
     many_to_one = 1
     one_to_one = 2
@@ -353,39 +359,232 @@ class Relation(std_enum):
     many_to_none = 8
 
 
-class ModelsRegistry:
-    """
-    Mantains a record of every model registered with @model
-    decorator. At setup time, the ModelsRegistry can create
-    a GRAPH of Models Depedencies, and Translate that GRAPH to
-    a Relational Model Graph, ie, database tables and relationsships
-    (only for Relational Sources). Entity Relations (edges) can
-    be tagged, so we define the type of relation to configure
-    at resolve time. This process can be slow depending of the
-    graph, (Think of a Kn graph) but should be ok for most applications.
-    Even more, this type of mapping is done at startup time, so
-    application (request/response) performance is not affected.
-    """
+ModelGraph = dict[tuple[type, type], RelationTag]
 
-    model_relations: ClassVar[dict[type, list[type]]]
-    """
-    Adjacency list for each type and its related entities
-    """
+
+@dataclass
+class Relation:
+    with_model: type["Model"]
+    field_name: str
+    tag: RelationTag
+    backref: str = ""
+
+
+@dataclass
+class ForeignKeyInfo:
+    target: type["Model"]
+    key_name: str
+
+    def __eq__(self, __o: "ForeignKeyInfo") -> bool:
+        return self.key_name == __o.key_name
+
+
+@dataclass
+class RelationWithForeignKey:
+    foreign_key: ForeignKeyInfo
+    relation: Relation
+
+
+@dataclass
+class TableMetadata:
+    metadata: MetaData
+    table_name: str
+    model: type["Model"]
+    foreing_keys: list[ForeignKeyInfo] = field(default_factory=list)
+    relations: list[Relation] = field(default_factory=list)
+    columns: list[Field] = field(default_factory=list)
+
+    def many_to_one_relation(self, field: Field) -> Relation:
+        # Here we have a many_to relation, the other endpoint must define either
+        # a foreign_key to this model, either if it is not explicit
+        target_model = resolve_generic_type_or_die(field.type)  # type: ignore
+        # Specify the foreign key as a reverse foreing key on the target_model.
+        # For this we need to append the foreign key to the target model virtual
+        # table schema, if it does not already exists
+        foreign_key = ForeignKeyInfo(self.model, f"{self.model.__name__}_id")
+
+        # Resolve the other endpoint table
+        target_virtual_table = VirtualDatabaseSchema[target_model]
+        if target_virtual_table is None:
+            # Create the table but do not autobegin it
+            target_virtual_table = TableMetadata(
+                metadata=self.metadata,
+                table_name=target_model.__name__.lower() + "s",
+                model=target_model,
+            )
+        # Add the foreign key
+        if foreign_key not in target_virtual_table.foreing_keys:
+            target_virtual_table.foreing_keys.append(foreign_key)
+
+        # Return the many to one relation
+        return Relation(target_model, field.name, RelationTag.many_to_one)
+
+    def dispatch_column_type_for_field(self, field: Field) -> None:
+        if field.type in _mapper:
+            self.columns.append(field)
+            return
+
+        if isinstance(field.type, GenericAlias) and field.type.__origin__ in sequences:
+            self.relations.append(self.many_to_one_relation(field))
+            return
+
+        _type = resolve_generic_type_or_die(field.type)
+
+        # If type is not an instance of dataclass, then also ignores it
+        if not is_dataclass(_type):
+            return
+
+        # At this point, this is a one_to relation, so we just add a foreing key and a
+        # relation
+        foregin_key = ForeignKeyInfo(_type, f"{field.name}_id")
+        relationship = Relation(
+            with_model=_type, field_name=field.name, tag=RelationTag.one_to_one
+        )
+
+        if foregin_key not in self.foreing_keys:
+            self.foreing_keys.append(foregin_key)
+
+        self.relations.append(relationship)
+
+    def autobegin(self):
+        for field in fields(self.model):
+            self.dispatch_column_type_for_field(field)
+
+    def __hash__(self) -> int:
+        return hash(self.table_name)
+
+
+class VirtualDatabaseMeta(type):
+    def __getitem__(self, key: type["Model"]) -> TableMetadata | None:
+        return self.tables.get(key, None)  # type: ignore
+
+    def __setitem__(self, key: type["Model"], value: TableMetadata):
+        self.tables[key] = value  # type: ignore
+
+
+class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
+    tables: dict[type["Model"], TableMetadata] = {}
 
     @staticmethod
-    def get_relation_between(model: type, related_model: type) -> Relation:
-        return Relation.one_to_many
+    def create_table_for_model(model: type["Model"], table_metadata: TableMetadata):
+        columns: list[Column] = []
 
+        for c in table_metadata.columns:
+            column_type = _mapper[c.type]
+            if c.name.lower() == "id" or c.metadata.get("id", False):
+                columns.append(Column(c.name, column_type, primary_key=True))
+            else:
+                columns.append(Column(c.name, column_type))
 
-    @staticmethod
-    def annotate_graph() -> dict[tuple[type, type], Relation]:
-        relations: dict[tuple[type, type], Relation] = {}
-        for ent, rels in ModelsRegistry.model_relations.items():
-            for related in rels:
-                relations[ent, related] = ModelsRegistry.get_relation_between(
-                    ent, related
+        for fk in table_metadata.foreing_keys:
+            foreign_key = get_primary_key(fk.target)
+            foreign_key_type = _mapper.get(foreign_key.type)
+            columns.append(
+                Column(
+                    fk.key_name,
+                    foreign_key_type,
+                    ForeignKey(getattr(fk.target, foreign_key.name)),
                 )
-        return relations
+            )
+
+        properties = {}
+
+        for rel in table_metadata.relations:
+            other_endpoint = None
+            endpoint_metadata = VirtualDatabaseSchema[rel.with_model]
+            assert endpoint_metadata is not None
+
+            for fk_rel in endpoint_metadata.relations:
+                if fk_rel.with_model == model:
+                    other_endpoint = fk_rel.field_name
+
+            if other_endpoint is None:
+                properties[rel.field_name] = relationship(rel.with_model, lazy="joined")
+            else:
+                properties[rel.field_name] = relationship(
+                    rel.with_model, lazy="joined", back_populates=other_endpoint
+                )
+
+        mapper_registry.map_imperatively(
+            model,
+            Table(table_metadata.table_name, table_metadata.metadata, *columns),
+            properties=properties,
+        )
+
+    @classmethod
+    def use_sqlalchemy(cls):
+        """Configure the registered models to use sqlalchemy as the database engine.
+        This method Remains empty for now, as there is no specific (yet) config to do
+        for either engine. Here we should augment model with special variables, but this is
+        discourage, unless there is not other choice. This is also the place where we can
+        build DatabaseSchemas. Right now this is only supported for SQLAlchemy, but in the future,
+        Also MongoDB would be configured with sharded documents, refs relations, etc."""
+        for model, table_metadata in cls.tables.items():
+            VirtualDatabaseSchema.create_table_for_model(model, table_metadata)
+
+    @classmethod
+    def use_nosql(cls):
+        """Configure the registered models to use nosql engine.
+        This method Remains empty for now, as there is no specific (yet) config to do
+        for either engine. Here we should augment model with special variables, but this is
+        discourage, unless there is not other choice."""
+        pass
+
+
+@__dataclass_transform__()
+class ModelMeta(type):
+    pass
+
+
+class Model(metaclass=ModelMeta):
+    def __init_subclass__(
+        cls,
+        name: str | None = None,
+        create_metadata: bool = False,
+        init=True,
+        repr=True,
+        eq=True,
+        order=False,
+        unsafe_hash=False,
+        frozen=False,
+        match_args=True,
+        kw_only=False,
+        metadata=metadata,
+    ) -> None:
+        cls = model(
+            init=init,
+            repr=repr,
+            eq=eq,
+            order=order,
+            unsafe_hash=unsafe_hash,
+            frozen=frozen,
+            match_args=match_args,
+            kw_only=kw_only,
+            slots=False,
+        )(cls)
+
+        if create_metadata:
+            try:
+                table = VirtualDatabaseSchema[cls]
+            except Exception as e:
+                print(e)
+                raise e
+
+            if table is None:
+                table = TableMetadata(
+                    table_name=name or cls.__name__.lower() + "s",
+                    metadata=metadata,
+                    model=cls,
+                )
+                VirtualDatabaseSchema[cls] = table
+            else:
+                # Table was created before reference in class creation
+                # so it must be defined by a relation. So we need to update
+                # its metadata and its name
+                table.metadata = metadata
+                table.table_name = name or cls.__name__.lower() + "s"
+
+            table.autobegin()
 
 
 __all__ = ["model", "_is_private_attr", "entity"]

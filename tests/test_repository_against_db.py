@@ -3,7 +3,7 @@ from wintry import init_backends, get_connection
 import wintry.backend as bkd
 from wintry.models import model
 from wintry.repository import raw_method
-from wintry.repository import Repository
+from wintry.repository import Repository, RepositoryRegistry
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -41,6 +41,7 @@ class Hero:
 
 @pytest.fixture(scope="module", autouse=True)
 def db() -> AsyncIOMotorDatabase:
+    RepositoryRegistry.configure_for_nosql()
     init_backends()
     return get_connection()  # type: ignore
 

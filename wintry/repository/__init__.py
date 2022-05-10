@@ -2,12 +2,34 @@ import abc
 from typing import Any, Generic, TypeVar
 from .base import raw_method, repository
 from wintry import get_connection
-from wintry.utils.keys import __winter_backend_identifier_key__
+from wintry.utils.keys import (
+    NO_SQL,
+    SQL,
+    __winter_backend_identifier_key__,
+    __RepositoryType__,
+    __winter_repository_is_using_sqlalchemy__,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 T = TypeVar("T")
 TypeId = TypeVar("TypeId")
+
+
+class RepositoryRegistry:
+    repositories: list[type["ICrudRepository"]] = []
+
+    @classmethod
+    def configure_for_sqlalchemy(cls):
+        for repo in cls.repositories:
+            setattr(repo, __RepositoryType__, SQL)
+            setattr(repo, __winter_repository_is_using_sqlalchemy__, True)
+
+    @classmethod
+    def configure_for_nosql(cls):
+        for repo in cls.repositories:
+            setattr(repo, __winter_repository_is_using_sqlalchemy__, False)
+            setattr(repo, __RepositoryType__, NO_SQL)
 
 
 class ICrudRepository(Generic[T, TypeId]):
@@ -45,6 +67,7 @@ class Repository(abc.ABC, ICrudRepository[T, TypeId]):
         mongo_session_managed: bool = False,
         force_nosql: bool = False,
     ) -> None:
+        RepositoryRegistry.repositories.append(cls)
         repository(
             entity,
             for_backend=for_backend,
@@ -69,6 +92,7 @@ class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
         dry: bool = False,
         mongo_session_managed: bool = False,
     ) -> None:
+        RepositoryRegistry.repositories.append(cls)
         repository(
             entity,
             for_backend=for_backend,
@@ -92,6 +116,7 @@ class SqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
         table_name: str | None = None,
         dry: bool = False,
     ) -> None:
+        RepositoryRegistry.repositories.append(cls)
         repository(
             entity,
             for_backend=for_backend,
@@ -100,4 +125,10 @@ class SqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
         )(cls)
 
 
-__all__ = ["raw_method", "repository", "Repository", "NoSqlCrudRepository", "SqlCrudRepository"]
+__all__ = [
+    "raw_method",
+    "repository",
+    "Repository",
+    "NoSqlCrudRepository",
+    "SqlCrudRepository",
+]

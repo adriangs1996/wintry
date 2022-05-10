@@ -2,10 +2,10 @@ from typing import Any
 import pytest_asyncio
 import pytest
 from wintry import get_connection, init_backends, BACKENDS
-from wintry.models import model
+from wintry.models import model, VirtualDatabaseSchema
 from wintry.orm import for_model
 from wintry.transactions.unit_of_work import UnitOfWork, UnitOfWorkError
-from wintry.repository import NoSqlCrudRepository, SqlCrudRepository
+from wintry.repository import NoSqlCrudRepository, SqlCrudRepository, RepositoryRegistry
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import MetaData, select, delete, insert, Column, Integer, String
@@ -84,6 +84,7 @@ async def create_users():
 # Create two backends, leave one as default and name the other
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup():
+    RepositoryRegistry.configure_for_nosql()
     init_backends(
         WinterSettings(
             backends=[

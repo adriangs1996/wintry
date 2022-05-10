@@ -3,7 +3,7 @@ from typing import Any, AsyncGenerator
 from wintry import get_connection, init_backends
 from wintry.models import model
 
-from wintry.repository import Repository
+from wintry.repository import Repository, RepositoryRegistry
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.transactions import UnitOfWork
 import pytest
@@ -57,6 +57,7 @@ class Uow(UnitOfWork):
 
 @pytest.fixture(scope="module", autouse=True)
 def db() -> Any:
+    RepositoryRegistry.configure_for_nosql()
     init_backends(
         WinterSettings(
             backends=[

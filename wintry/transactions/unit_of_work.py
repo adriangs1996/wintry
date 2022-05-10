@@ -2,7 +2,6 @@ from typing import Any, TypeVar
 from wintry.drivers.mongo import MongoSession
 from sqlalchemy.ext.asyncio import AsyncSession
 from wintry import BACKENDS, DriverNotFoundError, DriverNotSetError
-from wintry.repository.base import __RepositoryType__, NO_SQL
 from wintry.sessions import MongoSessionTracker
 from wintry.utils.keys import (
     __winter_manage_objects__,
@@ -10,6 +9,8 @@ from wintry.utils.keys import (
     __winter_session_key__,
     __RepositoryType__,
     __winter_backend_identifier_key__,
+    __RepositoryType__,
+    NO_SQL,
 )
 
 T = TypeVar("T")
@@ -70,7 +71,9 @@ class UnitOfWork:
         self.session: Any | None = None
 
         for repository in self.repositories.values():
-            self.backend = getattr(repository, __winter_backend_identifier_key__, "default")
+            self.backend = getattr(
+                repository, __winter_backend_identifier_key__, "default"
+            )
             break
 
         backends = list(
@@ -79,7 +82,9 @@ class UnitOfWork:
         )
 
         if not all(backend == self.backend for backend in backends):
-            raise UnitOfWorkError(f"UnitOfWork can not be configured for different backends: {backends}")
+            raise UnitOfWorkError(
+                f"UnitOfWork can not be configured for different backends: {backends}"
+            )
 
     async def commit(self) -> None:
         """

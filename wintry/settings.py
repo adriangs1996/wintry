@@ -1,3 +1,4 @@
+from enum import Enum
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -17,6 +18,12 @@ def json_config_settings_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
         return json.loads(Path("settings.json").read_text(encoding))
     except FileNotFoundError:
         return {}
+
+
+class EngineType(str, Enum):
+    Sql = "SqlEngine"
+    NoSql = "NoSqlEngine"
+    NoEngine = "Null"
 
 
 class ConnectionOptions(pdc.BaseModel):
@@ -62,6 +69,8 @@ class WinterSettings(pdc.BaseSettings):
     List of configurations for the different drivers the app can use.
     Defaults to a MongoEngine on localhost, port 27017 under name 'default'.
     """
+
+    autogenerate_models_metadata_for_engine: EngineType = EngineType.NoSql
 
     auto_discovery_enabled: bool = True
     """

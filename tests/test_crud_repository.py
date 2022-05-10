@@ -2,12 +2,13 @@
 from wintry import init_backends
 from wintry.models import model
 
-from wintry.repository import Repository
+from wintry.repository import Repository, RepositoryRegistry
 import pytest
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setup() -> None:
+    RepositoryRegistry.configure_for_nosql()
     init_backends()
 
 

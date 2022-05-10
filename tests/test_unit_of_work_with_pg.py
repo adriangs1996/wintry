@@ -16,7 +16,7 @@ from sqlalchemy import (
     insert,
     MetaData,
 )
-from wintry.repository import Repository
+from wintry.repository import Repository, RepositoryRegistry
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.transactions import UnitOfWork
 import pytest_asyncio
@@ -112,6 +112,7 @@ class MultiUow(UnitOfWork):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup() -> None:
+    RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
             backends=[
