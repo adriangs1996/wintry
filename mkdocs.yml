@@ -35,12 +35,15 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - attr_list
+  - admonition
+  - pymdownx.details
+  - md_in_html
 
 theme:
   name: material
   features:
     - header.autohide
-    - ontent.code.annotate
+    - content.code.annotate
   palette:
     - scheme: default
       toggle:

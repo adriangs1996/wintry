@@ -1,10 +1,9 @@
 from dataclasses import field
-from wintry.models import entity
+from wintry.models import Model
 from bson import ObjectId
 
 
-@entity(name="heroes")
-class Hero:
+class Hero(Model, name="heroes"):
     city: str
     name: str
     id: str = field(default_factory=lambda: str(ObjectId()))

@@ -45,22 +45,22 @@ class HeroesController:
     async def create_hero(self, hero_form: HeroCreateModel):
         hero = fromdict(Hero, hero_form.dict())
 
-        async with self.uow:
-            hero = await self.uow.heroes.create(entity=hero)
-            await self.uow.commit()
+        async with self.uow as uow:
+            hero = await uow.heroes.create(entity=hero)
+            await uow.commit()
 
         self.logger.info(f"Hero created: {hero}")
         return DataResponse(data=hero.id, message="Created")
 
     @delete("/{hero_id}", response_model=DataResponse[HeroViewModel])
     async def delete_hero(self, hero_id: str):
-        async with self.uow:
-            hero = await self.uow.heroes.get_by_id(id=hero_id)
+        async with self.uow as uow:
+            hero = await uow.heroes.get_by_id(id=hero_id)
             if hero is None:
                 raise NotFoundError("Hero")
 
-            await self.uow.heroes.delete_by_id(id=hero_id)
-            await self.uow.commit()
+            await uow.heroes.delete_by_id(id=hero_id)
+            await uow.commit()
 
         self.logger.info(f"Hero deleted: {hero}")
         return DataResponse(data=hero, message="Deleted")

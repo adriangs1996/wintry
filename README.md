@@ -44,7 +44,7 @@ Spring JPA. Just look at the example, it is really easy to write decoupled and m
 Let's see what **Wintry** looks like:
 
 ```python
-from wintry.models import entity, fromdict
+from wintry.models import Model
 from wintry.repository import Repository
 from wintry.controllers import controller, post, get
 from wintry.dependency_injection import provider
@@ -55,14 +55,12 @@ from pydantic import BaseModel
 from wintry import ServerTypes, Winter
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
-@entity(create_metadata=True)
-class Hero:
+class Hero(Model):
     city: str
     name: str
     id: str = field(default_factory=lambda: str(ObjectId()))
 
-@entity(create_metadata=True)
-class Villain:
+class Villain(Model):
     name: str
     city: str
     id: str = field(default_factory=lambda: str(ObjectId()))
@@ -104,7 +102,7 @@ class MarvelController:
 
     @post('/hero', response_model=HeroDetails)
     async def save_hero(self, hero_form: HeroForm = Body(...)):
-        hero = fromdict(hero_form.dict())
+        hero = Hero.build(hero_form.dict())
         await self.heroes.create(hero)
         return hero
 
@@ -128,6 +126,7 @@ settings = WinterSettings(
     app_root="test_app",
     server_title="Testing Server API",
     server_version="0.0.1",
+    autogenerate_models_metadata_for_engine=EngineType.Sql
 )
 
 Winter.setup(settings)
@@ -145,24 +144,9 @@ Note that my Hero and Villain entities, does not contain anything special, they 
 we call **get_villain** if the **Villain** has any **Hero** assigned.
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
-to change the configuration url, and THERE IS NO NEED TO CHANGE THE CODE,
-it would just work. In fact, for consistency, the only recomended change to the code would
-be to remove the create_metadata=True from the @entity decorator:
-
-```python
-
-...
-
-@entity
-class Hero:
-    ...
-
-@entity
-class Villain:
-    ...
-
-...
-```
+to change the configuration url and the EngineType to **EngineType.NoSql** 
+and THERE IS NO NEED TO CHANGE THE CODE,
+it would just work.
 
 You can look for a complete example under [test_app](https://github.com/adriangs1996/wintry/tree/master/test_app)
 
