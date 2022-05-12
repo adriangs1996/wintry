@@ -53,7 +53,9 @@ def _apply(stmt: DeleteStatement, state: Dict[str, Any]) -> DeleteStatement:  # 
     ...
 
 
-def _apply(stmt: Select | DeleteStatement, state: Dict[str, Any]) -> Select | DeleteStatement:
+def _apply(
+    stmt: Select | DeleteStatement, state: Dict[str, Any]
+) -> Select | DeleteStatement:
     new_stmt = stmt
     if (conditions := state.get("where", None)) is not None:
         new_stmt = new_stmt.where(conditions)
@@ -69,7 +71,9 @@ def _apply(stmt: Select | DeleteStatement, state: Dict[str, Any]) -> Select | De
 def _resolve_joins(schema_to_inspect: Type[Any], field: str, joins: List[Any]) -> Any:
     mapper: Mapper = inspect(schema_to_inspect)
     relationships: List[RelationshipProperty] = list(mapper.relationships)
-    schema_to_inspect = next(filter(lambda p: p.key == field, relationships)).entity.mapped_table
+    schema_to_inspect = next(
+        filter(lambda p: p.key == field, relationships)
+    ).entity.mapped_table
     joins.append(schema_to_inspect)
     return schema_to_inspect
 
@@ -95,7 +99,9 @@ def get_value_from_args(field_path: str | List[str], **kwargs: Any) -> Any:
     return value
 
 
-def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -> Dict[str, Any]:
+def _operate(
+    node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any
+) -> Dict[str, Any]:
     field_path = get_field_name(node.field)
     value = get_value_from_args(field_path, **kwargs)
     joins: List[Any] = []
@@ -120,7 +126,9 @@ class SqlAlchemyDriver(QueryDriver):
 
     def init(self, settings: BackendOptions):  # type: ignore
         if settings.connection_options.url is not None:
-            self._engine = create_async_engine(url=settings.connection_options.url, future=True)
+            self._engine = create_async_engine(
+                url=settings.connection_options.url, future=True
+            )
         else:
             host = settings.connection_options.host
             port = settings.connection_options.port
@@ -132,7 +140,10 @@ class SqlAlchemyDriver(QueryDriver):
             self._engine = create_async_engine(url=url, future=True)
 
         session = orm.sessionmaker(
-            bind=self._engine, expire_on_commit=False, autocommit=False, class_=AsyncSession
+            bind=self._engine,
+            expire_on_commit=False,
+            autocommit=False,
+            class_=AsyncSession,
         )
 
         self._sessionmaker: orm.sessionmaker = session
@@ -169,7 +180,11 @@ class SqlAlchemyDriver(QueryDriver):
         return super().run(query_expression, table_name, session=session, **kwargs)
 
     async def run_async(
-        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+        self,
+        query_expression: RootNode,
+        table_name: str | Type[Any],
+        session: Any = None,
+        **kwargs: Any,
     ) -> Any:
         return await self.visit(query_expression, table_name, session=session, **kwargs)
 
@@ -179,11 +194,15 @@ class SqlAlchemyDriver(QueryDriver):
         return await self.query(query_expression, table_name, **kwargs)
 
     @singledispatchmethod
-    async def query(self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
+    async def query(
+        self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any
+    ) -> str:
         raise NotImplementedError
 
     @query.register
-    async def _(self, node: Find, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Find, schema: Type[Any], session: Any = None, **kwargs: Any
+    ) -> str:
         stmt: Select = select(schema)
 
         if node.filters is not None:
@@ -193,7 +212,9 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Get, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Get, schema: Type[Any], session: Any = None, **kwargs: Any
+    ) -> str:
         stmt: Select = select(schema)
 
         if node.filters is not None:
@@ -203,7 +224,9 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any
+    ) -> str:
         stmt: DeleteStatement = delete(schema)
         stmt = stmt.execution_options(synchronize_session=False)
 
@@ -214,7 +237,9 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None) -> str:
+    async def _(
+        self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None
+    ) -> str:
         if not is_dataclass(entity):
             raise ExecutionError("Entity must be a dataclass")
 
@@ -231,7 +256,9 @@ class SqlAlchemyDriver(QueryDriver):
         return str(stmt)
 
     @query.register
-    async def _(self, node: Create, schema: Type[Any], *, entity: Any, session: Any = None) -> str:
+    async def _(
+        self, node: Create, schema: Type[Any], *, entity: Any, session: Any = None
+    ) -> str:
         if not is_dataclass(entity):
             raise ExecutionError("Entity must be a dataclass")
 
@@ -245,7 +272,9 @@ class SqlAlchemyDriver(QueryDriver):
         raise NotImplementedError
 
     @visit.register
-    async def _(self, node: Find, schema: Type[T], session: Any = None, **kwargs: Any) -> List[T]:
+    async def _(
+        self, node: Find, schema: Type[T], session: Any = None, **kwargs: Any
+    ) -> List[T]:
         stmt: Select = select(schema)
 
         if node.filters is not None:
@@ -263,7 +292,9 @@ class SqlAlchemyDriver(QueryDriver):
                     return fresh_result.scalars().unique().all()
 
     @visit.register
-    async def _(self, node: Get, schema: Type[T], session: Any = None, **kwargs: Any) -> T | None:
+    async def _(
+        self, node: Get, schema: Type[T], session: Any = None, **kwargs: Any
+    ) -> T | None:
         stmt: Select = select(schema)
 
         if node.filters is not None:
@@ -281,7 +312,9 @@ class SqlAlchemyDriver(QueryDriver):
                     return fresh_result.unique().scalar_one_or_none()
 
     @visit.register
-    async def _(self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None) -> None:
+    async def _(
+        self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None
+    ) -> None:
         if not is_dataclass(entity):
             raise ExecutionError("Entity must be a dataclass")
 
@@ -306,7 +339,12 @@ class SqlAlchemyDriver(QueryDriver):
 
     @visit.register
     async def _(
-        self, node: Create, schema: Type[Any], *, entity: Any, session: AsyncSession | None = None
+        self,
+        node: Create,
+        schema: Type[Any],
+        *,
+        entity: Any,
+        session: AsyncSession | None = None,
     ) -> None:
         if not is_dataclass(entity):
             raise ExecutionError("Entity must be a dataclass")
@@ -318,11 +356,13 @@ class SqlAlchemyDriver(QueryDriver):
                 _session: AsyncSession = __session
                 async with _session.begin():
                     _session.add(entity)
-        
+
         return entity
 
     @visit.register
-    async def _(self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any) -> None:
+    async def _(
+        self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any
+    ) -> None:
         stmt: DeleteStatement = delete(schema)
         stmt = stmt.execution_options(synchronize_session=False)
 
@@ -365,19 +405,27 @@ class SqlAlchemyDriver(QueryDriver):
             return left
 
     @visit.register
-    async def _(self, node: EqualToNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+    async def _(
+        self, node: EqualToNode, schema: Type[Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         return _operate(node, schema, eq, **kwargs)
 
     @visit.register
-    async def _(self, node: NotEqualNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+    async def _(
+        self, node: NotEqualNode, schema: Type[Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         return _operate(node, schema, ne, **kwargs)
 
     @visit.register
-    async def _(self, node: GreaterThanNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+    async def _(
+        self, node: GreaterThanNode, schema: Type[Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         return _operate(node, schema, gt, **kwargs)
 
     @visit.register
-    async def _(self, node: LowerThanNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+    async def _(
+        self, node: LowerThanNode, schema: Type[Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         return _operate(node, schema, lt, **kwargs)
 
 
