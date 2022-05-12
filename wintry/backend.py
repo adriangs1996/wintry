@@ -4,26 +4,40 @@ from wintry.query.nodes import RootNode
 from wintry.query.parsing import QueryParser
 from functools import partial
 
+from wintry.settings import EngineType
+
 
 class BackendException(Exception):
     pass
 
 
 class QueryDriver(abc.ABC):
+    driver_class: EngineType
+
     @abc.abstractmethod
     def run(
-        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+        self,
+        query_expression: RootNode,
+        table_name: str | Type[Any],
+        session: Any = None,
+        **kwargs: Any
     ) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
     async def run_async(
-        self, query_expression: RootNode, table_name: str | Type[Any], session: Any = None, **kwargs: Any
+        self,
+        query_expression: RootNode,
+        table_name: str | Type[Any],
+        session: Any = None,
+        **kwargs: Any
     ) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_query_repr(self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any) -> Any:
+    def get_query_repr(
+        self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any
+    ) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -73,7 +87,9 @@ class Backend:
         assert self.driver is not None
         await self.driver.init_async(*args, **kwargs)
 
-    def run(self, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
+    def run(
+        self, query: str, table_name: str | Type[Any], dry_run: bool = False
+    ) -> partial[Any]:
         if self.driver is None:
             raise BackendException("Driver is not configured.")
 
@@ -81,7 +97,9 @@ class Backend:
         root_node = parser.parse(query)
         return partial(self.driver.run, root_node, table_name)
 
-    def run_async(self, query: str, table_name: str | Type[Any], dry_run: bool = False) -> partial[Any]:
+    def run_async(
+        self, query: str, table_name: str | Type[Any], dry_run: bool = False
+    ) -> partial[Any]:
         if self.driver is None:
             raise BackendException("Driver is not configured.")
 
