@@ -122,6 +122,20 @@ def test_tokenizer_recognizes_deeply_nested_fields():
         TokenType.end_token,
     ]
 
+def test_tokenizer_correctly_handles_long_words_with_keywords_inside():
+    # orderid has "or" at the begining, but it is a long word, so
+    # we must try to match the whole word, instead just the first part
+    query = "find_by_orderid"
+    tokens = QueryTokenizer.tokenize(query)
+    token_types = [token.token_type for token in tokens]
+
+    assert token_types == [
+        TokenType.query_target,
+        TokenType.by,
+        TokenType.fieldName,
+        TokenType.end_token
+    ]
+
 
 def test_parser_handles_find_queries():
     query = "find_by_id"

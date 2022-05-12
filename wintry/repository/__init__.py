@@ -161,4 +161,5 @@ __all__ = [
     "Repository",
     "NoSqlCrudRepository",
     "SqlCrudRepository",
+    "IRepository"
 ]

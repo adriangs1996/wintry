@@ -193,7 +193,7 @@ def repository(
             session = super(cls, self).__getattribute__(__winter_session_key__)  # type: ignore
             try:
                 new_attr = _parse_function_name(for_backend, __name, attr, entity, dry)  # type: ignore
-            except:
+            except Exception as e:
                 return attr
 
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:

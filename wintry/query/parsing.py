@@ -77,17 +77,26 @@ class QueryTokenizer:
         result: List[Token] = []
 
         while scan_target:
+            matched_suffix = ""
+            tt = None
             for token_type, pattern in TOKEN_MATCHER.items():
                 if (m := pattern.match(scan_target)) is not None:
                     # Ignore spaces
-                    start, end = m.span()
-                    if token_type != TokenType.separator:
-                        token_match = scan_target[start:end]
-                        result.append(Token(token_type, token_match))
-                    scan_target = scan_target[end:]
-                    break
-            else:
+                    msuffix = m.group()
+                    if token_type == TokenType.separator:
+                        matched_suffix = msuffix
+                        tt = token_type
+                        break
+                    if len(msuffix) > len(matched_suffix):
+                        matched_suffix = msuffix
+                        tt = token_type
+
+            if not matched_suffix:
                 raise UnknownTokenError(scan_target)
+
+            if tt != TokenType.separator:
+                result.append(Token(tt, matched_suffix))  # type: ignore
+            scan_target = scan_target[len(matched_suffix) :]
 
         return result + [Token(TokenType.end_token, "$")]
 
