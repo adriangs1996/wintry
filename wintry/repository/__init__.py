@@ -20,16 +20,20 @@ class RepositoryRegistry:
     repositories: list[type["ICrudRepository"] | type["IRepository"]] = []
 
     @classmethod
-    def configure_for_sqlalchemy(cls):
+    def configure_for_sqlalchemy(cls, backend: str = "default"):
         for repo in cls.repositories:
-            setattr(repo, __RepositoryType__, SQL)
-            setattr(repo, __winter_repository_is_using_sqlalchemy__, True)
+            backend_name = getattr(repo, __winter_backend_identifier_key__)
+            if backend_name == backend:
+                setattr(repo, __RepositoryType__, SQL)
+                setattr(repo, __winter_repository_is_using_sqlalchemy__, True)
 
     @classmethod
-    def configure_for_nosql(cls):
+    def configure_for_nosql(cls, backend: str = "default"):
         for repo in cls.repositories:
-            setattr(repo, __winter_repository_is_using_sqlalchemy__, False)
-            setattr(repo, __RepositoryType__, NO_SQL)
+            backend_name = getattr(repo, __winter_backend_identifier_key__)
+            if backend_name == backend:
+                setattr(repo, __winter_repository_is_using_sqlalchemy__, False)
+                setattr(repo, __RepositoryType__, NO_SQL)
 
 
 class ICrudRepository(Generic[T, TypeId]):

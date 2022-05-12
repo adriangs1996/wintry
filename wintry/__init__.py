@@ -91,10 +91,10 @@ def init_backend(settings: BackendOptions) -> None:
     match driver.driver_class:
         case EngineType.NoSql:
             VirtualDatabaseSchema.use_nosql()
-            wintry_repository.RepositoryRegistry.configure_for_nosql()
+            wintry_repository.RepositoryRegistry.configure_for_nosql(settings.name)
         case EngineType.Sql:
             VirtualDatabaseSchema.use_sqlalchemy()
-            wintry_repository.RepositoryRegistry.configure_for_sqlalchemy()
+            wintry_repository.RepositoryRegistry.configure_for_sqlalchemy(settings.name)
         case EngineType.NoEngine:
             pass
         case _:
