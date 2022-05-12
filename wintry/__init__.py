@@ -164,7 +164,7 @@ class Winter:
                 RepositoryRegistry.configure_for_nosql()
             case EngineType.Sql:
                 VirtualDatabaseSchema.use_sqlalchemy()
-                RepositoryRegistry.configure_for_nosql()
+                RepositoryRegistry.configure_for_sqlalchemy()
             case EngineType.NoEngine:
                 pass
             case _:
@@ -205,7 +205,6 @@ class Winter:
             openapi_url=f"{settings.server_prefix}/openapi.json",
             title=settings.server_title,
             version=settings.server_version,
-            contact={"name": "NextX Team"},
         )
 
         if settings.middlewares:

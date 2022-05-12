@@ -79,6 +79,8 @@ class WinterSettings(pdc.BaseSettings):
     repositories, etc
     """
 
+    ensure_metadata: bool = True
+
     app_root: str = "."
     """
     The root of the server implementation. This is not like a wwwroot

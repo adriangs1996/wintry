@@ -316,6 +316,8 @@ class SqlAlchemyDriver(QueryDriver):
                 _session: AsyncSession = __session
                 async with _session.begin():
                     _session.add(entity)
+        
+        return entity
 
     @visit.register
     async def _(self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any) -> None:

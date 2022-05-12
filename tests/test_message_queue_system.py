@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from pydantic import  Field
 import pytest
 from wintry.mqs import (
     MessageQueue,
@@ -9,38 +9,31 @@ from wintry.mqs import (
 )
 
 
-@dataclass
 class SumCommand(Command):
-    numbers: list[int] = field(default_factory=list)
+    numbers: list[int] = Field(default_factory=list)
 
 
-@dataclass
 class SumWithBias(Command):
     bias: int
-    numbers: list[int] = field(default_factory=list)
+    numbers: list[int] = Field(default_factory=list)
 
 
-@dataclass
 class SumWithTwoEvents(Command):
-    numbers: list[int] = field(default_factory=list)
+    numbers: list[int] = Field(default_factory=list)
 
 
-@dataclass
 class Summed(Event):
     result: int
 
 
-@dataclass
 class FinishedSum(Event):
     bias: int
 
 
-@dataclass
 class DoneSum(Event):
     result: int
 
 
-@dataclass
 class SleepCalled(Event):
     seconds: int
 
@@ -55,18 +48,18 @@ class TestMessageQueue(MessageQueue):
     @command_handler
     def sum(self, command: SumCommand):
         result = sum(command.numbers)
-        self.register(Summed(result))
+        self.register(Summed(result=result))
 
     @command_handler
     async def sum_with_two_events(self, command: SumWithTwoEvents):
         result = sum(command.numbers)
-        self.register(DoneSum(result))
+        self.register(DoneSum(result=result))
 
     @command_handler
     async def sum_with_bias(self, command: SumWithBias):
         result = sum(command.numbers)
-        self.register(Summed(result))
-        self.register(FinishedSum(command.bias))
+        self.register(Summed(result=result))
+        self.register(FinishedSum(bias=command.bias))
 
     @event_handler
     def summed(self, event: Summed):

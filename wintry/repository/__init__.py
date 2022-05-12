@@ -17,7 +17,7 @@ TypeId = TypeVar("TypeId")
 
 
 class RepositoryRegistry:
-    repositories: list[type["ICrudRepository"]] = []
+    repositories: list[type["ICrudRepository"] | type["IRepository"]] = []
 
     @classmethod
     def configure_for_sqlalchemy(cls):
@@ -53,6 +53,32 @@ class ICrudRepository(Generic[T, TypeId]):
 
 
 class Repository(abc.ABC, ICrudRepository[T, TypeId]):
+    def connection(self) -> Any:
+        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+        return get_connection(backend_name)
+
+    def __init_subclass__(
+        cls,
+        *,
+        entity: type[T],
+        for_backend: str = "default",
+        table_name: str | None = None,
+        dry: bool = False,
+        mongo_session_managed: bool = False,
+        force_nosql: bool = False,
+    ) -> None:
+        RepositoryRegistry.repositories.append(cls)
+        repository(
+            entity,
+            for_backend=for_backend,
+            table_name=table_name,
+            dry=dry,
+            mongo_session_managed=mongo_session_managed,
+            force_nosql=force_nosql,
+        )(cls)
+
+
+class IRepository(abc.ABC):
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
         return get_connection(backend_name)

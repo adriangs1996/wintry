@@ -46,9 +46,9 @@ class OrderLine(Model, frozen=True):
     qty: int
 
 class Batch(Model):
-    reference: str
     sku: str
     purchased_quantity: int
+    reference: str = field(metadata={"id": True})
     allocations: set[OrderLine] = field(default_factory=set)
     eta: date | None = None
 
@@ -96,8 +96,64 @@ class Product(Model): # (1)
 a dummy constructor.
 2.  `sku` is the identifier of this model.
 
-Models are automatically converted to dataclasses, so we now
-have the same representation as before in a more compact
-format. Futhermore, we can no build instances of our models
+Models are automatically converted to dataclasses. Futhermore, we can now build instances of our models
 using `#!python Batch.build()` or serialize them using `#!python Batch.to_dict()`
 
+## One Aggregate = One Repository
+---------------------------------
+
+This is by no means enforced, but it is a good rule of thumb.
+Thinking in Repositories at Aggregates levels allows to simplify
+data access logic at the same time you guarantee some degree of 
+cohesion between dependant models. Again, I follow this approach
+as in the book, but it is here just to make a point.
+
+Repositories are abstractions over Data Access, that allow us to treat databases as if we were controlling an in-memory data store. Usually Repositories are coupled to databases with a 
+specific dialect. Wintry provides a unified view over data access, but not the same way as Django. Django Model's Managers 
+represent what is called an Active Record, and that aproach promotes the "Fat Models" antipattern. Well, is all a matter of opinions, but there is always one friction:
+> Writting Queries for managing domain logic usually involve
+pretty straight forward queries, specially for writting data.
+
+So, with Wintry, you dont have to write your Queries at all, you can do it, though you most likely wont need it.
+
+```python title="repositories.py" linenums="1"
+from wintry.repository import Repository
+from .models import Product
+
+class ProductRepository(Repository[Product, str], entity=Product):
+    async def get_by_sku(self, *, sku: str) -> Product | None:
+        ...
+```
+
+So you may ask: Ok, where is `#!python get_by_sku` implemented?
+
+That's the beauty, yo don't, it is already there, in the name. Repositories are query compilers and automatically translate
+your method names into queries, and yes, it automatically knows
+how to build your object from your data source, and whether to return a list or a single object.
+
+Speaking of data source, we better configure one to make the whole thing real, right?
+We will be using Postgresql for this tutorial, but any SQLAlchemy
+compatible database will do. To ensure we have a Postgresql instance running in our localhost, we can use Docker with the following docker-compose:
+
+```yaml title="docker-compose.yml" linenums="1"
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=tests
+```
+
+<div class="termy">
+
+```console
+$ docker compose up -d
+
+⠿ Container postgres  Started 
+```
+
+</div>

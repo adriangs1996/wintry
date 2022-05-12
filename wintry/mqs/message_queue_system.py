@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from functools import update_wrapper
 from inspect import iscoroutine, iscoroutinefunction, signature
 from typing import Any, Callable, Coroutine, TypeVar, overload
+from pydantic import BaseModel
 
 
 class EventRegistrationError(Exception):
@@ -12,22 +13,24 @@ class CommandRegistrationError(Exception):
     pass
 
 
-@dataclass
-class Command:
+class Command(BaseModel):
     pass
 
 
-@dataclass
-class Event:
+class Event(BaseModel):
     pass
 
 
 _TQueue = TypeVar("_TQueue", bound="MessageQueue")
 _TCommand = TypeVar("_TCommand", bound=Command)
 _TEvent = TypeVar("_TEvent", bound=Event)
-EventHandler = Callable[[_TQueue, _TEvent], None] | Callable[[_TQueue, _TEvent], Coroutine[None, None, None]]
+EventHandler = (
+    Callable[[_TQueue, _TEvent], None]
+    | Callable[[_TQueue, _TEvent], Coroutine[None, None, None]]
+)
 CommandHandler = (
-    Callable[[_TQueue, _TCommand], None] | Callable[[_TQueue, _TCommand], Coroutine[None, None, None]]
+    Callable[[_TQueue, _TCommand], None]
+    | Callable[[_TQueue, _TCommand], Coroutine[None, None, None]]
 )
 Message = Command | Event
 
@@ -87,7 +90,9 @@ class MessageQueue:
 @overload
 def event_handler(
     fn: None, _type: type[_TEvent] | None = None
-) -> Callable[[Callable[[_TQueue, _TEvent], None]], Callable[[_TQueue, _TEvent], None]] | Callable[
+) -> Callable[
+    [Callable[[_TQueue, _TEvent], None]], Callable[[_TQueue, _TEvent], None]
+] | Callable[
     [Callable[[_TQueue, _TEvent], Coroutine[_TQueue, _TQueue, None]]],
     Callable[[_TQueue, _TEvent], Coroutine[Any, Any, None]],
 ]:
@@ -103,7 +108,8 @@ def event_handler(
 
 @overload
 def event_handler(
-    fn: Callable[[_TQueue, _TEvent], Coroutine[Any, Any, None]], _type: type[_TEvent] | None = None
+    fn: Callable[[_TQueue, _TEvent], Coroutine[Any, Any, None]],
+    _type: type[_TEvent] | None = None,
 ) -> Callable[[_TQueue, _TEvent], Coroutine[Any, Any, None]]:
     ...
 
@@ -121,8 +127,11 @@ def event_handler(
     Callable[[_TQueue, _TEvent], Coroutine[None, None, None]],
 ]:
     def wrapper(
-        func: Callable[[_TQueue, _TEvent], None] | Callable[[_TQueue, _TEvent], Coroutine[None, None, None]]
-    ) -> Callable[[_TQueue, _TEvent], None] | Callable[[_TQueue, _TEvent], Coroutine[None, None, None]]:
+        func: Callable[[_TQueue, _TEvent], None]
+        | Callable[[_TQueue, _TEvent], Coroutine[None, None, None]]
+    ) -> Callable[[_TQueue, _TEvent], None] | Callable[
+        [_TQueue, _TEvent], Coroutine[None, None, None]
+    ]:
         if _type is None:
             sig = signature(func)
             parameters = sig.parameters
@@ -164,7 +173,9 @@ def event_handler(
 @overload
 def command_handler(
     fn: None, _type: type[_TCommand] | None = None
-) -> Callable[[Callable[[_TQueue, _TCommand], None]], Callable[[_TQueue, _TCommand], None]] | Callable[
+) -> Callable[
+    [Callable[[_TQueue, _TCommand], None]], Callable[[_TQueue, _TCommand], None]
+] | Callable[
     [Callable[[_TQueue, _TCommand], Coroutine[_TQueue, _TQueue, None]]],
     Callable[[_TQueue, _TCommand], Coroutine[Any, Any, None]],
 ]:
@@ -180,7 +191,8 @@ def command_handler(
 
 @overload
 def command_handler(
-    fn: Callable[[_TQueue, _TCommand], Coroutine[Any, Any, None]], _type: type[_TCommand] | None = None
+    fn: Callable[[_TQueue, _TCommand], Coroutine[Any, Any, None]],
+    _type: type[_TCommand] | None = None,
 ) -> Callable[[_TQueue, _TCommand], Coroutine[Any, Any, None]]:
     ...
 
@@ -200,7 +212,9 @@ def command_handler(
     def wrapper(
         func: Callable[[_TQueue, _TCommand], None]
         | Callable[[_TQueue, _TCommand], Coroutine[None, None, None]]
-    ) -> Callable[[_TQueue, _TCommand], None] | Callable[[_TQueue, _TCommand], Coroutine[None, None, None]]:
+    ) -> Callable[[_TQueue, _TCommand], None] | Callable[
+        [_TQueue, _TCommand], Coroutine[None, None, None]
+    ]:
         if _type is None:
             sig = signature(func)
             parameters = sig.parameters

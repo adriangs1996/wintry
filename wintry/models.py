@@ -340,75 +340,12 @@ def make_column_from_field(
         return foreign_key_column, {field.name: relation(_type, lazy="joined")}
 
 
-@__dataclass_transform__()
-def entity(
-    cls: type[T] | None = None,
-    /,
-    *,
-    name: str | None = None,
-    create_metadata: bool = False,
-    init=True,
-    repr=True,
-    eq=True,
-    order=False,
-    unsafe_hash=False,
-    frozen=False,
-    match_args=True,
-    kw_only=False,
-    slots=False,
-    metadata=metadata,
-) -> type[T] | Callable[[type[T]], type[T]]:
-    def _create_metadata(_cls: type[T]) -> type[T]:
-        _cls = model(
-            init=init,
-            repr=repr,
-            eq=eq,
-            order=order,
-            unsafe_hash=unsafe_hash,
-            frozen=frozen,
-            match_args=match_args,
-            kw_only=kw_only,
-            slots=slots,
-        )(_cls)
-
-        if create_metadata:
-            columns: list[Column] = []
-            properties: dict[str, Any] = {}
-
-            for field in fields(_cls):
-                col_or_cols = make_column_from_field(_cls, field)
-                if col_or_cols is not None:
-                    if isinstance(col_or_cols, Column):
-                        columns.append(col_or_cols)
-                    else:
-                        col, props = col_or_cols
-                        properties.update(props)
-                        columns.append(col)
-
-            table_name = name or _cls.__name__.lower() + "s"
-            table = Table(table_name, metadata, *columns)
-
-            mapper_registry.map_imperatively(_cls, table, properties=properties)
-
-            setattr(_cls, __SQL_ENABLED_FLAG__, True)
-
-        return _cls
-
-    if cls is None:
-        return _create_metadata
-    else:
-        return _create_metadata(cls)
-
-
 class RelationTag(std_enum):
     one_to_many = 0
     many_to_one = 1
     one_to_one = 2
     one_to_none = 4
     many_to_none = 8
-
-
-ModelGraph = dict[tuple[type, type], RelationTag]
 
 
 @dataclass
@@ -535,17 +472,34 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
             else:
                 columns.append(Column(c.name, column_type))
 
+        try:
+            get_primary_key(model)
+        except ModelError:
+            columns.append(Column("id", Integer, primary_key=True, autoincrement=True))
+
         for fk in table_metadata.foreing_keys:
-            foreign_key = get_primary_key(fk.target)
-            foreign_key_type = _mapper.get(foreign_key.type)
-            columns.append(
-                Column(
-                    fk.key_name,
-                    foreign_key_type,
-                    ForeignKey(getattr(fk.target, foreign_key.name)),
-                    nullable=True,
+            try:
+                foreign_key = get_primary_key(fk.target)
+                foreign_key_type = _mapper.get(foreign_key.type)
+                columns.append(
+                    Column(
+                        fk.key_name,
+                        foreign_key_type,
+                        ForeignKey(
+                            f"{getattr(fk.target, __winter_model_collection_name__)}.{foreign_key.name}"
+                        ),
+                        nullable=True,
+                    )
                 )
-            )
+            except ModelError:
+                columns.append(
+                    Column(
+                        fk.key_name,
+                        Integer,
+                        ForeignKey(f"{getattr(fk.target, __winter_model_collection_name__)}.id"),
+                        nullable=True,
+                    )
+                )
 
         properties = {}
 
@@ -666,4 +620,4 @@ class Model(metaclass=ModelMeta):
         return asdict(self)
 
 
-__all__ = ["model", "_is_private_attr", "entity"]
+__all__ = ["model", "_is_private_attr"]
