@@ -24,6 +24,7 @@ from wintry.errors import (
 from wintry.models import VirtualDatabaseSchema
 import uvicorn
 
+
 # Import the services defined by the framework
 import wintry.services
 
@@ -84,6 +85,20 @@ def init_backend(settings: BackendOptions) -> None:
 
     if not isinstance(driver, QueryDriver):
         raise InvalidDriverInterface("Driver should implement QueryDriver interface")
+
+    import wintry.repository as wintry_repository
+
+    match driver.driver_class:
+        case EngineType.NoSql:
+            VirtualDatabaseSchema.use_nosql()
+            wintry_repository.RepositoryRegistry.configure_for_nosql()
+        case EngineType.Sql:
+            VirtualDatabaseSchema.use_sqlalchemy()
+            wintry_repository.RepositoryRegistry.configure_for_sqlalchemy()
+        case EngineType.NoEngine:
+            pass
+        case _:
+            raise InvalidEngineOption()
 
     # set the backend driver
     backend = Backend(driver)
@@ -155,20 +170,6 @@ class Winter:
                     binder.bind(dependency, factory())
 
         inject.configure_once(config)
-
-        from wintry.repository import RepositoryRegistry
-
-        match settings.autogenerate_models_metadata_for_engine:
-            case EngineType.NoSql:
-                VirtualDatabaseSchema.use_nosql()
-                RepositoryRegistry.configure_for_nosql()
-            case EngineType.Sql:
-                VirtualDatabaseSchema.use_sqlalchemy()
-                RepositoryRegistry.configure_for_sqlalchemy()
-            case EngineType.NoEngine:
-                pass
-            case _:
-                raise InvalidEngineOption()
 
         # Initialize the backends
         if settings.backends:
