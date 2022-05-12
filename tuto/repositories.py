@@ -24,3 +24,6 @@ class AllocationViewModelRepository(
 
     async def create(self, *, entity: AllocationsViewModel) -> AllocationsViewModel:
         ...
+
+    async def delete_by_orderid_and_sku(self, *, orderid: str, sku: str):
+        ...

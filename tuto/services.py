@@ -92,3 +92,12 @@ class MessageBus(MessageQueue):
         allocation = AllocationsViewModel(**event.dict(exclude={"qty"}))
         await self.allocations.create(entity=allocation)
         self.logger.info("Synced Allocation View")
+
+    @event_handler
+    async def delete_allocation_view(self, event: Deallocated):
+        await self.allocations.delete_by_orderid_and_sku(
+            orderid=event.orderid, sku=event.sku
+        )
+        self.logger.info(
+            f"Deallocated orders with: orderid={event.orderid}, sku={event.sku}"
+        )

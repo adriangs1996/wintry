@@ -19,3 +19,10 @@ services:
     volumes:
       - ./scripts/rs-init.sh:/scripts/rs-init.sh
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
+
+  redis:
+    container_name: redis
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    restart: always
