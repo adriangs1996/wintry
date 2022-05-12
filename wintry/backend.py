@@ -12,7 +12,7 @@ class BackendException(Exception):
 
 
 class QueryDriver(abc.ABC):
-    driver_class: EngineType
+    driver_class: EngineType = EngineType.NoEngine
 
     @abc.abstractmethod
     def run(

@@ -23,7 +23,7 @@ from wintry.query.nodes import (
 )
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
-from wintry.settings import BackendOptions
+from wintry.settings import BackendOptions, EngineType
 from dataclasses import is_dataclass
 from dataclass_wizard import asdict, fromdict
 
@@ -143,6 +143,8 @@ class ExecutionError(Exception):
 
 
 class MongoDbDriver(QueryDriver):
+    driver_class: EngineType = EngineType.NoSql
+
     def get_connection(self) -> Any:
         return self.db
 

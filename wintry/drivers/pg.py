@@ -22,7 +22,7 @@ from wintry.query.nodes import (
     RootNode,
     Update,
 )
-from wintry.settings import BackendOptions
+from wintry.settings import BackendOptions, EngineType
 from sqlalchemy import select, update, delete, inspect, insert
 from sqlalchemy.sql import (
     Select,
@@ -116,6 +116,8 @@ def _operate(node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any) -
 
 
 class SqlAlchemyDriver(QueryDriver):
+    driver_class: EngineType = EngineType.Sql
+
     def init(self, settings: BackendOptions):  # type: ignore
         if settings.connection_options.url is not None:
             self._engine = create_async_engine(url=settings.connection_options.url, future=True)
