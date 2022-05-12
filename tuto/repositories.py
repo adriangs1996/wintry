@@ -16,7 +16,9 @@ class ProductRepository(Repository[Product, str], entity=Product):
 
 
 @provider
-class AllocationViewModelRepository(IRepository, entity=AllocationsViewModel):
+class AllocationViewModelRepository(
+    IRepository, entity=AllocationsViewModel, for_backend="mongo"
+):
     async def find_by_orderid(self, *, orderid: str) -> list[AllocationsViewModel]:
         ...
 

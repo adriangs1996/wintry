@@ -1,4 +1,5 @@
 from logging import Logger
+from tuto.repositories import AllocationViewModelRepository
 from tuto.viewmodels import AllocationsViewModel
 from wintry.mqs import event_handler, command_handler, MessageQueue
 from wintry.dependency_injection import provider
@@ -16,9 +17,12 @@ class InvalidSku(Exception):
 class MessageBus(MessageQueue):
     uow: UnitOfWork
 
-    def __init__(self, uow: UnitOfWork, logger: Logger) -> None:
+    def __init__(
+        self, uow: UnitOfWork, logger: Logger, allocations: AllocationViewModelRepository
+    ) -> None:
         super().__init__()
         self.uow = uow
+        self.allocations = allocations
         self.logger = logger
 
     @command_handler
@@ -85,9 +89,6 @@ class MessageBus(MessageQueue):
 
     @event_handler
     async def save_allocation_view(self, event: Allocated):
-        async with self.uow as uow:
-            allocation = AllocationsViewModel(**event.dict(exclude={"qty"}))
-            await uow.allocations.create(entity=allocation)
-            await uow.commit()
-        
+        allocation = AllocationsViewModel(**event.dict(exclude={"qty"}))
+        await self.allocations.create(entity=allocation)
         self.logger.info("Synced Allocation View")

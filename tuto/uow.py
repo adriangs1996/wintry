@@ -6,9 +6,6 @@ from .repositories import AllocationViewModelRepository, ProductRepository
 @provider
 class UnitOfWork(WintryUnitOfWork):
     products: ProductRepository
-    allocations: AllocationViewModelRepository
 
-    def __init__(
-        self, products: ProductRepository, allocations: AllocationViewModelRepository
-    ) -> None:
-        super().__init__(products=products, allocations=allocations)
+    def __init__(self, products: ProductRepository) -> None:
+        super().__init__(products=products)
