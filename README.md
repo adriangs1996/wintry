@@ -1,4 +1,4 @@
-# Wintry: A new python web framework with cool features for ... everybody
+# Wintry: A performant, feature rich, scalable and 'cool' python web framework.
 
 
 
@@ -148,7 +148,7 @@ to change the configuration url and the EngineType to **EngineType.NoSql**
 and THERE IS NO NEED TO CHANGE THE CODE,
 it would just work.
 
-You can look for a complete example under [test_app](https://github.com/adriangs1996/wintry/tree/master/test_app)
+You can look for a complete example at this [test app](https://github.com/adriangs1996/wintry/tree/master/tuto)
 
 ## Installation
 ---------------

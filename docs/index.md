@@ -1,4 +1,4 @@
-# Wintry: A Web Framework for you, the developer, in a clean way, a cool way
+# Wintry: A Web Framework for you, the developer, in a clean way, a cool way. Build apps with speed and ease, with the power of the winter at your side.
 
 
 
