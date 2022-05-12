@@ -19,7 +19,7 @@ homepage="https://adriangs1996.github.io/wintry"
 [tool.poetry.dependencies]
 python = "^3.10"
 motor = "^2.5.1"
-SQLAlchemy = {version = "^1.4.35", optional = true}
+SQLAlchemy = "^1.4.35"
 asyncpg = {version = "^0.25.0", optional = true}
 dataclass-wizard = "^0.22.0"
 pydantic = "^1.9.0"
@@ -29,7 +29,7 @@ Inject = "^4.3.1"
 uvicorn = "^0.17.6"
 
 [tool.poetry.extras]
-postgres = ["SQLAlchemy", "asyncpg"]
+postgres = ["asyncpg"]
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
