@@ -118,6 +118,7 @@ class MarvelController:
 settings = WinterSettings(
     backends=[
         BackendOptions(
+            driver="wintry.drivers.pg",
             connection_options=ConnectionOptions(
                 url="postgresql+asyncpg://postgres:secret@localhost/tests"
             )
@@ -126,7 +127,6 @@ settings = WinterSettings(
     app_root="test_app",
     server_title="Testing Server API",
     server_version="0.0.1",
-    autogenerate_models_metadata_for_engine=EngineType.Sql
 )
 
 Winter.setup(settings)
@@ -134,7 +134,7 @@ Winter.setup(settings)
 api = Winter.factory(settings, server_type=ServerTypes.API)
 ```
 
-Note that the method **get_by_name** is NOT IMPLEMENTED, but it somewhow still works :). The thing is Repositories are query compilers,
+Note that the method **get_by_name** is NOT IMPLEMENTED, but it somehow still works :). The thing is Repositories are query compilers,
 and you dont need to implement them, only learn a very simple
 query syntax. That's not the only thing, the **@provider** decorator
 allows the repositories to be injected inside the marvel controller
@@ -144,7 +144,7 @@ Note that my Hero and Villain entities, does not contain anything special, they 
 we call **get_villain** if the **Villain** has any **Hero** assigned.
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
-to change the configuration url and the EngineType to **EngineType.NoSql** 
+to change the configuration url and the driver 
 and THERE IS NO NEED TO CHANGE THE CODE,
 it would just work.
 
@@ -184,7 +184,7 @@ CQRS, etc.)
 
 * Services
 
-* Everything from FastAPI y a really confortable way
+* Everything from FastAPI in a really confortable way
 
 * Settings based on Pydantic
 
@@ -219,7 +219,7 @@ Every single contribution is very appreciated. From ideas, issues,
 PR, criticism, anything you can imagine.
 
 If you are willing to provide a PR for a feature, just try to
-give at least some tests for the feature, I try my best
+give at least some tests for the feature, I do my best
 mantaining a pool of tests that will be growing with time
 
 - [Issue Tracker](https://github.com/adriangs1996/wintry/issues)
