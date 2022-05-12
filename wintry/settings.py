@@ -70,8 +70,6 @@ class WinterSettings(pdc.BaseSettings):
     Defaults to a MongoEngine on localhost, port 27017 under name 'default'.
     """
 
-    autogenerate_models_metadata_for_engine: EngineType = EngineType.NoSql
-
     auto_discovery_enabled: bool = True
     """
     Configure if `Wintry` should autodiscover modules on setup.
