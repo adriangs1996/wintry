@@ -33,7 +33,14 @@ class ConnectionOptions(pdc.BaseModel):
     database_name: str = "tests"
     user: Optional[str] = None
     password: Optional[str] = None
-    connector: str | None = "postgresql+asyncpg"
+    connector: str | None = None
+
+
+class TransporterSettings(pdc.BaseModel):
+    transporter: str = "default"
+    driver: str = "nameko.events"
+    decorator: str = "event_handler"
+    connection_options: ConnectionOptions = ConnectionOptions()
 
 
 class Middleware(pdc.BaseModel):
@@ -136,6 +143,11 @@ class WinterSettings(pdc.BaseSettings):
 
     hot_reload: bool = True
     """Enabled hot reloading. Disable this for production environments"""
+
+    transporters: list[TransporterSettings] = [TransporterSettings()]
+    """
+    This config is specific to microservices comunication.
+    """
 
     class Config:
         env_file_encoding = "utf-8"

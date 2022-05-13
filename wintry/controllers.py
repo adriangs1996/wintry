@@ -1,7 +1,10 @@
 import dataclasses
 from enum import Enum
+from importlib import import_module
 import inspect
+from types import MethodType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -25,6 +28,10 @@ from fastapi.routing import APIRoute
 from wintry.dependency_injection import Factory, __mappings__
 from inject import autoparams
 from dataclasses import dataclass
+from wintry.utils.keys import __winter_transporter_name__, __winter_microservice_event__
+
+if TYPE_CHECKING:
+    from wintry.settings import WinterSettings
 
 
 ROUTER_KEY = "__api_router__"
@@ -560,3 +567,97 @@ def _fix_endpoint_signature(cls: Type[Any], endpoint: Callable[..., Any]):
 
     new_signature = old_signature.replace(parameters=new_parameters)
     setattr(endpoint, "__signature__", new_signature)
+
+
+class TransportControllerRegistry:
+    controllers: set[type] = set()
+
+    @classmethod
+    def setup(cls, settings: "WinterSettings"):
+        """Configure each microservice controller with its
+        corresponding transport
+
+        """
+        for controller in cls.controllers:
+            transporter_name = getattr(controller, __winter_transporter_name__)
+            transporter = next(
+                t for t in settings.transporters if t.transporter == transporter_name
+            )
+            mod = import_module(transporter.driver)
+            event_handler = getattr(mod, transporter.decorator)
+
+            methods = inspect.getmembers(controller, inspect.isfunction)
+            for method in methods:
+                if (
+                    event := getattr(method, __winter_microservice_event__, None)
+                ) is not None:
+                    event_handler(event)(method)
+
+
+def on(event: str):
+    """Listen on an event from the method configured listener
+
+    Args:
+        event(str): The event to listen to.
+
+    Returns:
+        ((T, ...) -> Any]) -> (T, ...) -> Any: A dynamic event handler registered for `event`
+
+    """
+
+    def wrapper(method: MethodType) -> MethodType:
+        setattr(method, __winter_microservice_event__, event)
+        return method
+
+    return wrapper
+
+
+def microservice(
+    cls: type[T] | None = None,
+    /,
+    *,
+    service_name: str | None = None,
+    transporter: str | None = None,
+) -> type[T] | Callable[[type[T]], type[T]]:
+    """Transform a class into a Container for rpc
+    calls endpoints. This is use with the same purpouse as
+    `controller` for web endpoints. Microservices are based
+    on `nameko`, so the same functionality is available.
+    In here are provided some functionalities on top
+    to improve developer experience and make it fully
+    compatible with `Wintry`
+
+    Args:
+        cls(type[T] | None): The class to decorate.
+
+        service_name(str | None): The name to access this service. If None
+        then the name will be contructed from the decorated class in lowercase.
+
+        transporter(str | None): The name of the configured transporter for this
+        microservice. This would add an event dispatcher
+
+    Returns
+        type[T]: The same class with augmented properties.
+
+    """
+
+    def make_microservice(_cls: type[T]) -> type[T]:
+        wrapper = autoparams()
+        _cls = wrapper(_cls)
+
+        # register this class as a controller
+        TransportControllerRegistry.controllers.add(_cls)
+
+        name = service_name or _cls.__name__.lower()
+
+        # Services require a name to be accessible from the outside
+        setattr(_cls, "name", name)
+        transporter_name = transporter or "default"
+        setattr(_cls, __winter_transporter_name__, transporter_name)
+
+        return _cls
+
+    if cls is None:
+        return make_microservice
+    else:
+        return make_microservice(cls)
