@@ -43,7 +43,7 @@ class Pikachu(Microservice):
     async def run(self):
         url = self.settings.connection_options.url
         assert url is not None
-        connection = await aio_pika.connect(url)
+        connection = await aio_pika.connect_robust(url)
 
         async with connection:
             ch = connection.channel()
