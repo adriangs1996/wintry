@@ -1,13 +1,15 @@
+import asyncio
 from enum import Enum
-from typing import Any
+from typing import Any, overload
 from wintry.backend import QueryDriver, Backend
-from wintry.dependency_injection import Factory
+from wintry.dependency_injection import Factory, service
 from wintry.settings import BackendOptions, EngineType, WinterSettings
 import importlib
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 import inject
+from wintry.transporters.service_container import ServiceContainer
 from wintry.utils.loaders import autodiscover_modules
 from fastapi import FastAPI
 from wintry.controllers import __controllers__
@@ -35,6 +37,7 @@ BACKENDS: dict[str, Backend] = {}
 class ServerTypes(Enum):
     API = 0
     RPC = 1
+    SUBSCRIBER = 2
 
 
 class NotConfiguredFactoryForServerType(Exception):
@@ -175,17 +178,33 @@ class Winter:
         if settings.backends:
             init_backends(settings)
 
+    @overload
+    @staticmethod
+    def factory(
+        settings: WinterSettings, server_type=ServerTypes.SUBSCRIBER
+    ) -> ServiceContainer:
+        ...
+
+    @overload
+    @staticmethod
+    def factory(settings: WinterSettings, server_type=ServerTypes.API) -> FastAPI:
+        ...
+
     @staticmethod
     def factory(settings=WinterSettings(), server_type: ServerTypes = ServerTypes.API):
         match server_type:
             case ServerTypes.API:
                 return Winter._get_api_instance(settings)
+            case ServerTypes.SUBSCRIBER:
+                return Winter._get_sub_instance(settings)
             case _:
                 raise NotConfiguredFactoryForServerType
 
     @staticmethod
     def serve(
-        server_type=ServerTypes.API, with_settings: WinterSettings = WinterSettings()
+        server_type=ServerTypes.API,
+        with_settings: WinterSettings = WinterSettings(),
+        app: Any = None,
     ):
         match server_type:
             case ServerTypes.API:
@@ -195,8 +214,29 @@ class Winter:
                     host=with_settings.host,
                     port=with_settings.port,
                 )
+            case ServerTypes.SUBSCRIBER:
+                import uvloop
+
+                uvloop.install()
+                loop = asyncio.get_event_loop()
+                assert isinstance(app, ServiceContainer)
+                app.start_services(loop)
+                loop.run_until_complete(app.running_futures)
             case _:
                 raise NotConfiguredFactoryForServerType
+
+    @staticmethod
+    def _get_sub_instance(settings: WinterSettings):
+        service_container = ServiceContainer(settings)
+        logger = logging.getLogger("logger")
+
+        for transporter in settings.transporters:
+            driver = importlib.import_module(transporter.driver)
+            service_class = getattr(driver, transporter.service)
+            service_container.add_service(service_class)
+            logger.info(f"Service {service_class} added to container")
+
+        return service_container
 
     @staticmethod
     def _get_api_instance(settings: WinterSettings):

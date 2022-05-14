@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, unique
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -20,10 +20,19 @@ def json_config_settings_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
         return {}
 
 
+@unique
 class EngineType(str, Enum):
     Sql = "SqlEngine"
     NoSql = "NoSqlEngine"
     NoEngine = "Null"
+
+
+@unique
+class TransporterType(str, Enum):
+    redis = "Redis"
+    amqp = "AMQP"
+    jsonrpc = "JsonRPC"
+    none = "None"
 
 
 class ConnectionOptions(pdc.BaseModel):
@@ -37,9 +46,9 @@ class ConnectionOptions(pdc.BaseModel):
 
 
 class TransporterSettings(pdc.BaseModel):
-    transporter: str = "default"
-    driver: str = "nameko.events"
-    decorator: str = "event_handler"
+    transporter: TransporterType = TransporterType.redis
+    driver: str = "wintry.transporters.redis"
+    service: str = "RedisMicroservice"
     connection_options: ConnectionOptions = ConnectionOptions()
 
 
@@ -144,7 +153,7 @@ class WinterSettings(pdc.BaseSettings):
     hot_reload: bool = True
     """Enabled hot reloading. Disable this for production environments"""
 
-    transporters: list[TransporterSettings] = [TransporterSettings()]
+    transporters: list[TransporterSettings] = []
     """
     This config is specific to microservices comunication.
     """

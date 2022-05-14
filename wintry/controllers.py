@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Coroutine,
     Dict,
     Optional,
     Sequence,
@@ -28,6 +29,8 @@ from fastapi.routing import APIRoute
 from wintry.dependency_injection import Factory, __mappings__
 from inject import autoparams
 from dataclasses import dataclass
+from wintry.settings import TransporterType
+from wintry.transporters import Microservice
 from wintry.utils.keys import __winter_transporter_name__, __winter_microservice_event__
 
 if TYPE_CHECKING:
@@ -570,28 +573,27 @@ def _fix_endpoint_signature(cls: Type[Any], endpoint: Callable[..., Any]):
 
 
 class TransportControllerRegistry:
-    controllers: set[type] = set()
+    controllers: dict[TransporterType, type] = dict()
 
     @classmethod
-    def setup(cls, settings: "WinterSettings"):
-        """Configure each microservice controller with its
-        corresponding transport
+    def get_controller_for_transporter(cls, transporter: TransporterType):
+        return cls.controllers.get(transporter, None)
 
-        """
-        for controller in cls.controllers:
-            transporter_name = getattr(controller, __winter_transporter_name__)
-            transporter = next(
-                t for t in settings.transporters if t.transporter == transporter_name
-            )
-            mod = import_module(transporter.driver)
-            event_handler = getattr(mod, transporter.decorator)
+    @classmethod
+    def get_events_for_transporter(cls, service: type):
+        events: dict[str, MethodType] = dict()
+        methods = inspect.getmembers(service, inspect.isfunction)
 
-            methods = inspect.getmembers(controller, inspect.isfunction)
-            for method in methods:
-                if (
-                    event := getattr(method, __winter_microservice_event__, None)
-                ) is not None:
-                    event_handler(event)(method)
+        for _, method in methods:
+            if (
+                event := getattr(method, __winter_microservice_event__, None)
+            ) is not None:
+                events[event] = method  # type: ignore
+
+        return events
+
+
+TPayload = TypeVar("TPayload")
 
 
 def on(event: str):
@@ -605,19 +607,16 @@ def on(event: str):
 
     """
 
-    def wrapper(method: MethodType) -> MethodType:
+    def wrapper(method: Callable[[T, TPayload], Any]) -> Callable[[T, TPayload], Any]:
         setattr(method, __winter_microservice_event__, event)
+        print(getattr(method, __winter_microservice_event__))
         return method
 
     return wrapper
 
 
 def microservice(
-    cls: type[T] | None = None,
-    /,
-    *,
-    service_name: str | None = None,
-    transporter: str | None = None,
+    transporter: TransporterType,
 ) -> type[T] | Callable[[type[T]], type[T]]:
     """Transform a class into a Container for rpc
     calls endpoints. This is use with the same purpouse as
@@ -646,18 +645,11 @@ def microservice(
         _cls = wrapper(_cls)
 
         # register this class as a controller
-        TransportControllerRegistry.controllers.add(_cls)
-
-        name = service_name or _cls.__name__.lower()
 
         # Services require a name to be accessible from the outside
-        setattr(_cls, "name", name)
-        transporter_name = transporter or "default"
+        transporter_name = transporter or TransporterType.none
         setattr(_cls, __winter_transporter_name__, transporter_name)
-
+        TransportControllerRegistry.controllers[transporter_name] = _cls
         return _cls
 
-    if cls is None:
-        return make_microservice
-    else:
-        return make_microservice(cls)
+    return make_microservice

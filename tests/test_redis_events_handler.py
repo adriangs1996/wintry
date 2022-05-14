@@ -1,0 +1,69 @@
+import asyncio
+from dataclasses import dataclass
+import json
+from typing import ClassVar
+import pytest
+import pytest_asyncio
+import aioredis
+
+from wintry.controllers import microservice, on
+from wintry.settings import (
+    ConnectionOptions,
+    TransporterSettings,
+    TransporterType,
+    WinterSettings,
+)
+from wintry.transporters.redis import RedisMicroservice
+from wintry.transporters.service_container import ServiceContainer
+
+
+@dataclass
+class ChanelPayload:
+    result: int
+
+
+@microservice(TransporterType.redis)
+class RedisService:
+    result: ClassVar[int] = 0
+
+    @on("channel")
+    async def handle_channel(self, data: ChanelPayload):
+        RedisService.result = data.result
+
+
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def container():
+    service_container = ServiceContainer(
+        WinterSettings(
+            transporters=[
+                TransporterSettings(
+                    transporter=TransporterType.redis,
+                    driver="wintry.transporters.redis",
+                    service="RedisMicroservice",
+                    connection_options=ConnectionOptions(url="redis://localhost"),
+                )
+            ]
+        )
+    )
+
+    service_container.add_service(RedisMicroservice)
+    loop = asyncio.get_event_loop()
+    service_container.start_services(loop)
+    yield service_container
+    service_container.close()
+
+
+@pytest.fixture(scope="module")
+def redis():
+    redis = aioredis.from_url("redis://localhost")
+    return redis
+
+
+@pytest.mark.asyncio
+async def test_redis_microservice_handle_event(
+    redis: aioredis.Redis, container: ServiceContainer
+):
+    await redis.publish("channel", json.dumps({"result": 1}))
+    await asyncio.sleep(1)
+
+    assert RedisService.result == 1
