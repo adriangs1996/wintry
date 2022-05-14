@@ -608,6 +608,10 @@ def on(event: str):
     """
 
     def wrapper(method: Callable[[T, TPayload], Any]) -> Callable[[T, TPayload], Any]:
+        method_signature = inspect.signature(method)
+        assert (
+            len(method_signature.parameters) == 2
+        ), "on can only be called on method with one parameter"
         setattr(method, __winter_microservice_event__, event)
         print(getattr(method, __winter_microservice_event__))
         return method

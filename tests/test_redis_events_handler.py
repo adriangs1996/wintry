@@ -67,3 +67,13 @@ async def test_redis_microservice_handle_event(
     await asyncio.sleep(1)
 
     assert RedisService.result == 1
+
+def test_on_decorator_can_only_be_called_on_methods_with_one_argument():
+
+    with pytest.raises(AssertionError):
+        @microservice(TransporterType.redis)
+        class DummyService:
+            @on("dump") # type: ignore 
+            def method(self, arg1: str, arg2: str):
+                ...
+
