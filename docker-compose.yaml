@@ -8,7 +8,6 @@ services:
       - POSTGRES_PASSWORD=secret
       - POSTGRES_USER=postgres
       - POSTGRES_DB=tests
-  
 
   mongo:
     container_name: mongo
@@ -18,7 +17,13 @@ services:
     restart: always
     volumes:
       - ./scripts/rs-init.sh:/scripts/rs-init.sh
-    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
+    entrypoint:
+      [
+        "/usr/bin/mongod",
+        "--bind_ip_all",
+        "--replSet",
+        "dbrs"
+      ]
 
   redis:
     container_name: redis
@@ -26,3 +31,10 @@ services:
     ports:
       - "6379:6379"
     restart: always
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"

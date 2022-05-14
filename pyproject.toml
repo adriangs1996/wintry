@@ -27,10 +27,13 @@ fastapi = "^0.75.2"
 Inject = "^4.3.1"
 uvicorn = {extras = ["standard"], version = "^0.17.6"}
 aioredis = {version = "^2.0.1", optional = true }
+pika = {version = "^1.2.1", optional = true}
+aio-pika = "^7.2.0"
 
 [tool.poetry.extras]
 postgres = ["asyncpg"]
 redis = ["aioredis"]
+amqp = ["pika"]
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

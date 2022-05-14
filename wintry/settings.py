@@ -43,6 +43,7 @@ class ConnectionOptions(pdc.BaseModel):
     user: Optional[str] = None
     password: Optional[str] = None
     connector: str | None = None
+    extras: Any = dict()
 
 
 class TransporterSettings(pdc.BaseModel):

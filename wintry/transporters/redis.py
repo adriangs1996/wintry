@@ -1,16 +1,12 @@
-from dataclasses import is_dataclass
-from inspect import iscoroutinefunction, signature
+from inspect import iscoroutinefunction
 import json
-from types import MethodType
-from typing import Any
 import aioredis
 from wintry.controllers import TransportControllerRegistry
 from wintry.settings import TransporterType, WinterSettings
 from wintry.transporters import Microservice
 import async_timeout
 import asyncio
-from pydantic import BaseModel
-from dataclass_wizard import fromdict
+from wintry.utils.model_binding import bind_payload_to, get_payload_type_for
 
 
 class RedisError(Exception):
@@ -19,27 +15,6 @@ class RedisError(Exception):
 
 class RedisModelBindingError(Exception):
     pass
-
-
-def get_payload_type_for(method: MethodType):
-    sig = signature(method)
-    parameters = list(sig.parameters.values())
-    assert (
-        len(parameters) == 2
-    ), "Event method should receive a single parameter, the shape of the payload"
-
-    return parameters[1].annotation
-
-
-def bind_payload_to(payload: dict[str, Any], _type: type):
-    if is_dataclass(_type):
-        return fromdict(_type, payload)
-    elif issubclass(_type, BaseModel):
-        return _type(**payload)
-    else:
-        raise RedisModelBindingError(
-            f"{_type} is not instance of dataclass or pydantic.BaseModel"
-        )
 
 
 class RedisMicroservice(Microservice):
