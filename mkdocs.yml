@@ -38,6 +38,9 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
 
 theme:
   name: material
