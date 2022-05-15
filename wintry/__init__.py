@@ -1,6 +1,6 @@
 import asyncio
 from enum import Enum
-from typing import Any, overload
+from typing import Any, Callable, Coroutine, Sequence, Union
 from wintry.backend import QueryDriver, Backend
 from wintry.dependency_injection import Factory, service
 from wintry.settings import BackendOptions, EngineType, WinterSettings
@@ -25,6 +25,14 @@ from wintry.errors import (
 )
 from wintry.models import VirtualDatabaseSchema
 import uvicorn
+from starlette.routing import BaseRoute
+from starlette.responses import Response, JSONResponse
+from starlette.requests import Request
+from fastapi.params import Depends
+from fastapi.middleware import Middleware
+from fastapi.routing import APIRoute
+from fastapi.utils import generate_unique_id
+from fastapi.datastructures import Default
 
 
 # Import the services defined by the framework
@@ -178,100 +186,142 @@ class Winter:
         if settings.backends:
             init_backends(settings)
 
-    @overload
-    @staticmethod
-    def factory(
-        settings: WinterSettings, server_type=ServerTypes.SUBSCRIBER
-    ) -> ServiceContainer:
-        ...
 
-    @overload
-    @staticmethod
-    def factory(settings: WinterSettings, server_type=ServerTypes.API) -> FastAPI:
-        ...
+class App(FastAPI):
+    def __init__(
+        self,
+        *,
+        settings: WinterSettings,
+        debug: bool = False,
+        routes: list[BaseRoute] | None = None,
+        title: str = "Wintry API",
+        description: str = "",
+        version: str = "0.1.0",
+        openapi_url: str | None = "/openapi.json",
+        openapi_tags: list[dict[str, Any]] | None = None,
+        servers: list[dict[str, Union[str, Any]]] | None = None,
+        dependencies: Sequence[Depends] | None = None,
+        default_response_class: type[Response] = Default(JSONResponse),
+        docs_url: str | None = "/docs",
+        redoc_url: str | None = "/redoc",
+        swagger_ui_oauth2_redirect_url: str | None = "/docs/oauth2-redirect",
+        swagger_ui_init_oauth: dict[str, Any] | None = None,
+        middleware: Sequence[Middleware] | None = None,
+        exception_handlers: dict[
+            Union[int, type[Exception]],
+            Callable[[Request, Any], Coroutine[Any, Any, Response]],
+        ]
+        | None = None,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
+        terms_of_service: str | None = None,
+        contact: dict[str, Union[str, Any]] | None = None,
+        license_info: dict[str, Union[str, Any]] | None = None,
+        openapi_prefix: str = "",
+        root_path: str = "",
+        root_path_in_servers: bool = True,
+        responses: dict[Union[int, str], dict[str, Any]] | None = None,
+        callbacks: list[BaseRoute] | None = None,
+        deprecated: bool | None = None,
+        include_in_schema: bool = True,
+        swagger_ui_parameters: dict[str, Any] | None = None,
+        generate_unique_id_function: Callable[[APIRoute], str] = Default(
+            generate_unique_id
+        ),
+        **extra: Any,
+    ) -> None:
+        super().__init__(
+            debug=debug,
+            routes=routes,
+            callbacks=callbacks,
+            contact=contact,
+            default_response_class=default_response_class,
+            dependencies=dependencies,
+            deprecated=deprecated,
+            description=description,
+            docs_url=docs_url,
+            exception_handlers=exception_handlers,
+            extra=extra,
+            generate_unique_id_function=generate_unique_id_function,
+            include_in_schema=include_in_schema,
+            license_info=license_info,
+            middleware=middleware,
+            on_shutdown=on_shutdown,
+            on_startup=on_startup,
+            openapi_prefix=openapi_prefix,
+            openapi_tags=openapi_tags,
+            openapi_url=openapi_url,
+            redoc_url=redoc_url,
+            responses=responses,
+            root_path=root_path,
+            root_path_in_servers=root_path_in_servers,
+            servers=servers,
+            swagger_ui_init_oauth=swagger_ui_init_oauth,
+            swagger_ui_oauth2_redirect_url=swagger_ui_oauth2_redirect_url,
+            swagger_ui_parameters=swagger_ui_parameters,
+            terms_of_service=terms_of_service,
+            title=title,
+            version=version,
+        )
+        # Provide settings for the whole app. This would be accessible from
+        # dependency injection.
+        self.settings = settings
 
-    @staticmethod
-    def factory(settings=WinterSettings(), server_type: ServerTypes = ServerTypes.API):
-        match server_type:
-            case ServerTypes.API:
-                return Winter._get_api_instance(settings)
-            case ServerTypes.SUBSCRIBER:
-                return Winter._get_sub_instance(settings)
-            case _:
-                raise NotConfiguredFactoryForServerType
+        self.service_container = ServiceContainer(settings)
 
-    @staticmethod
-    def serve(
-        server_type=ServerTypes.API,
-        with_settings: WinterSettings = WinterSettings(),
-        app: Any = None,
-    ):
-        match server_type:
-            case ServerTypes.API:
-                uvicorn.run(
-                    with_settings.app_path,
-                    reload=with_settings.hot_reload,
-                    host=with_settings.host,
-                    port=with_settings.port,
-                )
-            case ServerTypes.SUBSCRIBER:
-                import uvloop
-
-                uvloop.install()
-                loop = asyncio.get_event_loop()
-                assert isinstance(app, ServiceContainer)
-                app.start_services(loop)
-                loop.run_until_complete(app.running_futures)
-            case _:
-                raise NotConfiguredFactoryForServerType
-
-    @staticmethod
-    def _get_sub_instance(settings: WinterSettings):
-        service_container = ServiceContainer(settings)
-        logger = logging.getLogger("logger")
+        Winter.setup(settings)
 
         for transporter in settings.transporters:
             driver = importlib.import_module(transporter.driver)
             service_class = getattr(driver, transporter.service)
-            service_container.add_service(service_class)
-            logger.info(f"Service {service_class} added to container")
-
-        return service_container
-
-    @staticmethod
-    def _get_api_instance(settings: WinterSettings):
-        api = FastAPI(
-            docs_url=f"{settings.server_prefix}/swag",
-            redoc_url=f"{settings.server_prefix}/docs",
-            openapi_url=f"{settings.server_prefix}/openapi.json",
-            title=settings.server_title,
-            version=settings.server_version,
-        )
+            self.service_container.add_service(service_class)
 
         if settings.middlewares:
-            for middleware in settings.middlewares:
+            for mid in settings.middlewares:
                 # Try to import the middleware module
-                module = importlib.import_module(middleware.module)
+                module = importlib.import_module(mid.module)
                 # try to get the middleware object
-                middleware_factory = getattr(module, middleware.name)
+                middleware_factory = getattr(module, mid.name)
                 # register the middleware
-                api.add_middleware(middleware_factory, **middleware.args)
+                self.add_middleware(middleware_factory, **mid.args)
 
         for controller in __controllers__:
-            api.include_router(controller, prefix=settings.server_prefix)
+            self.include_router(controller, prefix=settings.server_prefix)
 
         if settings.include_error_handling:
 
-            api.add_exception_handler(NotFoundError, not_found_exception_handler)
-            api.add_exception_handler(
+            self.add_exception_handler(NotFoundError, not_found_exception_handler)
+            self.add_exception_handler(
                 InternalServerError, internal_server_exception_handler
             )
-            api.add_exception_handler(ForbiddenError, forbidden_exception_handler)
-            api.add_exception_handler(
+            self.add_exception_handler(ForbiddenError, forbidden_exception_handler)
+            self.add_exception_handler(
                 InvalidRequestError, invalid_request_exception_handler
             )
 
-        return api
+        # Configure the listeners for external events
+        # on startup
+        @self.on_startup
+        @service
+        async def wintry_startup(logger: logging.Logger):
+            loop = asyncio.get_event_loop()
+            if self.settings.transporters:
+                self.service_container.start_services(loop)
+            logger.info("Server is running")
 
+        @self.on_shutdown
+        @service
+        async def wintry_shutdown(logger: logging.Logger):
+            if self.settings.transporters:
+                self.service_container.close()
+            logger.info("Server is shuting down")
 
-__all__ = ["get_connection", "init_backends"]
+    def on_startup(self, fn: Callable[..., Any]):
+        return self.on_event("startup")(fn)
+
+    def on_shutdown(self, fn: Callable[..., Any]):
+        return self.on_event("shutdown")(fn)
+
+    
+    def serve(self, host: str = '0.0.0.0', port: int = 8000):
+        uvicorn.run(self, host=host, port=port) #type: ignore
