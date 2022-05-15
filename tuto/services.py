@@ -1,4 +1,5 @@
 from logging import Logger
+from tuto.publisher import Publisher
 from tuto.repositories import AllocationViewModelRepository
 from tuto.viewmodels import AllocationsViewModel
 from wintry.mqs import event_handler, command_handler, MessageQueue
@@ -18,12 +19,17 @@ class MessageBus(MessageQueue):
     uow: UnitOfWork
 
     def __init__(
-        self, uow: UnitOfWork, logger: Logger, allocations: AllocationViewModelRepository
+        self,
+        uow: UnitOfWork,
+        logger: Logger,
+        allocations: AllocationViewModelRepository,
+        sender: Publisher,
     ) -> None:
         super().__init__()
         self.uow = uow
         self.allocations = allocations
         self.logger = logger
+        self.sender = sender
 
     @command_handler
     async def allocate(self, command: Allocate):
@@ -90,7 +96,8 @@ class MessageBus(MessageQueue):
     @event_handler
     async def save_allocation_view(self, event: Allocated):
         allocation = AllocationsViewModel(**event.dict(exclude={"qty"}))
-        await self.allocations.create(entity=allocation)
+        allocation = await self.allocations.create(entity=allocation)
+        await self.sender.send("line_allocated", allocation.to_dict())
         self.logger.info("Synced Allocation View")
 
     @event_handler

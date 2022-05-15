@@ -1,6 +1,8 @@
+from logging import Logger
+from wintry.settings import TransporterType
 from .views import AllocationReadModel, Views
-from .commands import Allocate, CreateBatch
-from wintry.controllers import controller, post, get
+from .commands import Allocate, ChangeBatchQuantity, CreateBatch
+from wintry.controllers import controller, microservice, on, post, get
 from .services import InvalidSku, MessageBus
 from wintry.responses import DataResponse
 from wintry.errors import NotFoundError
@@ -32,3 +34,15 @@ class ProductsController:
             raise NotFoundError(f"{orderid}")
 
         return DataResponse[list[AllocationReadModel]](data=results)
+
+
+@microservice(TransporterType.redis)
+class RedisMessagesControllers:
+    def __init__(self, logger: Logger, messagebus: MessageBus) -> None:
+        self.logger = logger
+        self.messagebus = messagebus
+
+    @on("change_batch_quantity")
+    async def change_batch_quantity(self, cmd: ChangeBatchQuantity):
+        self.logger.info(f"Event from Redis: {cmd}")
+        await self.messagebus.handle(cmd)
