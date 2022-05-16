@@ -28,7 +28,7 @@ import uvicorn
 from starlette.routing import BaseRoute
 from starlette.responses import Response, JSONResponse
 from starlette.requests import Request
-from fastapi.params import Depends
+from fastapi.params import Depends as DependsParam
 from fastapi.middleware import Middleware
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
@@ -37,6 +37,10 @@ from fastapi.datastructures import Default
 
 # Import the services defined by the framework
 import wintry.services
+
+# Import things directly from fastapi so they are
+# accessible from wintry
+from fastapi import Depends, Header, Body, Query
 
 
 BACKENDS: dict[str, Backend] = {}
@@ -152,41 +156,6 @@ def _config_logger():
     logger.addHandler(ch)
 
 
-class Winter:
-    @staticmethod
-    def setup(settings: WinterSettings = WinterSettings()):
-        """
-        Launch general configurations for the server.
-        :func:`Winter.setup()` is based on the configurations
-        provided in a settings.json, the default values of
-        the `WinterSettings` or a custom instance passed
-        to this method. It will launch services based on configuration
-        flags, like autodiscovery and DI Configuration
-        """
-        # Configure the builtin logger
-        _config_logger()
-
-        # Load all the modules so DI and mappings works
-        if settings.auto_discovery_enabled:
-            autodiscover_modules(settings)
-
-        # Configure the DI Container
-        from wintry.dependency_injection import __mappings__
-
-        def config(binder: inject.Binder):
-            for dependency, factory in __mappings__.items():
-                if isinstance(factory, Factory):
-                    binder.bind_to_provider(dependency, factory)
-                else:
-                    binder.bind(dependency, factory())
-
-        inject.configure_once(config)
-
-        # Initialize the backends
-        if settings.backends:
-            init_backends(settings)
-
-
 class App(FastAPI):
     def __init__(
         self,
@@ -200,7 +169,7 @@ class App(FastAPI):
         openapi_url: str | None = "/openapi.json",
         openapi_tags: list[dict[str, Any]] | None = None,
         servers: list[dict[str, Union[str, Any]]] | None = None,
-        dependencies: Sequence[Depends] | None = None,
+        dependencies: Sequence[DependsParam] | None = None,
         default_response_class: type[Response] = Default(JSONResponse),
         docs_url: str | None = "/docs",
         redoc_url: str | None = "/redoc",
@@ -269,7 +238,7 @@ class App(FastAPI):
 
         self.service_container = ServiceContainer(settings)
 
-        Winter.setup(settings)
+        self.bootstrap()
 
         for transporter in settings.transporters:
             driver = importlib.import_module(transporter.driver)
@@ -302,11 +271,10 @@ class App(FastAPI):
         @self.on_startup
         @service
         async def wintry_startup(logger: logging.Logger):
-            loop = asyncio.get_event_loop()
             if self.settings.transporters:
                 for transporter in self.settings.transporters:
                     logger.info(f"Configuring transporter: {transporter}")
-                self.service_container.start_services(loop)
+                self.service_container.start_services()
 
         @self.on_shutdown
         @service
@@ -314,6 +282,40 @@ class App(FastAPI):
             if self.settings.transporters:
                 await self.service_container.close()
             logger.info("Server is shuting down")
+
+    def bootstrap(self):
+        """
+        Launch general configurations for the server.
+        :func:`Winter.setup()` is based on the configurations
+        provided in a settings.json, the default values of
+        the `WinterSettings` or a custom instance passed
+        to this method. It will launch services based on configuration
+        flags, like autodiscovery and DI Configuration
+        """
+        settings = self.settings
+
+        # Configure the builtin logger
+        _config_logger()
+
+        # Load all the modules so DI and mappings works
+        if settings.auto_discovery_enabled:
+            autodiscover_modules(settings)
+
+        # Configure the DI Container
+        from wintry.dependency_injection import __mappings__
+
+        def config(binder: inject.Binder):
+            for dependency, factory in __mappings__.items():
+                if isinstance(factory, Factory):
+                    binder.bind_to_provider(dependency, factory)
+                else:
+                    binder.bind(dependency, factory())
+
+        inject.configure_once(config)
+
+        # Initialize the backends
+        if settings.backends:
+            init_backends(settings)
 
     def on_startup(self, fn: Callable[..., Any]):
         return self.on_event("startup")(fn)

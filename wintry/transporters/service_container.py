@@ -21,7 +21,7 @@ class ServiceContainer:
         srvc.init()
         self.services.add(srvc)
 
-    def start_services(self, loop: asyncio.AbstractEventLoop):
+    def start_services(self):
         for service in self.services:
             future = asyncio.create_task(service.run())
             self.tasks.append(future)

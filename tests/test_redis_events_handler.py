@@ -48,9 +48,9 @@ async def container():
 
     service_container.add_service(RedisMicroservice)
     loop = asyncio.get_event_loop()
-    service_container.start_services(loop)
+    service_container.start_services()
     yield service_container
-    service_container.close()
+    await service_container.close()
 
 
 @pytest.fixture(scope="module")
