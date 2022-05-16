@@ -299,21 +299,20 @@ class App(FastAPI):
                 InvalidRequestError, invalid_request_exception_handler
             )
 
-        # Configure the listeners for external events
-        # on startup
         @self.on_startup
         @service
         async def wintry_startup(logger: logging.Logger):
             loop = asyncio.get_event_loop()
             if self.settings.transporters:
+                for transporter in self.settings.transporters:
+                    logger.info(f"Configuring transporter: {transporter}")
                 self.service_container.start_services(loop)
-            logger.info("Server is running")
 
         @self.on_shutdown
         @service
         async def wintry_shutdown(logger: logging.Logger):
             if self.settings.transporters:
-                self.service_container.close()
+                await self.service_container.close()
             logger.info("Server is shuting down")
 
     def on_startup(self, fn: Callable[..., Any]):
@@ -321,7 +320,3 @@ class App(FastAPI):
 
     def on_shutdown(self, fn: Callable[..., Any]):
         return self.on_event("shutdown")(fn)
-
-    
-    def serve(self, host: str = '0.0.0.0', port: int = 8000):
-        uvicorn.run(self, host=host, port=port) #type: ignore

@@ -61,21 +61,21 @@ class RedisMicroservice(Microservice):
 
         while True:
             try:
-                async with async_timeout.timeout(1):
-                    message = await self.ps.get_message(ignore_subscribe_messages=True)
-                    if message is not None:
-                        event: str = message["channel"]
-                        data: dict = json.loads(message["data"])
-                        handler = events.get(event, None)
-                        if handler is not None:
-                            # Services would use autoparams for DI
-                            # so we call it without parameters
-                            _self = service()
-                            _type = get_payload_type_for(handler)
-                            model_binded = bind_payload_to(data, _type)
-                            if iscoroutinefunction(handler):
-                                await handler(_self, model_binded)
-                            else:
-                                handler(_self, model_binded)
-            except asyncio.TimeoutError:
-                pass
+                await asyncio.sleep(0.01)
+                message = await self.ps.get_message(ignore_subscribe_messages=True)
+                if message is not None:
+                    event: str = message["channel"]
+                    data: dict = json.loads(message["data"])
+                    handler = events.get(event, None)
+                    if handler is not None:
+                        # Services would use autoparams for DI
+                        # so we call it without parameters
+                        _self = service()
+                        _type = get_payload_type_for(handler)
+                        model_binded = bind_payload_to(data, _type)
+                        if iscoroutinefunction(handler):
+                            await handler(_self, model_binded)
+                        else:
+                            handler(_self, model_binded)
+            except asyncio.CancelledError:
+                break

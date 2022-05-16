@@ -1,4 +1,5 @@
 from logging import Logger
+from tuto.viewmodels import AllocationsViewModel
 from wintry.settings import TransporterType
 from .views import AllocationReadModel, Views
 from .commands import Allocate, ChangeBatchQuantity, CreateBatch
@@ -46,3 +47,7 @@ class RedisMessagesControllers:
     async def change_batch_quantity(self, cmd: ChangeBatchQuantity):
         self.logger.info(f"Event from Redis: {cmd}")
         await self.messagebus.handle(cmd)
+
+    @on("line_allocated")
+    async def line_allocated(self, allocation: AllocationsViewModel):
+        self.logger.info(f"Hey look, a line've been allocated from redis: {allocation}")

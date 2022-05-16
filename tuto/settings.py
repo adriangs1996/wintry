@@ -1,4 +1,11 @@
-from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry.settings import (
+    BackendOptions,
+    ConnectionOptions,
+    TransporterSettings,
+    TransporterType,
+    ConnectionOptions,
+    WinterSettings
+)
 
 settings = WinterSettings(
     backends=[
@@ -7,15 +14,22 @@ settings = WinterSettings(
             driver="wintry.drivers.pg",
             connection_options=ConnectionOptions(
                 url="postgresql+asyncpg://postgres:secret@localhost/tests"
-            )
+            ),
         ),
-
         BackendOptions(
             name="mongo",
             driver="wintry.drivers.mongo",
             connection_options=ConnectionOptions(
                 url="mongodb://localhost:27017/?replicaSet=dbrs"
-            )
+            ),
+        ),
+    ],
+    transporters=[
+        TransporterSettings(
+            driver="wintry.transporters.redis",
+            service="RedisMicroservice",
+            transporter=TransporterType.redis,
+            connection_options=ConnectionOptions(url="redis://localhost"),
         )
     ],
     app_root="tuto",
