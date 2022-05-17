@@ -34,7 +34,7 @@ class ProductsController:
         if not results:
             raise NotFoundError(f"{orderid}")
 
-        return DataResponse[list[AllocationReadModel]](data=results)
+        return DataResponse(data=results)
 
 
 @microservice(TransporterType.redis)

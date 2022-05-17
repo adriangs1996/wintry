@@ -16,4 +16,4 @@ class Views:
 
     async def get_allocations_for(self, orderid: str):
         allocations = await self.allocations.find_by_orderid(orderid=orderid)
-        return [AllocationReadModel.from_orm(alloc) for alloc in allocations]
+        return allocations

@@ -1,4 +1,4 @@
-from wintry import ServerTypes, Winter
+from wintry import App
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 settings = WinterSettings(
@@ -15,6 +15,5 @@ settings = WinterSettings(
     server_version="0.0.1",
 )
 
-Winter.setup(settings)
 
-api = Winter.factory(settings, server_type=ServerTypes.API)
+api = App(settings=settings)
