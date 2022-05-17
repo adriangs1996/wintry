@@ -1,4 +1,4 @@
-# Wintry: A performant, feature rich, scalable and 'cool' python web framework.
+# ☃️**Wintry**☃️: A performant, feature rich, scalable and 😎'cool'🆒 python web framework.
 
 
 
@@ -9,17 +9,17 @@
 ![](https://img.shields.io/static/v1?label=pypi%20package&message=v0.1.0&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 
 
-Hello, friend, welcome to Wintry. You may have stumble with this project searching
+Hello, friend, welcome to ☃️**Wintry**☃️. You may have stumble with this project searching
 for a python web framework, well, you got what you want.
 
 Pherhaps you know many other frameworks, pherhaps you know Django, or maybe Flask,
 or hopefully FastAPI. And odds are that you are willing to take a new project for a
-ride with a new alternative. Well, Wintry is this, your new alternative, one that
+ride with a new alternative. Well, ☃️**Wintry**☃️ is this, your new alternative, one that
 do not push you out of your confort zone, but do not take the "written before" path.
 
-Beign accured, if you have used FastAPI, you would feel at home, Wintry is heavilly
+Beign accured, if you have used FastAPI, you would feel at home, ☃️**Wintry**☃️ is heavilly
 inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of 
-'cool' stuff on top.
+😎'cool'🆒 stuff on top.
 
 Let me tell you a story, that would give an idea from where this project come from.
 
@@ -35,13 +35,13 @@ Ok, but, Django has a lot of cool features too, it is even called 'Batteries inc
 framework', and it is true, I mean, who doesn't love the Django's builtin Admin Interface,
 or Django Forms?, not to mention DjangoRestFramework which is a REAALLY cool piece of software.
 
-Enough flattering, Wintry will try to be the new Kid in Town, to provide a DDD
+Enough flattering, ☃️**Wintry**☃️ will try to be the new Kid in Town, to provide a DDD
 focused experience, with builtin Dependency Injection system, a dataclasses based
 Repository Pattern implementation, Unit Of Work, Events Driven Components and a lot more.
 Actually, I aimed to provide a similar experience with Repositories than that of
-Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with **Wintry**.
+Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with ☃️**Wintry**☃️.
 
-Let's see what **Wintry** looks like:
+Let's see what ☃️**Wintry**☃️ looks like:
 
 ```python
 from wintry.models import Model
@@ -52,7 +52,7 @@ from wintry.errors import NotFoundError
 from dataclasses import field
 from bson import ObjectId
 from pydantic import BaseModel
-from wintry import ServerTypes, Winter
+from wintry import App
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 class Hero(Model):
@@ -70,21 +70,6 @@ class HeroForm(BaseModel):
     city: str
     name: str
 
-class HeroDetails(BaseModel):
-    name: str
-    id: str
-
-    class Config:
-        orm_mode = True
-
-class VillainDetails(BaseModel):
-    name: str
-    id: str
-    hero: Hero | None = None
-
-    class Config:
-        orm_mode = True
-
 @provider
 class HeroRepository(Repository[Hero, str], entity=Hero):
     pass
@@ -100,13 +85,13 @@ class MarvelController:
         self.heroes = heroes
         self.villains = villains
 
-    @post('/hero', response_model=HeroDetails)
+    @post('/hero', response_model=Hero)
     async def save_hero(self, hero_form: HeroForm = Body(...)):
         hero = Hero.build(hero_form.dict())
         await self.heroes.create(hero)
         return hero
 
-    @get('/villain/{name}', response_model=VillainDetails)
+    @get('/villain/{name}', response_model=Villain)
     async def get_villain(self, name: str):
         villain = await self.villains.get_by_name(name=name)
         if villain is None:
@@ -124,14 +109,9 @@ settings = WinterSettings(
             )
         )
     ],
-    app_root="test_app",
-    server_title="Testing Server API",
-    server_version="0.0.1",
 )
 
-Winter.setup(settings)
-
-api = Winter.factory(settings, server_type=ServerTypes.API)
+api = App(settings=settings)
 ```
 
 Note that the method **get_by_name** is NOT IMPLEMENTED, but it somehow still works :). The thing is Repositories are query compilers,
@@ -140,8 +120,8 @@ query syntax. That's not the only thing, the **@provider** decorator
 allows the repositories to be injected inside the marvel controller
 constructor, just like happens in .NET Core or Java Spring.
 
-Note that my Hero and Villain entities, does not contain anything special, they are merely dataclasses (That's the only restriction, models needs to be dataclasses), and the relation is being automatically build for us. We even get an instance of **Hero** when
-we call **get_villain** if the **Villain** has any **Hero** assigned.
+Note that my Hero and Villain entities, does not contain anything special, they are merely dataclasses (That's the only restriction, models needs to be dataclasses), and the relation is being automatically build for us. We even get an instance of **Hero**🦸 when
+we call **get_villain** if the **Villain**🦹 has any **Hero**🦸 assigned.
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
 to change the configuration url and the driver 
@@ -172,27 +152,36 @@ There is a lot more to know about Wintry:
 MVC, Event-Driven-Desing,
 CQRS, etc.)
 
-* Automatic Relational Database metadata creation
+* Automatic Relational Database metadata creation.
 
-* Automatic Query Creation
+* Automatic Query Creation.
 
-* Reactive Domain Models
+* Reactive Domain Models.
 
-* Dependency Injection
+* Dependency Injection.
 
-* Publisher Subscribers
+* Publisher Subscribers.
 
-* Services
+* Services.
+
+* Domain Model based on dataclasses.
+
+* Short: Focus on what really matters, write less code, get more results.
 
 * Everything from FastAPI in a really confortable way
 
-* Settings based on Pydantic
+* Settings based on Pydantic.
+
+* A handy cli for managing projects (Feeling jealous of Rails ?? Not any more): Work in progress.
+
 
 This is the continuation of NEXTX, which would be deprecated
 in favor of this
 
 ## ROADMAP
 ----------
+* Performance similar to FastAPI (need benchmarks and identify bottle necks).
+
 * Create documentation
 
 * Add more features to the feature list with links to
@@ -210,7 +199,11 @@ the corresponding documentation
 
 * Templates
 
-* Maybe some ViewEngine (Jinja, or we could go deep and try Brython ??? IDK)
+* Maybe some ViewEngine (Most likely will be based on Jinja2)
+
+* Implement a builtin Admin (Similar to Django), but taking advantage of the registry system.
+Cool stuff here, perhaps we can dynamically create models and manage the databases in the admin
+with a UI. IDK, maybe, just maybe.
 
 ## Contributions
 ----------------
