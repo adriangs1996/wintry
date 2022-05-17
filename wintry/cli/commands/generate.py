@@ -4,6 +4,8 @@ import typer
 from wintry.models import ModelRegistry
 import jinja2
 import importlib.resources
+import black
+import black.mode as black_mode
 
 
 class MISSING:
@@ -70,6 +72,8 @@ def generate_model(
         Path("models"),
         help="The path to where create your model. By default it stores on a models folder.",
     ),
+    dry: bool = typer.Option(False, help="Do not do any changes, only print the content to stdin."),
+    format: bool = typer.Option(False, help="Format generated code using black.")
 ):
     model_fields = ModelField.parse_list(fields)
     reg_models = ModelRegistry.get_all_models()
@@ -78,13 +82,13 @@ def generate_model(
     path = path / f"{model.lower()}.py"
     path = path.resolve()
 
-    if not path.exists():
+    if not path.exists() and not dry:
         path.parent.mkdir(parents=True, exist_ok=True)
 
     required_models = list(f.field_type.lower() for f in model_fields)
 
     for reg_model in reg_models:
-        if reg_model.__name__.lower() in required_models:
+        if any(reg_model.__name__.lower() in req_model for req_model in required_models):
             imports.append(
                 ModuleImport(module=reg_model.__module__, model=reg_model.__name__)
             )
@@ -96,5 +100,10 @@ def generate_model(
         content = template.render(
             model_name=model, model_fields=model_fields, model_imports=imports
         )
-        with path.open(mode="w", encoding="utf-8") as f:
-            f.write(content)
+        if format:
+            content = black.format_str(content, mode=black_mode.Mode())
+        if not dry:
+            with path.open(mode="w", encoding="utf-8") as f:
+                f.write(content)
+        else:
+            typer.secho(content, fg=typer.colors.BLUE)
