@@ -272,8 +272,6 @@ class App(FastAPI):
         @service
         async def wintry_startup(logger: logging.Logger):
             if self.settings.transporters:
-                for transporter in self.settings.transporters:
-                    logger.info(f"Configuring transporter: {transporter}")
                 self.service_container.start_services()
 
         @self.on_shutdown

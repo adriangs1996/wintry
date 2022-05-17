@@ -14,7 +14,7 @@ from typing import (
 )
 from typing_extensions import Self
 from dataclass_wizard import fromdict, fromlist
-from dataclasses import Field, asdict, dataclass, field, fields, is_dataclass
+from dataclasses import Field, asdict, astuple, dataclass, field, fields, is_dataclass, make_dataclass
 from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
