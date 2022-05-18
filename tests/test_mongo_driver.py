@@ -1,4 +1,4 @@
-from wintry.models import model
+from wintry.models import Model
 from wintry.query.nodes import (
     AndNode,
     Create,
@@ -12,8 +12,7 @@ from wintry.drivers.mongo import MongoDbDriver
 import pytest
 
 
-@model
-class User:
+class User(Model):
     id: int
     name: str
     age: int

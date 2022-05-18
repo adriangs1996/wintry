@@ -1,6 +1,6 @@
 import pytest
 from wintry.drivers.pg import ExecutionError, SqlAlchemyDriver
-from wintry.models import model
+from wintry.models import Model
 from wintry.orm import for_model
 from sqlalchemy.orm import relation
 from sqlalchemy import Integer, String, Column, ForeignKey, MetaData
@@ -12,14 +12,12 @@ from wintry.query.nodes import AndNode, Create, EqualToNode, Find, Get, OrNode, 
 metadata = MetaData()
 
 
-@model
-class User:
+class User(Model):
     id: int
     username: str
 
 
-@model
-class Address:
+class Address(Model):
     id: int
     user: User
 

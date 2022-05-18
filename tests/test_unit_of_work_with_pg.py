@@ -1,6 +1,6 @@
 from typing import Any, AsyncGenerator, List
 from wintry import get_connection, init_backends, BACKENDS
-from wintry.models import model
+from wintry.models import Model
 from wintry.orm import for_model
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,24 +24,21 @@ import pytest
 from dataclasses import field
 
 
-@model
-class Address:
+class Address(Model):
     id: int
     latitude: float
     longitude: float
     users: list["User"] = field(default_factory=list)
 
 
-@model
-class User:
+class User(Model):
     id: int
     name: str
     age: int
     address: Address | None = None
 
 
-@model(unsafe_hash=True)
-class Hero:
+class Hero(Model, unsafe_hash=True):
     name: str
     id: int
     occupation: str

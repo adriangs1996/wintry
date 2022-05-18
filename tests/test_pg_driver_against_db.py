@@ -1,6 +1,6 @@
 from typing import Any, AsyncGenerator, List
 from wintry import init_backends, get_connection, BACKENDS
-from wintry.models import model
+from wintry.models import Model
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
@@ -28,16 +28,14 @@ from dataclasses import field
 from wintry.repository import Repository, RepositoryRegistry
 
 
-@model
-class Address:
+class Address(Model):
     id: int
     latitude: float
     longitude: float
     users: list["User"] = field(default_factory=list)
 
 
-@model
-class User:
+class User(Model):
     id: int
     name: str
     age: int
@@ -79,7 +77,6 @@ class UserRepository(Repository[User, int], entity=User):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup():
-    RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
             backends=[

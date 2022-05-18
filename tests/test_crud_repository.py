@@ -1,6 +1,6 @@
 # Configure te mongo driver
 from wintry import init_backends
-from wintry.models import model
+from wintry.models import Model
 
 from wintry.repository import Repository, RepositoryRegistry
 import pytest
@@ -12,8 +12,7 @@ def setup() -> None:
     init_backends()
 
 
-@model
-class User:
+class User(Model):
     id: int
     username: str
     password: str

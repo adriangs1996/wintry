@@ -1,7 +1,6 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection
-import wintry.backend as bkd
-from wintry.models import model
+from wintry.models import Model
 from wintry.repository import raw_method
 from wintry.repository import Repository, RepositoryRegistry
 import pytest
@@ -12,28 +11,24 @@ from dataclass_wizard import fromdict
 from bson import ObjectId
 
 
-@model
-class Address:
+class Address(Model):
     latitude: float
     longitude: float
 
 
-@model
-class User:
+class User(Model):
     id: int
     name: str
     age: int
     address: Optional[Address] = None
 
 
-@model
-class City:
+class City(Model):
     name: str
     id: str = field(default_factory=lambda: str(ObjectId()))
 
 
-@model(unsafe_hash=True)
-class Hero:
+class Hero(Model, unsafe_hash=True):
     id: int
     name: str
     cities: list[City] = field(default_factory=list)

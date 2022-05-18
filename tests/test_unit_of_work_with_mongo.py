@@ -1,7 +1,7 @@
 from dataclasses import field
 from typing import Any, AsyncGenerator
 from wintry import get_connection, init_backends
-from wintry.models import model
+from wintry.models import Model
 
 from wintry.repository import Repository, RepositoryRegistry
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
@@ -11,14 +11,12 @@ import pytest_asyncio
 from bson import ObjectId
 
 
-@model
-class Address:
+class Address(Model):
     latitude: float
     longitude: float
 
 
-@model
-class User:
+class User(Model):
     id: int
     name: str
     age: int
@@ -30,8 +28,7 @@ class UserRepository(Repository[User, int], entity=User, mongo_session_managed=T
     pass
 
 
-@model
-class Hero:
+class Hero(Model):
     name: str
     id: str = field(default_factory=lambda: str(ObjectId()))
 
