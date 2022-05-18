@@ -1,4 +1,4 @@
-from typing import Any, AsyncGenerator, List
+from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection, BACKENDS
 from wintry.models import VirtualDatabaseSchema, Model
 
@@ -11,6 +11,7 @@ import pytest
 import pytest_asyncio
 from dataclasses import field
 from wintry.transactions import UnitOfWork
+from uuid import uuid4
 
 
 # Now import the repository
@@ -34,6 +35,17 @@ class TestUser(Model):
     address: UserAddress | None = None
 
 
+class Foo(Model):
+    x: int
+    id: str = field(default_factory=lambda : uuid4().hex)
+    bar: Optional["Bar"] = None
+
+
+class Bar(Model):
+    y: int
+    id: str = field(default_factory=lambda : uuid4().hex)
+    foo: Foo | None = None
+
 
 class UserRepository(Repository[TestUser, int], entity=TestUser):
     async def find_by_id_or_name_and_age_lowerThan(
@@ -41,13 +53,17 @@ class UserRepository(Repository[TestUser, int], entity=TestUser):
     ) -> List[TestUser]:
         ...
 
+class FooRepository(Repository[Foo, str], entity=Foo):
+    async def find_by_bar__y_lowerThan(self, *, bar__y: int) -> list[Foo]:
+        ...
 
 # define a custom uow so we got intellisense, this is for type-checkers only
 class Uow(UnitOfWork):
     users: UserRepository
+    foos: FooRepository
 
-    def __init__(self, users: UserRepository) -> None:
-        super().__init__(users=users)
+    def __init__(self, users: UserRepository, foos: FooRepository) -> None:
+        super().__init__(users=users, foos=foos)
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
@@ -78,6 +94,8 @@ async def clean() -> AsyncGenerator[None, None]:
     async with session.begin():
         await session.execute(delete(TestUser))
         await session.execute(delete(UserAddress))
+        await session.execute(delete(Foo))
+        await session.execute(delete(Bar))
         await session.commit()
 
 
@@ -194,7 +212,7 @@ async def test_repository_can_make_logical_queries(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
     repo = UserRepository()
-    uow = Uow(repo)
+    uow = Uow(repo, FooRepository())
 
     async with uow:
         user = TestUser(id=2, name="test", age=10)
@@ -210,7 +228,7 @@ async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
 @pytest.mark.asyncio
 async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
     repo = UserRepository()
-    uow = Uow(repo)
+    uow = Uow(repo, FooRepository())
 
     async with uow:
         user = TestUser(id=2, name="test", age=10)
@@ -227,7 +245,7 @@ async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_uow_rollbacks_on_error(clean: Any) -> None:
     repo = UserRepository()
-    uow = Uow(repo)
+    uow = Uow(repo, FooRepository())
 
     with pytest.raises(ZeroDivisionError):
         async with uow:
@@ -247,7 +265,7 @@ async def test_uow_rollbacks_on_error(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
     user_repository = UserRepository()
-    uow = Uow(user_repository)
+    uow = Uow(user_repository, FooRepository())
 
     session: AsyncSession = get_connection()
     async with session.begin():
@@ -269,7 +287,7 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_uow_automatically_updates_object(clean: Any) -> None:
     user_repository = UserRepository()
-    uow = Uow(user_repository)
+    uow = Uow(user_repository, FooRepository())
 
     session: AsyncSession = get_connection()
     async with session.begin():
@@ -288,3 +306,44 @@ async def test_uow_automatically_updates_object(clean: Any) -> None:
 
     user = results.unique().scalars().all()[0]
     assert user.age == 30 and user.name == "updated"
+
+
+@pytest.mark.asyncio
+async def test_one_to_one_relation(clean: Any):
+    repo = FooRepository()
+    foo = Foo(x=10, bar=Bar(y=30))
+
+    await repo.create(entity=foo)
+
+    session: AsyncSession = get_connection()
+    async with session.begin():
+        foo_results: Result = await session.execute(select(Foo))
+        bar_results: Result = await session.execute(select(Bar))
+
+    assert len(foo_results.unique().all()) == 1
+    assert len(bar_results.unique().all()) == 1
+
+@pytest.mark.asyncio
+async def test_one_to_one_relation_retrieve_related(clean: Any):
+    repo = FooRepository()
+    foo = Foo(x=10, bar=Bar(y=30))
+
+    await repo.create(entity=foo)
+
+    new_foo = await repo.get_by_id(id=foo.id)
+
+    assert new_foo is not None
+    assert new_foo.bar is not None 
+
+@pytest.mark.asyncio
+async def test_foo_repo_can_ask_for_related_field(clean: Any):
+    repo = FooRepository()
+    await repo.create(entity=Foo(x=10, bar=Bar(y=30)))
+    await repo.create(entity=Foo(x=10, bar=Bar(y=40)))
+    await repo.create(entity=Foo(x=10, bar=Bar(y=50)))
+    await repo.create(entity=Foo(x=10, bar=Bar(y=60)))
+    await repo.create(entity=Foo(x=10, bar=Bar(y=70)))
+
+    foos = await repo.find_by_bar__y_lowerThan(bar__y=50)
+
+    assert len(foos) == 2

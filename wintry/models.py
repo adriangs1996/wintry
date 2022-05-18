@@ -4,6 +4,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    ForwardRef,
     Iterable,
     Sequence,
     Tuple,
@@ -48,7 +49,7 @@ from sqlalchemy import (
     MetaData,
     inspect,
 )
-from sqlalchemy.orm import relation, relationship
+from sqlalchemy.orm import relation, relationship, backref
 from enum import Enum as std_enum
 from wintry.orm import metadata, mapper_registry
 
@@ -126,7 +127,6 @@ def get_type_by_str(type_str: str):
     return ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
         type_str, None
     )
-
 
 
 def get_primary_key(_type: type) -> Field:
@@ -228,6 +228,38 @@ def make_column_from_field(
         return foreign_key_column, {field.name: relation(_type, lazy="joined")}
 
 
+def is_iterable(model: type):
+    return isinstance(model, GenericAlias) and model.__origin__ in sequences
+
+
+def resolve_field_type(field: Field):
+    t = resolve_generic_type_or_die(field.type)
+    if isinstance(t, str):
+        t = ModelRegistry.get_model_by_str(t)
+    elif isinstance(t, ForwardRef):
+        str_type = t.__forward_arg__
+        t = ModelRegistry.get_model_by_str(str_type)
+    return t
+
+
+def is_one_to_one(model: type, with_: type):
+    right = False
+    for field in fields(with_):
+        t = resolve_field_type(field)
+        if not is_iterable(field.type) and t == model or t == (model | None):
+            right = True
+            break
+
+    left = False
+    for field in fields(model):
+        t = resolve_field_type(field)
+        if not is_iterable(field.type) and t == with_ or t == (with_ | None):
+            left = True
+            break
+
+    return left and right
+
+
 class RelationTag(std_enum):
     one_to_many = 0
     many_to_one = 1
@@ -274,6 +306,9 @@ class TableMetadata:
         target_model = resolve_generic_type_or_die(field.type)  # type: ignore
         if isinstance(target_model, str):
             target_model = ModelRegistry.get_model_by_str(target_model)
+        elif isinstance(target_model, ForwardRef):
+            str_type = target_model.__forward_arg__
+            target_model = ModelRegistry.get_model_by_str(str_type)
 
         if target_model is None:
             raise ModelError(f"{field.type} is not registered as Model.")
@@ -301,6 +336,9 @@ class TableMetadata:
     def dispatch_column_type_for_field(self, field: Field) -> None:
         if isinstance(field.type, str):
             field.type = get_type_by_str(field.type)
+        elif isinstance(field.type, ForwardRef):
+            type_str = field.type.__forward_arg__
+            field.type = get_type_by_str(type_str)
         if field.type in _mapper:
             self.columns.append(field)
             return
@@ -313,6 +351,9 @@ class TableMetadata:
 
         if isinstance(_type, str):
             _type = get_type_by_str(_type)
+        elif isinstance(_type, ForwardRef):
+            type_str = _type.__forward_arg__
+            _type = get_type_by_str(type_str)
 
         # If type is not an instance of dataclass, then also ignores it
         if not is_dataclass(_type):
@@ -405,9 +446,36 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
             if other_endpoint is None:
                 properties[rel.field_name] = relationship(rel.with_model, lazy="joined")
             else:
-                properties[rel.field_name] = relationship(
-                    rel.with_model, lazy="joined", back_populates=other_endpoint
-                )
+                if is_one_to_one(table_metadata.model, endpoint_metadata.model):
+                    # If one-to-one, we already supplied the foreign key
+                    properties[rel.field_name] = relationship(
+                        rel.with_model,
+                        backref=backref(other_endpoint, uselist=False, lazy="joined"),
+                        lazy="joined",
+                    )
+
+                    # one-to-one are special because the other endpoint will have a foreign
+                    # key with this model type, and also a relation, but we already
+                    # configured that with the backref. So now we need to remove that FK and
+                    # that relation from the other_endpoint
+                    endpoint_metadata.relations = list(
+                        filter(
+                            lambda r: r.with_model != model
+                            and r.with_model != (model | None),
+                            endpoint_metadata.relations,
+                        )
+                    )
+
+                    endpoint_metadata.foreing_keys = list(
+                        filter(
+                            lambda fk: fk.target != model and fk.target != (model | None),
+                            endpoint_metadata.foreing_keys,
+                        )
+                    )
+                else:
+                    properties[rel.field_name] = relationship(
+                        rel.with_model, lazy="joined", back_populates=other_endpoint
+                    )
 
         mapper_registry.map_imperatively(
             model,
@@ -536,6 +604,3 @@ class Model(metaclass=ModelMeta):
 
     def to_dict(self):
         return asdict(self)
-
-
-__all__ = ["model", "_is_private_attr"]
