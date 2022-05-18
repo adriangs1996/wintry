@@ -14,16 +14,7 @@ from typing import (
 )
 from typing_extensions import Self
 from dataclass_wizard import fromdict, fromlist
-from dataclasses import (
-    Field,
-    asdict,
-    astuple,
-    dataclass,
-    field,
-    fields,
-    is_dataclass,
-    make_dataclass,
-)
+from dataclasses import Field, asdict, dataclass, field, fields, is_dataclass, MISSING
 from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
@@ -51,6 +42,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import relation, relationship
 from enum import Enum as std_enum
 from wintry.orm import metadata, mapper_registry
+from pydantic.typing import NoArgAnyCallable
+from pydantic import BaseModel, create_model, BaseConfig
+from pydantic.fields import Undefined, Field as PydanticField, FieldInfo
 
 _mapper: dict[type, type] = {
     int: Integer,
@@ -79,6 +73,7 @@ sequences = [list, set, Iterable, Sequence]
 
 
 T = TypeVar("T")
+Required: Any = Ellipsis
 
 
 class ModelError(Exception):
@@ -105,6 +100,43 @@ def _is_private_attr(attr: str):
     return attr.startswith("_")
 
 
+class Config(BaseConfig):
+    orm_mode: bool = True
+    allow_population_by_field_name: bool = True
+    arbitrary_types_allowed: bool = True
+
+
+def create_pydantic_model_for_dataclass(cls: type["Model"]) -> type[BaseModel]:
+    assert is_dataclass(cls)
+    # Mirror pydantic behavior
+    field_definitions: dict[str, Any] = {}
+    for field in fields(cls):
+        default: Any = Undefined
+        default_factory: NoArgAnyCallable | None = None
+        field_info: FieldInfo
+
+        if field.default is not MISSING:
+            default = field.default
+        elif field.default_factory is not MISSING:
+            default_factory = field.default_factory
+        else:
+            default = Required
+
+        field_info = PydanticField(
+            default=default, default_factory=default_factory, **field.metadata
+        )
+        # CHECK THAT field.type is not string
+        field_definitions[field.name] = (field.type, field_info)
+
+    return create_model(
+        f"Pydantic{cls.__name__}{id(cls)}",
+        __config__=Config,
+        __module__=cls.__module__,
+        __validators__={},
+        **field_definitions,
+    )
+
+
 class ModelRegistry:
     models: ClassVar[dict[str, type["Model"]]] = {}
 
@@ -126,7 +158,6 @@ def get_type_by_str(type_str: str):
     return ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
         type_str, None
     )
-
 
 
 def get_primary_key(_type: type) -> Field:
@@ -430,6 +461,9 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
 
         """
         for model in ModelRegistry.get_all_models():
+            # setattr(
+            #     model, "__pydantic_model__", create_pydantic_model_for_dataclass(model)
+            # )
             table = cls[model]
             if table is None:
                 table = TableMetadata(
@@ -454,7 +488,10 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
         This method Remains empty for now, as there is no specific (yet) config to do
         for either engine. Here we should augment model with special variables, but this is
         discourage, unless there is not other choice."""
-        pass
+        # for model in ModelRegistry.get_all_models():
+        #     setattr(
+        #         model, "__pydantic_model__", create_pydantic_model_for_dataclass(model)
+        #     )
 
 
 @__dataclass_transform__()
@@ -538,4 +575,4 @@ class Model(metaclass=ModelMeta):
         return asdict(self)
 
 
-__all__ = ["model", "_is_private_attr"]
+__all__ = ["Model", "_is_private_attr"]

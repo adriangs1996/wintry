@@ -33,6 +33,7 @@ from fastapi.middleware import Middleware
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from fastapi.datastructures import Default
+from wintry.utils.openapi import wintry_get_openapi
 
 
 # Import the services defined by the framework
@@ -320,3 +321,19 @@ class App(FastAPI):
 
     def on_shutdown(self, fn: Callable[..., Any]):
         return self.on_event("shutdown")(fn)
+
+    def openapi(self) -> dict[str, Any]:
+        if not self.openapi_schema:
+            self.openapi_schema = wintry_get_openapi(
+                title=self.title,
+                version=self.version,
+                openapi_version=self.openapi_version,
+                description=self.description,
+                terms_of_service=self.terms_of_service,
+                contact=self.contact,
+                license_info=self.license_info,
+                routes=self.routes,
+                tags=self.openapi_tags,
+                servers=self.servers,
+            )
+        return self.openapi_schema
