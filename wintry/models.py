@@ -181,53 +181,6 @@ def resolve_generic_type_or_die(_type: type):
     return resolve_generic_type_or_die(cleaned_types[0])
 
 
-def make_column_from_field(
-    model: type, field: Field
-) -> Column | tuple[Column, dict[str, Any]] | None:
-    if field.type in _mapper:
-        sql_type = _mapper[field.type]
-        # Check a configuration from metadata to check if this is
-        # a primary key. We put primary key if metadata['id'] is set
-        # or the field name is id (Ignoring case)
-        if field.name.lower() == "id" or field.metadata.get("id", False):
-            return Column(field.name, sql_type, primary_key=True)
-        return Column(field.name, sql_type)
-    else:
-        # This is an object, not builtin, it probably is a reference to
-        # another model. We check in the metadata for a 'not_persisted'
-        # option and move to configure the relation
-        if field.metadata.get("not_persisted", False):
-            return
-
-        if isinstance(field.type, GenericAlias) and field.type.__origin__ == list:
-            return
-
-        _type = resolve_generic_type_or_die(field.type)
-
-        # If type is not an instance of dataclass, then also ignores it
-        if not is_dataclass(_type):
-            return
-
-        # Ok, just do it, configure a relationship
-        foreign_key = get_primary_key(_type)
-        foreign_key_type = _mapper.get(foreign_key.type)
-        foreign_key_column = Column(
-            f"{field.name}_id",
-            foreign_key_type,
-            ForeignKey(getattr(_type, foreign_key.name)),
-        )
-
-        for f in fields(_type):
-            if f.type == list[model]:  # type: ignore
-                # if isinstance(f.type, list) and get_args(f.type) == field.type:
-                related_column = {
-                    field.name: relation(_type, lazy="joined", backref=f.name)
-                }
-                return foreign_key_column, related_column
-
-        return foreign_key_column, {field.name: relation(_type, lazy="joined")}
-
-
 def is_iterable(model: type):
     return isinstance(model, GenericAlias) and model.__origin__ in sequences
 
@@ -260,19 +213,10 @@ def is_one_to_one(model: type, with_: type):
     return left and right
 
 
-class RelationTag(std_enum):
-    one_to_many = 0
-    many_to_one = 1
-    one_to_one = 2
-    one_to_none = 4
-    many_to_none = 8
-
-
 @dataclass
 class Relation:
     with_model: type["Model"]
     field_name: str
-    tag: RelationTag
     backref: str = ""
 
 
@@ -331,7 +275,7 @@ class TableMetadata:
             target_virtual_table.foreing_keys.append(foreign_key)
 
         # Return the many to one relation
-        return Relation(target_model, field.name, RelationTag.many_to_one)
+        return Relation(target_model, field.name)
 
     def dispatch_column_type_for_field(self, field: Field) -> None:
         if isinstance(field.type, str):
@@ -362,9 +306,7 @@ class TableMetadata:
         # At this point, this is a one_to relation, so we just add a foreing key and a
         # relation
         foregin_key = ForeignKeyInfo(_type, f"{field.name}_id")
-        relationship = Relation(
-            with_model=_type, field_name=field.name, tag=RelationTag.one_to_one
-        )
+        relationship = Relation(with_model=_type, field_name=field.name)
 
         if foregin_key not in self.foreing_keys:
             self.foreing_keys.append(foregin_key)
@@ -556,6 +498,7 @@ class Model(metaclass=ModelMeta):
 
     def __init_subclass__(
         cls,
+        *,
         name: str | None = None,
         init=True,
         repr=True,
