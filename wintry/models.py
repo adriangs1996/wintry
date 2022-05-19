@@ -18,12 +18,10 @@ from dataclass_wizard import fromdict, fromlist
 from dataclasses import (
     Field,
     asdict,
-    astuple,
     dataclass,
     field,
     fields,
     is_dataclass,
-    make_dataclass,
 )
 from wintry.utils.keys import (
     __winter_in_session_flag__,
@@ -467,12 +465,8 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
         pass
 
 
-@__dataclass_transform__()
-class ModelMeta(type):
-    pass
-
-
-class Model(metaclass=ModelMeta):
+@__dataclass_transform__(kw_only_default=True)
+class Model:
     def __setattr__(self, __name: str, __value: Any) -> None:
         # Check for presence of some state flag
         # same as self.__winter_in_session_flag__
@@ -500,15 +494,14 @@ class Model(metaclass=ModelMeta):
         cls,
         *,
         name: str | None = None,
-        init=True,
-        repr=True,
-        eq=True,
-        order=False,
-        unsafe_hash=False,
-        frozen=False,
-        match_args=True,
-        kw_only=False,
-        mapped=True,
+        init: bool = True,
+        repr: bool = True,
+        eq: bool = True,
+        order: bool = False,
+        unsafe_hash: bool = False,
+        frozen: bool = False,
+        match_args: bool = True,
+        mapped: bool = True,
     ) -> None:
         cls = dataclass(
             init=init,
@@ -518,7 +511,7 @@ class Model(metaclass=ModelMeta):
             unsafe_hash=unsafe_hash,
             frozen=frozen,
             match_args=match_args,
-            kw_only=kw_only,
+            kw_only=True,
             slots=False,
         )(cls)
 
