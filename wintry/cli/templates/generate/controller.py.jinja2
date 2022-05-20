@@ -1,0 +1,34 @@
+from wintry.controllers import controller, get, post, put, patch, delete
+
+{% if controller_args %}
+@controller(**controller_args)
+{% else %}
+@controller
+{% endif %}
+class {{controller_name|capitalize}}Controller:
+    def __init__(self):
+        pass
+
+    @get('/')
+    async def list_{{controller_name|lower}}s(self):
+        pass
+
+    @get('/{id}')
+    async def get_{{controller_name|lower}}_by_id(self):
+        pass
+
+    @post('/create')
+    async def create_{{controller_name|lower}}(self):
+        pass
+
+    @patch('/partial-update')
+    async def partial_update_{{controller_name|lower}}(self):
+        pass
+
+    @put('/update')
+    async def update_{{controller_name|lower}}(self):
+        pass
+
+    @delete('/delete/{id}')
+    async def delete_{{controller_name|lower}}(self, id: str):
+        pass

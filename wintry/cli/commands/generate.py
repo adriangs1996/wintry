@@ -72,8 +72,10 @@ def generate_model(
         Path("models"),
         help="The path to where create your model. By default it stores on a models folder.",
     ),
-    dry: bool = typer.Option(False, help="Do not do any changes, only print the content to stdin."),
-    format: bool = typer.Option(False, help="Format generated code using black.")
+    dry: bool = typer.Option(
+        False, help="Do not do any changes, only print the content to stdin."
+    ),
+    format: bool = typer.Option(False, help="Format generated code using black."),
 ):
     model_fields = ModelField.parse_list(fields)
     reg_models = ModelRegistry.get_all_models()
@@ -107,3 +109,27 @@ def generate_model(
                 f.write(content)
         else:
             typer.secho(content, fg=typer.colors.BLUE)
+
+
+@generate.command(name="m")
+def generate_model_alias(
+    model: str = typer.Argument(..., help="Model name. Use a CamelCase name here please"),
+    fields: str = typer.Argument(
+        "",
+        help='Fields to add to the model. The template is as follows: "<name>[:<type>[:<default>]] ..."',
+    ),
+    path: Path = typer.Option(
+        Path("models"),
+        help="The path to where create your model. By default it stores on a models folder.",
+    ),
+    dry: bool = typer.Option(
+        False, help="Do not do any changes, only print the content to stdin."
+    ),
+    format: bool = typer.Option(False, help="Format generated code using black."),
+):
+    generate_model(model, fields, path, dry, format)
+
+
+@generate.command(name="controller")
+def generate_controller():
+    pass
