@@ -1,6 +1,6 @@
-from dataclasses import field
+from dataclasses import dataclass, field
 from wintry.models import Model
-import pytest
+from pydantic import BaseModel
 
 
 class Foo(Model, mapped=False):
@@ -11,6 +11,17 @@ class Foo(Model, mapped=False):
 class Bar(Model, mapped=False):
     foo: Foo
     foos: list[Foo] = field(default_factory=list)
+
+
+class PydanticFoo(BaseModel):
+    x: int
+    y: float
+
+
+@dataclass
+class DataclassFoo:
+    x: int
+    y: float
 
 
 def test_deserialize_simple_object():
@@ -77,3 +88,30 @@ def test_serialize_nested_object():
         "foo": {"x": 10, "y": 1.13},
         "foos": [{"x": 10, "y": 1.13}, {"x": 20, "y": 3.33}],
     }
+
+
+def test_build_from_obj():
+    pydantic_foo = PydanticFoo(x=10, y=3.3)
+    foo = Foo.from_obj(pydantic_foo)
+
+    assert foo == Foo(x=10, y=3.3)
+
+def test_build_from_dataclass():
+    dataclass_foo = DataclassFoo(x=10, y=3.3)
+    foo = Foo.from_obj(dataclass_foo)
+
+    assert foo == Foo(x=10, y=3.3)
+
+
+def test_build_from_list_of_obj():
+    objs = [PydanticFoo(x=11, y=4.3), PydanticFoo(x=12, y=5.3), PydanticFoo(x=10, y=3.3)]
+    foos = Foo.from_obj(objs)
+
+    assert foos == [Foo(x=11, y=4.3), Foo(x=12, y=5.3), Foo(x=10, y=3.3)]
+
+
+def test_build_from_dataclass_list():
+    objs = [DataclassFoo(x=11, y=4.3), DataclassFoo(x=12, y=5.3), DataclassFoo(x=10, y=3.3)]
+    foos = Foo.from_obj(objs)
+
+    assert foos == [Foo(x=11, y=4.3), Foo(x=12, y=5.3), Foo(x=10, y=3.3)]

@@ -50,6 +50,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relation, relationship, backref
 from enum import Enum as std_enum
 from wintry.orm import metadata, mapper_registry
+from pydantic import BaseModel
 
 _mapper: dict[type, type] = {
     int: Integer,
@@ -465,6 +466,16 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
         pass
 
 
+def to_dict(obj: Any):
+    if isinstance(obj, BaseModel):
+        return obj.dict()
+
+    if is_dataclass(obj):
+        return asdict(obj)
+
+    return vars(obj)
+
+
 @__dataclass_transform__(kw_only_default=True)
 class Model:
     def __setattr__(self, __name: str, __value: Any) -> None:
@@ -540,3 +551,21 @@ class Model:
 
     def to_dict(self):
         return asdict(self)
+
+    @overload
+    @classmethod
+    def from_obj(cls, obj: list[Any]) -> list[Self]:
+        ...
+
+    @overload
+    @classmethod
+    def from_obj(cls, obj: Any) -> Self:
+        ...
+
+    @classmethod
+    def from_obj(cls, obj: list[Any] | Any) -> list[Self] | Self:
+        if isinstance(obj, list):
+            dicts = [to_dict(o) for o in obj]
+            return [cls(**d) for d in dicts]
+
+        return cls(**to_dict(obj))
