@@ -1,4 +1,6 @@
-# ☃️**Wintry**☃️: A performant, feature rich, scalable and 😎'cool'🆒 python web framework.
+<img src="docs/img/logo.jpg" />
+
+# A performant, feature rich, scalable and 😎'cool'🆒 python web framework.
 
 
 
