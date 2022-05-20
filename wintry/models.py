@@ -466,14 +466,37 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
         pass
 
 
-def to_dict(obj: Any):
+def to_dict2(cls: type, obj: Any):
+    kwargs: dict[str, Any] = {}
+    for f in fields(cls):
+        print(f)
+        if issubclass(f.type, BaseModel):
+            kwargs[f.name] = f.type.from_orm(getattr(obj, f.name))
+        elif issubclass(f.type, Model):
+            kwargs[f.name] = f.type.from_obj(getattr(obj, f.name))
+        else:
+            kwargs[f.name] = getattr(obj, f.name)
+    
+    return kwargs
+
+
+
+def to_dict(cls: type, obj: Any):
+    fields_names = [f.name for f in fields(cls)]
     if isinstance(obj, BaseModel):
-        return obj.dict()
+        d = obj.dict()
 
-    if is_dataclass(obj):
-        return asdict(obj)
+    elif is_dataclass(obj):
+        d = asdict(obj)
 
-    return vars(obj)
+    else:
+        d = vars(obj)
+
+    for k in d.copy().keys():
+        if k not in fields_names:
+            d.pop(k)
+
+    return d
 
 
 @__dataclass_transform__(kw_only_default=True)
@@ -565,7 +588,7 @@ class Model:
     @classmethod
     def from_obj(cls, obj: list[Any] | Any) -> list[Self] | Self:
         if isinstance(obj, list):
-            dicts = [to_dict(o) for o in obj]
-            return [cls(**d) for d in dicts]
+            dicts = [to_dict(cls, o) for o in obj]
+            return fromlist(cls, dicts)
 
-        return cls(**to_dict(obj))
+        return fromdict(cls, to_dict(cls, obj))

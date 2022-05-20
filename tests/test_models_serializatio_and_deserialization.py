@@ -13,9 +13,33 @@ class Bar(Model, mapped=False):
     foos: list[Foo] = field(default_factory=list)
 
 
-class PydanticFoo(BaseModel):
+class PydanticFoo(BaseModel, orm_mode=True):
     x: int
     y: float
+
+
+class AugmentedPydanticModel(BaseModel, orm_mode=True):
+    x: int
+    y: float
+    other: str
+    another: bool
+
+
+class PydanticBar(BaseModel, orm_mode=True):
+    foo: PydanticFoo
+    foos: list[PydanticFoo] = []
+
+
+class PydanticNestedModel(BaseModel, orm_mode=True):
+    foo: PydanticFoo
+    bar: PydanticBar
+    x: int
+
+
+class NestedModel(Model, mapped=False):
+    foo: Foo
+    bar: Bar
+    x: int
 
 
 @dataclass
@@ -96,6 +120,7 @@ def test_build_from_obj():
 
     assert foo == Foo(x=10, y=3.3)
 
+
 def test_build_from_dataclass():
     dataclass_foo = DataclassFoo(x=10, y=3.3)
     foo = Foo.from_obj(dataclass_foo)
@@ -111,7 +136,27 @@ def test_build_from_list_of_obj():
 
 
 def test_build_from_dataclass_list():
-    objs = [DataclassFoo(x=11, y=4.3), DataclassFoo(x=12, y=5.3), DataclassFoo(x=10, y=3.3)]
+    objs = [
+        DataclassFoo(x=11, y=4.3),
+        DataclassFoo(x=12, y=5.3),
+        DataclassFoo(x=10, y=3.3),
+    ]
     foos = Foo.from_obj(objs)
 
     assert foos == [Foo(x=11, y=4.3), Foo(x=12, y=5.3), Foo(x=10, y=3.3)]
+
+
+def test_build_from_augmented_model():
+    obj = AugmentedPydanticModel(x=10, y=3.3, other="Hello", another=False)
+    foo = Foo.from_obj(obj)
+
+    assert foo == Foo(x=10, y=3.3)
+
+
+def test_nested_model():
+    obj = PydanticNestedModel(
+        foo=PydanticFoo(x=1, y=2), bar=PydanticBar(foo=PydanticFoo(x=1, y=2)), x=20
+    )
+    nested = NestedModel.from_obj(obj)
+
+    assert nested == NestedModel(foo=Foo(x=1, y=2), bar=Bar(foo=Foo(x=1, y=2)), x=20)
