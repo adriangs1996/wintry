@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from wintry.ioc import provider, inject
 
 
 def test_simple_ioc_provides_singletons_by_default():
@@ -31,7 +32,7 @@ def test_a_function_can_be_a_provider():
     class Interface:
         pass
 
-    @provider(of=Interface)
+    @provider(of=Interface) #type: ignore
     def Provider():
         return Interface()
 
@@ -93,19 +94,19 @@ def test_nested_injection():
     class ServiceB:
         def __init__(self, a: ServiceA) -> None:
             self.a = a
-    
+
     @inject
     class ServiceC:
         def __init__(self, b: ServiceB, a: ServiceA) -> None:
             self.b = b
             self.a = a
 
-    c = ServiceC() #type: ignore
+    c = ServiceC()  # type: ignore
     assert c.a == c.b.a
 
 
 def test_scoped_injection():
-    @provider(on_demand=True)
+    @provider(singleton=False)
     class Provider:
         pass
 
@@ -114,5 +115,4 @@ def test_scoped_injection():
         def __init__(self, provider: Provider) -> None:
             self.provider = provider
 
-    
-    assert Consumer().provider != Consumer().provider #type: ignore
+    assert Consumer().provider != Consumer().provider  # type: ignore

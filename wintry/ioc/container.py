@@ -8,6 +8,9 @@ class DependencyInjectionError(Exception):
 
 
 class SnowFactory:
+    """This is just a way of differentiating Factories from singleton objects.
+    This is a proxy object which forward the obj instantiation."""
+
     def __init__(self, cls: Callable) -> None:
         self.cls = cls
 
@@ -32,17 +35,41 @@ class IGlooContainer:
         # We can have singletons
         self.singletons: dict[type, Any] = dict()
 
+        # Singletons types only get called once, so we need
+        # a caching mechanism here
+        self.cache: dict[type, Any] = dict()
+
     def __setitem__(self, key: type, value: Any):
         if isinstance(value, SnowFactory):
             self.factories[key] = value
         else:
             self.singletons[key] = value
+            if key in self.cache:
+                del self.cache[key]
 
     def __getitem__(self, key: type):
+        if key in self.cache:
+            # if it is present on cache, then it is a singleton.
+            # Return that instance
+            return self.cache[key]
+
         if key in self.singletons:
-            return self.singletons[key]
+            # if there exists in singletons but not in cache
+            # then this isntance has never been called. Construct
+            # it and cache it. It will not be instantiated again
+            type_ = self.singletons[key]
+            instance = type_()
+            self.cache[key] = instance
+            return instance
 
         if key in self.factories:
             return self.factories[key]()
 
-        return None
+        raise DependencyInjectionError(f"{key} is not registered!")
+
+    def __contains__(self, key: type):
+        return key in self.factories or key in self.singletons
+
+
+# Global Container for the entire application
+igloo = IGlooContainer()
