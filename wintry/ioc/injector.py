@@ -68,11 +68,11 @@ def inject(service: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @overload
-def inject(service: None) -> TDecorated:
+def inject(*, container: IGlooContainer = igloo) -> TDecorated:
     ...
 
 
-def inject(service: Any = None, container: IGlooContainer = igloo) -> Any:
+def inject(service: Any = None, /, *, container: IGlooContainer = igloo) -> Any:
     def decorator(srvc: Any):
         if isclass(srvc):
             # If the service we wanna inject objects is a class, then
@@ -207,14 +207,35 @@ def provider(
 
 @overload
 def provider(
-    *, of: type[T] | None = None, singleton: bool = True
+    *,
+    of: type[T] | None = None,
+    singleton: bool = True,
+    container: IGlooContainer = igloo,
 ) -> Callable[[type[T]], type[T]]:
     ...
 
 
-def provider(cls: Any = None, /, *, of: type | None = None, singleton: bool = True):
+def provider(
+    cls: Any = None,
+    /,
+    *,
+    of: type | None = None,
+    singleton: bool = True,
+    container: IGlooContainer = igloo,
+):
     def decorator(_cls: Any):
-        _cls = inject(_cls)
+        if isclass(_cls):
+            _cls = dataclass(
+                eq=False,
+                order=False,
+                frozen=False,
+                match_args=False,
+                init=True,
+                kw_only=False,
+                repr=False,
+                unsafe_hash=False,
+            )(_cls)
+        _cls = inject(container=container)(_cls)
 
         if of is None:
             key = _cls
@@ -222,9 +243,9 @@ def provider(cls: Any = None, /, *, of: type | None = None, singleton: bool = Tr
             key = of
 
         if singleton:
-            igloo[key] = _cls
+            container[key] = _cls
         else:
-            igloo[key] = SnowFactory(_cls)
+            container[key] = SnowFactory(_cls)
 
         return _cls
 

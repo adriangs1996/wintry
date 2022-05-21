@@ -159,8 +159,8 @@ def _config_logger():
 class App(FastAPI):
     def __init__(
         self,
-        *,
         settings: WinterSettings,
+        *,
         debug: bool = False,
         routes: list[BaseRoute] | None = None,
         title: str = "Wintry API",
@@ -298,18 +298,6 @@ class App(FastAPI):
         # Load all the modules so DI and mappings works
         if settings.auto_discovery_enabled:
             autodiscover_modules(settings)
-
-        # Configure the DI Container
-        from wintry.dependency_injection import __mappings__
-
-        def config(binder: inject.Binder):
-            for dependency, factory in __mappings__.items():
-                if isinstance(factory, Factory):
-                    binder.bind_to_provider(dependency, factory)
-                else:
-                    binder.bind(dependency, factory())
-
-        inject.configure_once(config)
 
         # Initialize the backends
         if settings.backends:

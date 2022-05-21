@@ -1,4 +1,5 @@
 from typing import Any, Callable, TypeVar
+from fastapi.params import Depends
 
 T = TypeVar("T")
 
@@ -11,11 +12,12 @@ class SnowFactory:
     """This is just a way of differentiating Factories from singleton objects.
     This is a proxy object which forward the obj instantiation."""
 
-    def __init__(self, cls: Callable) -> None:
+    def __init__(self, cls: Callable, **dependencies: Depends) -> None:
         self.cls = cls
+        self.fastapi_dependencies = dependencies
 
     def __call__(self) -> Any:
-        return self.cls()
+        return self.cls(**self.fastapi_dependencies)
 
 
 class IGlooContainer:
@@ -66,6 +68,11 @@ class IGlooContainer:
             return self.factories[key]()
 
         raise DependencyInjectionError(f"{key} is not registered!")
+
+    def clear(self):
+        self.cache.clear()
+        self.singletons.clear()
+        self.factories.clear()
 
     def __contains__(self, key: type):
         return key in self.factories or key in self.singletons
