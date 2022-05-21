@@ -466,21 +466,6 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
         pass
 
 
-def to_dict2(cls: type, obj: Any):
-    kwargs: dict[str, Any] = {}
-    for f in fields(cls):
-        print(f)
-        if issubclass(f.type, BaseModel):
-            kwargs[f.name] = f.type.from_orm(getattr(obj, f.name))
-        elif issubclass(f.type, Model):
-            kwargs[f.name] = f.type.from_obj(getattr(obj, f.name))
-        else:
-            kwargs[f.name] = getattr(obj, f.name)
-    
-    return kwargs
-
-
-
 def to_dict(cls: type, obj: Any):
     fields_names = [f.name for f in fields(cls)]
     if isinstance(obj, BaseModel):
