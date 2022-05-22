@@ -51,22 +51,16 @@ from wintry.repository import Repository
 from wintry.controllers import controller, post, get
 from wintry.ioc import provider
 from wintry.errors import NotFoundError
+from wintry import App
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from dataclasses import field
 from uuid import uuid4
 from pydantic import BaseModel
-from wintry import App
-from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 class Hero(Model):
+    id: str = field(default_factory=lambda: uuid4().hex)
     city: str
     name: str
-    id: str = field(default_factory=lambda: uuid4().hex)
-
-class Villain(Model):
-    name: str
-    city: str
-    id: str = field(default_factory=lambda: uuid4().hex)
-    hero: Hero | None = None
 
 class HeroForm(BaseModel):
     city: str
@@ -74,17 +68,12 @@ class HeroForm(BaseModel):
 
 @provider
 class HeroRepository(Repository[Hero, str], entity=Hero):
-    pass
-
-@provider
-class VillainRepository(Repository[Villain, str], entity=Villain):
-    async def get_by_name(self, *, name: str) -> Villain | None:
+    async def get_by_name(self, *, name: str) -> Hero | None:
         ...
 
 @controller
 class MarvelController:
     heroes: HeroRepository
-    villains: VillainRepository
 
     @post('/hero', response_model=Hero)
     async def save_hero(self, hero_form: HeroForm = Body(...)):
@@ -92,13 +81,13 @@ class MarvelController:
         await self.heroes.create(hero)
         return hero
 
-    @get('/villain/{name}', response_model=Villain)
+    @get('/hero/{name}', response_model=HeroForm)
     async def get_villain(self, name: str):
-        villain = await self.villains.get_by_name(name=name)
-        if villain is None:
+        hero = await self.heroes.get_by_name(name=name)
+        if hero is None:
             raise NotFoundError()
 
-        return villain
+        return hero
 
 
 settings = WinterSettings(
@@ -121,8 +110,7 @@ query syntax. That's not the only thing, the **@provider** decorator
 allows the repositories to be injected inside the marvel controller
 constructor, just like happens in .NET Core or Java Spring.
 
-Note that my Hero and Villain entities, does not contain anything special, they are merely dataclasses (That's the only restriction, models needs to be dataclasses), and the relation is being automatically build for us. We even get an instance of **Hero**🦸 when
-we call **get_villain** if the **Villain**🦹 has any **Hero**🦸 assigned.
+Note that my Hero entity does not contain anything special, it is merely a dataclass (That's the only restriction, models needs to be dataclasses).
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
 to change the configuration url and the driver 
@@ -130,6 +118,8 @@ and THERE IS NO NEED TO CHANGE THE CODE,
 it would just work.
 
 You can look for a complete example at this [test app](https://github.com/adriangs1996/wintry/tree/master/tuto)
+
+You can also go and read the [📜documentation, it is still under development, but eventually will cover the whole API, just as FastAPI or Django](https://adriangs1996.github.io/wintry)
 
 ## Installation
 ---------------

@@ -5,14 +5,12 @@ from wintry.controllers import controller, delete, get, post
 from wintry.responses import DataResponse
 from wintry.errors import NotFoundError
 from test_app.views import HeroCreateModel, HeroViewModel
-from wintry.models import fromdict
 
 
 @controller
 class HeroesController:
-    def __init__(self, uow: UnitOfWork, logger: Logger) -> None:
-        self.uow = uow
-        self.logger = logger
+    uow: UnitOfWork
+    logger: Logger
 
     @get("", response_model=DataResponse[list[HeroViewModel]])
     async def list_heroes(self):
@@ -43,7 +41,7 @@ class HeroesController:
 
     @post("", response_model=DataResponse[str])
     async def create_hero(self, hero_form: HeroCreateModel):
-        hero = fromdict(Hero, hero_form.dict())
+        hero = Hero.build(hero_form.dict())
 
         async with self.uow as uow:
             hero = await uow.heroes.create(entity=hero)

@@ -1,5 +1,5 @@
 from wintry.transactions import UnitOfWork as WinterUnitOfWork
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 from test_app.repositories.hero_repository import HeroRepository
 
 
