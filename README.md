@@ -23,8 +23,6 @@ Beign accured, if you have used FastAPI, you would feel at home, 🐧**Wintry**�
 inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of 
 😎'cool'🆒 stuff on top.
 
-Let me tell you a story, that would give an idea from where this project come from.
-
 ## Inspirations
 ---------------
 
@@ -41,7 +39,8 @@ Enough flattering, 🐧**Wintry**🐧 will try to be the new Kid in Town, to pro
 focused experience, with builtin Dependency Injection system, a dataclasses based
 Repository Pattern implementation, Unit Of Work, Events Driven Components and a lot more.
 Actually, I aimed to provide a similar experience with Repositories than that of
-Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with 🐧**Wintry**🐧.
+Spring JPA. Just look at the example, it is really easy to write decoupled and modularized
+ applications with 🐧**Wintry**🐧.
 
 Let's see what 🐧**Wintry**🐧 looks like:
 
@@ -104,20 +103,90 @@ settings = WinterSettings(
 api = App(settings)
 ```
 
-Note that the method **get_by_name** is NOT IMPLEMENTED, but it somehow still works :). The thing is Repositories are query compilers,
+Note that the method **get_by_name** is NOT IMPLEMENTED, but it somehow still works :). 
+The thing is Repositories are query compilers,
 and you dont need to implement them, only learn a very simple
 query syntax. That's not the only thing, the **@provider** decorator
 allows the repositories to be injected inside the marvel controller
-constructor, just like happens in .NET Core or Java Spring.
+constructor, just like happens in .NET Core or Java Spring. But you can already
+see that dependencies can be declared as attributes, making them more declarative.
+Actually, the real power of the IoC System of 🐧**Wintry**🐧 is that it allows to
+combine the power of classical Dependency Injection, with Request-Based Dependency Injection
+achieved by FastAPI, which gives you the ability to re-use dependencies over a whole bunch
+of routes, and still been able to access its results.
 
-Note that my Hero entity does not contain anything special, it is merely a dataclass (That's the only restriction, models needs to be dataclasses).
+```python
+@dataclass
+class User:
+    name: str
+    password: str
+
+@provider(container=container)
+class UserService:
+    def do_something_user(self, user: User):
+        return user.name + " " + user.password
+
+@controller(container=container)
+class Controller:
+    service: UserService
+    # This is populated on each request
+    user: User = Depends()
+
+    @get("/user")
+    async def get_user(self):
+        return self.user
+
+    @get("/something")
+    async def get_something(self):
+        return self.service.do_something_user(self.user)
+```
+
+This is a really powerfull feature that both reduce code duplication and open doors for
+a lot of functionalities, like Controller-Scoped authentication, filters, etc.
+
+You may have noted from the first example, that my Hero entity does not contain anything special, it is merely a dataclass (That's the only restriction, models needs to be dataclasses). When using postgres (Or any compatible sqlalchemy database)
+🐧**Wintry**🐧 will do its bests to create a database Schema that best matches your domain model without poisoning it
+with DataAccess dependencies. If you need a finer control over your database schema when using SQL, then you could
+use the ```for_model()``` function to map to your model. It looks like this
+
+```python
+UserTable = for_model(
+    User,
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String),
+    Column("age", Integer),
+    Column("address_id", Integer, ForeignKey("Addresses.id")),
+    table_name="Users",
+    address=relation(Address, lazy="joined", backref="users"),
+)
+```
 
 Futhermore, if I want to change to use **MongoDB** instead of **Postgres**, is as easy as
 to change the configuration url and the driver 
 and THERE IS NO NEED TO CHANGE THE CODE,
 it would just work.
 
-You can look for a complete example at this [test app](https://github.com/adriangs1996/wintry/tree/master/tuto)
+``` python
+.... # rest of the same code
+settings = WinterSettings(
+    backends=[
+        BackendOptions(
+            driver="wintry.drivers.mongo",
+            connection_options=ConnectionOptions(
+                url="mongodb://localhost/?replicaSet=dbrs"
+            )
+        )
+    ],
+)
+....
+```
+
+Of course, you maybe want to use refs instead of embedded documents, in that case then you need to do
+exactly that, make your model split its objects with refs relations and the simply use it as usual.
+
+You can look for an example at this [test app](https://github.com/adriangs1996/wintry/tree/master/tuto) or
+[this app](https://github.com/adriangs1996/wintry/tree/master/test_app)
 
 You can also go and read the [📜documentation, it is still under development, but eventually will cover the whole API, just as FastAPI or Django](https://adriangs1996.github.io/wintry)
 
@@ -166,12 +235,9 @@ CQRS, etc.)
 * A handy cli for managing projects (Feeling jealous of Rails ?? Not any more): Work in progress.
 
 
-This is the continuation of NEXTX, which would be deprecated
-in favor of this
-
 ## ROADMAP
 ----------
-* Performance similar to FastAPI (need benchmarks and identify bottle necks).
+* Performance similar to FastAPI (When possible, actually FastAPI is a LOWER BOUND) (need benchmarks and identify bottle necks).
 
 * Create documentation
 
