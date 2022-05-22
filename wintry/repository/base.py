@@ -1,8 +1,8 @@
 import inspect
 from functools import lru_cache, partial
 from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
+from wintry.errors.definitions import InternalServerError, InvalidRequestError
 from wintry.models import _is_private_attr
-
 from wintry import BACKENDS
 from wintry.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from wintry.sessions import MongoSessionTracker
@@ -22,6 +22,8 @@ from wintry.utils.keys import (
     __winter_repository_for_model__,
     __winter_repository_is_using_sqlalchemy__,
 )
+
+from sqlalchemy.exc import IntegrityError
 
 
 class RepositoryError(Exception):
@@ -177,7 +179,7 @@ def repository(
         # Need to stablish the signature of the new init as the old
         # one for the sake of the framework inspection
         sig = inspect.signature(cls.__init__)
-        setattr(__winter_init__, '__signature__', sig)
+        setattr(__winter_init__, "__signature__", sig)
 
         # replace the original init
         setattr(cls, "__init__", __winter_init__)
@@ -194,6 +196,7 @@ def repository(
             using_sqlalchemy = super(cls, self).__getattribute__(  # type: ignore
                 __winter_repository_is_using_sqlalchemy__
             )
+
             attr = super(cls, self).__getattribute__(__name)  # type: ignore
             # Need to call super on this because we need to obtain a session without passing
             # through this method
@@ -204,7 +207,10 @@ def repository(
                 return attr
 
             def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                result = new_attr(*args, session=session, **kwargs)
+                try:
+                    result = new_attr(*args, session=session, **kwargs)
+                except Exception as e:
+                    handle_error(e)
                 if not using_sqlalchemy and mongo_session_managed:
                     # Track the results, get the tracker instance from
                     # the repo instance
@@ -213,7 +219,32 @@ def repository(
                 return result
 
             async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                result = await new_attr(*args, session=session, **kwargs)
+                try:
+                    result = await new_attr(*args, session=session, **kwargs)
+                except Exception as e:
+                    handle_error(e)
+                if not using_sqlalchemy and mongo_session_managed:
+                    tracker = getattr(self, __winter_tracker__)
+                    return proxyfied(result, tracker, result)  # type: ignore
+                return result
+
+            def raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
+                try:
+                    result = new_attr(*args, **kwargs)
+                except Exception as e:
+                    handle_error(e)
+                if not using_sqlalchemy and mongo_session_managed:
+                    # Track the results, get the tracker instance from
+                    # the repo instance
+                    tracker = getattr(self, __winter_tracker__)
+                    return proxyfied(result, tracker, result)  # type: ignore
+                return result
+
+            async def async_raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
+                try:
+                    result = await new_attr(*args, **kwargs)
+                except Exception as e:
+                    handle_error(e)
                 if not using_sqlalchemy and mongo_session_managed:
                     tracker = getattr(self, __winter_tracker__)
                     return proxyfied(result, tracker, result)  # type: ignore
@@ -224,12 +255,14 @@ def repository(
                     return async_wrapper
                 else:
                     return wrapper
-            elif inspect.iscoroutinefunction(new_attr):
-                return async_wrapper
-            elif inspect.isfunction(new_attr):
-                return wrapper
+            elif inspect.iscoroutinefunction(new_attr) and is_raw(new_attr):
+                return async_raw_wrapper
+            elif (inspect.isfunction(new_attr) or inspect.ismethod(new_attr)) and is_raw(
+                new_attr
+            ):
+                return raw_wrapper
             else:
-                return attr
+                return new_attr
 
         cls.__getattribute__ = _getattribute  # type: ignore
 
@@ -263,3 +296,15 @@ def _parse_function_name(
             return repo_backend.run(fname, target, dry_run=dry)
     else:
         return fobject
+
+
+def handle_error(exc: Exception):
+    match exc:
+        case IntegrityError():
+            raise InvalidRequestError(details={"error": str(exc)})
+        case _:
+            raise InternalServerError(details={"error": str(exc)})
+
+
+def is_raw(func):
+    return getattr(func, "_raw_method", False)
