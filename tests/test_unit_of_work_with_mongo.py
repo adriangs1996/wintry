@@ -4,6 +4,7 @@ from wintry import get_connection, init_backends
 from wintry.models import Model
 
 from wintry.repository import Repository, RepositoryRegistry
+from wintry.repository.base import raw_method
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.transactions import UnitOfWork
 import pytest
@@ -25,7 +26,15 @@ class User(Model):
 
 
 class UserRepository(Repository[User, int], entity=User, mongo_session_managed=True):
-    pass
+    @raw_method
+    async def get_user_by_name(self, name: str):
+        db = self.connection()
+        row = await db.users.find_one({"name": name})
+
+        if row is not None:
+            return User.build(row)
+        else:
+            return None
 
 
 class Hero(Model):
@@ -59,7 +68,9 @@ def db() -> Any:
         WinterSettings(
             backends=[
                 BackendOptions(
-                    connection_options=ConnectionOptions(url="mongodb://localhost:27017/?replicaSet=dbrs"),
+                    connection_options=ConnectionOptions(
+                        url="mongodb://localhost:27017/?replicaSet=dbrs"
+                    ),
                 )
             ]
         )
@@ -119,7 +130,9 @@ async def test_unit_of_work_rollbacks_when_error(clean: Any, db: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_unit_of_work_makes_context_for_objects_synchronization(clean: Any, db: Any) -> None:
+async def test_unit_of_work_makes_context_for_objects_synchronization(
+    clean: Any, db: Any
+) -> None:
     user_repository = UserRepository()
     uow = Uow(user_repository)
 
@@ -139,7 +152,9 @@ async def test_unit_of_work_makes_context_for_objects_synchronization(clean: Any
 
 
 @pytest.mark.asyncio
-async def test_unit_of_work_automatically_creates_related_objects(clean: Any, db: Any) -> None:
+async def test_unit_of_work_automatically_creates_related_objects(
+    clean: Any, db: Any
+) -> None:
     user_repository = UserRepository()
     uow = Uow(user_repository)
 
@@ -176,7 +191,9 @@ async def test_unit_of_work_can_track_objects_in_lists(clean: Any, db: Any) -> N
 
 
 @pytest.mark.asyncio
-async def test_unit_of_work_respects_ignore_synchronization_flag(clean: Any, db: Any) -> None:
+async def test_unit_of_work_respects_ignore_synchronization_flag(
+    clean: Any, db: Any
+) -> None:
     hero_repository = HeroRepository()
     uow = HeroUow(hero_repository)
 
@@ -201,7 +218,12 @@ async def test_unit_of_work_synchronize_nested_objects(clean: Any, db: Any) -> N
     uow = Uow(user_repository)
 
     await db.users.insert_one(
-        {"id": 1, "age": 28, "name": "Batman", "address": {"latitude": 1.0, "longitude": 2.0}}
+        {
+            "id": 1,
+            "age": 28,
+            "name": "Batman",
+            "address": {"latitude": 1.0, "longitude": 2.0},
+        }
     )
 
     async with uow:
@@ -221,7 +243,12 @@ async def test_unit_of_work_synchronize_on_list_append(clean: Any, db: Any) -> N
     uow = Uow(user_repository)
 
     await db.users.insert_one(
-        {"id": 1, "age": 28, "name": "Batman", "address": {"latitude": 1.0, "longitude": 2.0}}
+        {
+            "id": 1,
+            "age": 28,
+            "name": "Batman",
+            "address": {"latitude": 1.0, "longitude": 2.0},
+        }
     )
 
     async with uow:
@@ -269,6 +296,26 @@ async def test_unit_of_work_updates_entity_after_creating_it(clean: Any, db: Any
 
     async with uow:
         user = await uow.users.create(entity=User(id=1, name="Batman", age=28))
+        user.name = "Superman"
+        await uow.commit()
+
+    new_user = await user_repository.get_by_id(id=1)
+    assert new_user is not None
+    assert new_user.name == "Superman"
+
+
+@pytest.mark.asyncio
+async def test_unit_of_work_updates_entity_after_creating_it_get_with_raw_method(
+    clean: Any, db: Any
+) -> None:
+    user_repository = UserRepository()
+    uow = Uow(user_repository)
+
+    await db.users.insert_one({"id": 1, "name": "Batman", "age": 20})
+
+    async with uow:
+        user = await uow.users.get_user_by_name("Batman")
+        assert user is not None
         user.name = "Superman"
         await uow.commit()
 

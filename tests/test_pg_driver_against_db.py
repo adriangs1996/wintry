@@ -25,7 +25,7 @@ from dataclasses import field
 
 
 # Now import the repository
-from wintry.repository import Repository, RepositoryRegistry
+from wintry.repository import SqlCrudRepository, raw_method
 
 
 class Address(Model):
@@ -68,11 +68,16 @@ UserTable = for_model(
 )
 
 
-class UserRepository(Repository[User, int], entity=User):
+class UserRepository(SqlCrudRepository[User, int], entity=User):
     async def find_by_id_or_name_and_age_lowerThan(
         self, *, id: int, name: str, age: int
     ) -> List[User]:
         ...
+
+    @raw_method
+    async def get_user(self, id: int) -> User | None:
+        session = self.connection()
+        return await session.get(User, id)
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
@@ -215,8 +220,14 @@ async def test_repository_can_make_logical_queries(clean: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_repository_can_update_entity(clean: Any) -> None:
+async def test_repository_can_use_raw_method_entity(clean: Any) -> None:
     repo = UserRepository()
     session: AsyncSession = get_connection()
     async with session.begin():
         await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+
+    user = await repo.get_user(1)
+
+    assert user is not None
+    assert user.id == 1
+    assert user.name == "test" and user.age == 20

@@ -8,8 +8,10 @@ from wintry.utils.keys import (
     __winter_backend_identifier_key__,
     __RepositoryType__,
     __winter_repository_is_using_sqlalchemy__,
+    __winter_session_key__
 )
 from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorClientSession
 
 
 T = TypeVar("T")
@@ -65,6 +67,15 @@ class Repository(abc.ABC, ICrudRepository[T, TypeId]):
 
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+
+        if (session := getattr(self, __winter_session_key__, None)) is not None:
+            if isinstance(session, AsyncIOMotorClientSession):
+                # This is an AsyncioMotorSession. Inside that session, we have
+                # a client property that maps to the 
+                db_name = get_connection(backend_name).name #type: ignore
+                return session.client[db_name]
+            return session
+
         return get_connection(backend_name)
 
     def __init_subclass__(
@@ -94,6 +105,16 @@ class IRepository(abc.ABC):
 
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+
+        if (session := getattr(self, __winter_session_key__, None)) is not None:
+            if isinstance(session, AsyncIOMotorClientSession):
+                # This is an AsyncioMotorSession. Inside that session, we have
+                # a client property that maps to the AsyncIOMotorClient. need to
+                # build the db from that
+                db_name = get_connection(backend_name).name #type: ignore
+                return session.client[db_name]
+            return session
+
         return get_connection(backend_name)
 
     def __init_subclass__(
@@ -123,6 +144,12 @@ class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
 
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+
+        if (session := getattr(self, __winter_session_key__, None)) is not None:
+            # NOSQL Repository is for Mongo purpouses only
+            db_name = get_connection(backend_name).name #type: ignore
+            return session.client[db_name]
+
         return get_connection(backend_name)
 
     def __init_subclass__(
@@ -151,6 +178,10 @@ class SqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
 
 
     def connection(self) -> AsyncSession:
+        if (session := getattr(self, __winter_session_key__, None)) is not None:
+            # This is for sqlalchemy purpouses only
+            return session
+
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
         return get_connection(backend_name)
 

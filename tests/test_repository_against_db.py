@@ -47,7 +47,7 @@ class UserRepository(Repository[User, int], entity=User):
         db = self.connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
-            return fromdict(User, row)
+            return User.build(row)
         else:
             return None
 

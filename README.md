@@ -1,6 +1,6 @@
 <img src="docs/img/logo.jpg" />
 
-# A performant, feature rich, scalable and 😎'cool'🆒 python web framework.
+# ❄️🐧A modern python web framework🐧❄️
 
 
 
