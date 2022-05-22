@@ -1,13 +1,11 @@
 import dataclasses
 from enum import Enum
-from importlib import import_module
 import inspect
 from types import MethodType
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Coroutine,
     Dict,
     Optional,
     Sequence,
@@ -16,6 +14,7 @@ from typing import (
     TypeVar,
     Union,
     List,
+    get_type_hints,
 )
 
 from fastapi import APIRouter, params, Response, Depends
@@ -26,12 +25,13 @@ from fastapi.responses import JSONResponse
 from starlette.routing import Route, BaseRoute
 from starlette.types import ASGIApp
 from fastapi.routing import APIRoute
-from wintry.dependency_injection import Factory, __mappings__
-from inject import autoparams
 from dataclasses import dataclass
 from wintry.settings import TransporterType
-from wintry.transporters import Microservice
 from wintry.utils.keys import __winter_transporter_name__, __winter_microservice_event__
+from wintry.ioc import inject
+from wintry.ioc.container import IGlooContainer, SnowFactory, igloo
+from wintry.models import __dataclass_transform__
+from pydantic.typing import is_classvar
 
 if TYPE_CHECKING:
     from wintry.settings import WinterSettings
@@ -443,6 +443,7 @@ def controller(
     deprecated: Optional[bool] = None,
     include_in_schema: bool = True,
     generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
+    container: IGlooContainer = igloo,
 ) -> Type[Callable[[Type[T]], Type[T]]]:
     """
     Returns a decorator that makes a Class-Based-View (or a controller)
@@ -481,6 +482,8 @@ def controller(
 
     def decorator(_cls: Type[T]):
         _prefix = prefix or f"/{get_controller_name(_cls)}"
+        if _prefix == "/":
+            _prefix = ""
         _tags = tags or [f"{get_controller_name(_cls)} collection"]
         router = ApiController(
             prefix=_prefix,
@@ -502,7 +505,7 @@ def controller(
         )
 
         # inject the underlying router in the class
-        return _controller(router, _cls)
+        return _controller(router, _cls, container)
 
     if cls is None:
         return decorator
@@ -511,15 +514,61 @@ def controller(
         return decorator(cls)
 
 
-def _controller(router: ApiController, cls: Type[T]) -> Type[T]:
+def _controller(
+    router: ApiController, cls: Type[T], container: IGlooContainer = igloo
+) -> Type[T]:
     """
     Replaces any methods of the provided class `cls` that are endpoints
     with updated function calls that will properly inject an instance of
     `cls`
     """
     # Make this class constructor based injectable
-    wrapper = autoparams()
-    cls = wrapper(cls)
+    cls = inject(container=container)(cls)  # type: ignore
+
+    # Fastapi will handle Dependency Injection based on the class
+    # signature. For that we must ensure that FastAPI encounters
+    # a class declaration as follows:
+
+    #  @controller
+    #  class Controller:
+    #       def __init__(self, dep1: Dep1 = Depends(), ...)
+
+    # For that, we change each non_fastapi dependency with a wrapped
+    # SnowFactory invocation
+
+    # Get the __init__ signature and the original parameters
+    old_init: Callable[..., Any] = cls.__init__
+    old_signature = inspect.signature(old_init)
+    old_parameters = list(old_signature.parameters.values())[1:]  # drop `self` parameter
+    new_parameters = [
+        x
+        for x in old_parameters
+        if x.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+    ]
+    dependency_names: List[str] = []
+    for name, hint in get_type_hints(cls).items():
+        if is_classvar(hint):
+            continue
+        parameter_kwargs = {"default": getattr(cls, name, Depends(SnowFactory(hint)))}
+        dependency_names.append(name)
+        new_parameters.append(
+            inspect.Parameter(
+                name=name,
+                kind=inspect.Parameter.KEYWORD_ONLY,
+                annotation=hint,
+                **parameter_kwargs,
+            )
+        )
+    new_signature = old_signature.replace(parameters=new_parameters)
+
+    def new_init(self: Any, *args: Any, **kwargs: Any) -> None:
+        for dep_name in dependency_names:
+            dep_value = kwargs.pop(dep_name)
+            setattr(self, dep_name, dep_value)
+        old_init(self, *args, **kwargs)
+
+    setattr(cls, "__signature__", new_signature)
+    setattr(cls, "__init__", new_init)
 
     # get all functions from cls
     function_members = inspect.getmembers(cls, inspect.isfunction)
@@ -536,6 +585,7 @@ def _controller(router: ApiController, cls: Type[T]) -> Type[T]:
 
     # register the router
     __controllers__.append(router)
+
     return cls
 
 
@@ -562,7 +612,7 @@ def _fix_endpoint_signature(cls: Type[Any], endpoint: Callable[..., Any]):
     # any dependency and will not document it.
     # For this to work, `cls` must effectively be wrapped on inject.autoparams(),
     # so it tries to inject all the constructor arguments at runtime
-    new_self_parameter = old_first_parameter.replace(default=Depends(Factory(cls)))
+    new_self_parameter = old_first_parameter.replace(default=Depends(cls))
     new_parameters = [new_self_parameter] + [
         parameter.replace(kind=inspect.Parameter.KEYWORD_ONLY)
         for parameter in old_parameters[1:]
@@ -623,19 +673,10 @@ def microservice(
 ) -> type[T] | Callable[[type[T]], type[T]]:
     """Transform a class into a Container for rpc
     calls endpoints. This is use with the same purpouse as
-    `controller` for web endpoints. Microservices are based
-    on `nameko`, so the same functionality is available.
-    In here are provided some functionalities on top
-    to improve developer experience and make it fully
-    compatible with `Wintry`
+    `controller` for web endpoints.
 
     Args:
-        cls(type[T] | None): The class to decorate.
-
-        service_name(str | None): The name to access this service. If None
-        then the name will be contructed from the decorated class in lowercase.
-
-        transporter(str | None): The name of the configured transporter for this
+        transporter(:ref:`TransporterType`): The name of the configured transporter for this
         microservice. This would add an event dispatcher
 
     Returns
@@ -644,8 +685,17 @@ def microservice(
     """
 
     def make_microservice(_cls: type[T]) -> type[T]:
-        wrapper = autoparams()
-        _cls = wrapper(_cls)
+        _cls = dataclass(
+            eq=False,
+            order=False,
+            frozen=False,
+            match_args=False,
+            init=True,
+            kw_only=False,
+            repr=False,
+            unsafe_hash=False,
+        )(_cls)
+        _cls = inject(_cls)
 
         # register this class as a controller
 

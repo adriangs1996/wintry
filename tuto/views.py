@@ -1,4 +1,4 @@
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 from .repositories import AllocationViewModelRepository
 from pydantic import BaseModel
 
@@ -11,8 +11,7 @@ class AllocationReadModel(BaseModel, orm_mode=True):
 
 @provider
 class Views:
-    def __init__(self, allocations: AllocationViewModelRepository) -> None:
-        self.allocations = allocations
+    allocations: AllocationViewModelRepository
 
     async def get_allocations_for(self, orderid: str):
         allocations = await self.allocations.find_by_orderid(orderid=orderid)

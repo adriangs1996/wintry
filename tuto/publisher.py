@@ -1,6 +1,6 @@
 import json
 from typing import Any, Protocol
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 import aioredis
 
 
@@ -9,7 +9,7 @@ class Publisher(Protocol):
         ...
 
 
-@provider(interface=Publisher)
+@provider(of=Publisher)
 class RedisPublisher(Publisher):
     def __init__(self) -> None:
         self.client = aioredis.from_url("redis://localhost")

@@ -37,6 +37,9 @@ class RepositoryRegistry:
 
 
 class ICrudRepository(Generic[T, TypeId]):
+    def __init__(self) -> None:
+        ...
+
     async def find(self) -> list[T]:
         ...
 
@@ -57,6 +60,9 @@ class ICrudRepository(Generic[T, TypeId]):
 
 
 class Repository(abc.ABC, ICrudRepository[T, TypeId]):
+    def __init__(self) -> None:
+        ...
+
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
         return get_connection(backend_name)
@@ -83,6 +89,9 @@ class Repository(abc.ABC, ICrudRepository[T, TypeId]):
 
 
 class IRepository(abc.ABC):
+    def __init__(self) -> None:
+        ...
+
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
         return get_connection(backend_name)
@@ -109,6 +118,9 @@ class IRepository(abc.ABC):
 
 
 class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
+    def __init__(self) -> None:
+        ...
+
     def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
         return get_connection(backend_name)
@@ -134,6 +146,10 @@ class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
 
 
 class SqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
+    def __init__(self) -> None:
+        ...
+
+
     def connection(self) -> AsyncSession:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
         return get_connection(backend_name)
@@ -161,5 +177,5 @@ __all__ = [
     "Repository",
     "NoSqlCrudRepository",
     "SqlCrudRepository",
-    "IRepository"
+    "IRepository",
 ]

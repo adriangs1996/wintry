@@ -7,7 +7,7 @@ class OutOfStock(Exception):
     pass
 
 
-class OrderLine(Model, frozen=True):
+class OrderLine(Model):
     sku: str
     qty: int
     orderid: str = field(metadata={"id": True})

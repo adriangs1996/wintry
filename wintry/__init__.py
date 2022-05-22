@@ -1,47 +1,43 @@
-import asyncio
+import importlib
+import logging
 from enum import Enum
 from typing import Any, Callable, Coroutine, Sequence, Union
-from wintry.backend import QueryDriver, Backend
-from wintry.dependency_injection import Factory, service
-from wintry.settings import BackendOptions, EngineType, WinterSettings
-import importlib
-from sqlalchemy.ext.asyncio import AsyncSession
-from motor.motor_asyncio import AsyncIOMotorDatabase
-import logging
-import inject
-from wintry.transporters.service_container import ServiceContainer
-from wintry.utils.loaders import autodiscover_modules
-from fastapi import FastAPI
-from wintry.controllers import __controllers__
-from wintry.errors import (
-    InvalidRequestError,
-    ForbiddenError,
-    NotFoundError,
-    InternalServerError,
-    not_found_exception_handler,
-    forbidden_exception_handler,
-    internal_server_exception_handler,
-    invalid_request_exception_handler,
-)
-from wintry.models import VirtualDatabaseSchema
+
 import uvicorn
-from starlette.routing import BaseRoute
-from starlette.responses import Response, JSONResponse
-from starlette.requests import Request
-from fastapi.params import Depends as DependsParam
-from fastapi.middleware import Middleware
-from fastapi.routing import APIRoute
-from fastapi.utils import generate_unique_id
-from fastapi.datastructures import Default
-
-
-# Import the services defined by the framework
-import wintry.services
 
 # Import things directly from fastapi so they are
 # accessible from wintry
-from fastapi import Depends, Header, Body, Query
+from fastapi import Body, Depends, FastAPI, Header, Query
+from fastapi.datastructures import Default
+from fastapi.middleware import Middleware
+from fastapi.params import Depends as DependsParam
+from fastapi.routing import APIRoute
+from fastapi.utils import generate_unique_id
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+from starlette.routing import BaseRoute
 
+# Import the services defined by the framework
+import wintry.services
+from wintry.backend import Backend, QueryDriver
+from wintry.controllers import __controllers__
+from wintry.errors import (
+    ForbiddenError,
+    InternalServerError,
+    InvalidRequestError,
+    NotFoundError,
+    forbidden_exception_handler,
+    internal_server_exception_handler,
+    invalid_request_exception_handler,
+    not_found_exception_handler,
+)
+from wintry.models import VirtualDatabaseSchema
+from wintry.settings import BackendOptions, EngineType, WinterSettings
+from wintry.transporters.service_container import ServiceContainer
+from wintry.utils.loaders import autodiscover_modules
+from wintry.ioc import inject
 
 BACKENDS: dict[str, Backend] = {}
 
@@ -159,8 +155,8 @@ def _config_logger():
 class App(FastAPI):
     def __init__(
         self,
-        *,
         settings: WinterSettings,
+        *,
         debug: bool = False,
         routes: list[BaseRoute] | None = None,
         title: str = "Wintry API",
@@ -269,13 +265,13 @@ class App(FastAPI):
             )
 
         @self.on_startup
-        @service
+        @inject
         async def wintry_startup(logger: logging.Logger):
             if self.settings.transporters:
                 self.service_container.start_services()
 
         @self.on_shutdown
-        @service
+        @inject
         async def wintry_shutdown(logger: logging.Logger):
             if self.settings.transporters:
                 await self.service_container.close()
@@ -298,18 +294,6 @@ class App(FastAPI):
         # Load all the modules so DI and mappings works
         if settings.auto_discovery_enabled:
             autodiscover_modules(settings)
-
-        # Configure the DI Container
-        from wintry.dependency_injection import __mappings__
-
-        def config(binder: inject.Binder):
-            for dependency, factory in __mappings__.items():
-                if isinstance(factory, Factory):
-                    binder.bind_to_provider(dependency, factory)
-                else:
-                    binder.bind(dependency, factory())
-
-        inject.configure_once(config)
 
         # Initialize the backends
         if settings.backends:

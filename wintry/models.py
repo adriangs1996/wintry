@@ -47,7 +47,7 @@ from sqlalchemy import (
     MetaData,
     inspect,
 )
-from sqlalchemy.orm import relation, relationship, backref
+from sqlalchemy.orm import relationship, backref
 from enum import Enum as std_enum
 from wintry.orm import metadata, mapper_registry
 from pydantic import BaseModel
@@ -518,7 +518,6 @@ class Model:
         eq: bool = True,
         order: bool = False,
         unsafe_hash: bool = False,
-        frozen: bool = False,
         match_args: bool = True,
         mapped: bool = True,
     ) -> None:
@@ -528,7 +527,7 @@ class Model:
             eq=eq,
             order=order,
             unsafe_hash=unsafe_hash,
-            frozen=frozen,
+            frozen=False,
             match_args=match_args,
             kw_only=True,
             slots=False,

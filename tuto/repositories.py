@@ -1,6 +1,6 @@
 from tuto.viewmodels import AllocationsViewModel
-from wintry.dependency_injection import provider
-from wintry.repository import Repository, raw_method, IRepository
+from wintry.ioc import provider
+from wintry.repository import Repository, IRepository
 from .models import Product
 
 
