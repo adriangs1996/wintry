@@ -1,6 +1,6 @@
 from wintry.transactions import UnitOfWork as WintryUnitOfWork
-from wintry.dependency_injection import provider
-from .repositories import AllocationViewModelRepository, ProductRepository
+from wintry.ioc import provider
+from .repositories import ProductRepository
 
 
 @provider

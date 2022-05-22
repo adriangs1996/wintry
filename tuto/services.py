@@ -3,7 +3,7 @@ from tuto.publisher import Publisher
 from tuto.repositories import AllocationViewModelRepository
 from tuto.viewmodels import AllocationsViewModel
 from wintry.mqs import event_handler, command_handler, MessageQueue
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 from .uow import UnitOfWork
 from .commands import Allocate, ChangeBatchQuantity, CreateBatch
 from .models import Batch, OrderLine, Product
@@ -17,19 +17,9 @@ class InvalidSku(Exception):
 @provider
 class MessageBus(MessageQueue):
     uow: UnitOfWork
-
-    def __init__(
-        self,
-        uow: UnitOfWork,
-        logger: Logger,
-        allocations: AllocationViewModelRepository,
-        sender: Publisher,
-    ) -> None:
-        super().__init__()
-        self.uow = uow
-        self.allocations = allocations
-        self.logger = logger
-        self.sender = sender
+    logger: Logger
+    sender: Publisher
+    allocations: AllocationViewModelRepository
 
     @command_handler
     async def allocate(self, command: Allocate):
@@ -61,7 +51,7 @@ class MessageBus(MessageQueue):
         async with self.uow as uow:
             product = await uow.products.get_by_sku(sku=command.sku)
             if product is None:
-                product = Product(command.sku)
+                product = Product(sku=command.sku)
                 product = await uow.products.create(entity=product)
             product.batches.append(
                 Batch(

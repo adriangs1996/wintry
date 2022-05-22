@@ -156,7 +156,7 @@ def decorate(func: Callable[..., Any], igloo: IGlooContainer):
             missing_parameters = [arg for arg in parameters_name if arg not in all_kwargs]
             raise ExecutionError(
                 "Cannot execute function without required parameters. "
-                + f"Did you forget to bind the following parameters: `{'`, `'.join(missing_parameters)}`?"
+                + f"Did you forget to bind the following parameters: `{'`, `'.join(missing_parameters)}` for {str(func)}?"
             )
 
         return all_kwargs

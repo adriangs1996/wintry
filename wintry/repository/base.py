@@ -173,6 +173,13 @@ def repository(
 
         # update the init method and save the original init
         setattr(cls, __winter_repo_old_init__, cls.__init__)
+
+        # Need to stablish the signature of the new init as the old
+        # one for the sake of the framework inspection
+        sig = inspect.signature(cls.__init__)
+        setattr(__winter_init__, '__signature__', sig)
+
+        # replace the original init
         setattr(cls, "__init__", __winter_init__)
 
         if table_name is not None:

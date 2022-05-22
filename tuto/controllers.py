@@ -11,9 +11,8 @@ from wintry.errors import NotFoundError
 
 @controller(prefix="", tags=["Products"])
 class ProductsController:
-    def __init__(self, message_bus: MessageBus, views: Views) -> None:
-        self.messagebus = message_bus
-        self.views = views
+    messagebus: MessageBus
+    views: Views
 
     @post("/add_batch", response_model=DataResponse[str])
     async def add_batch(self, cmd: CreateBatch):
@@ -39,9 +38,8 @@ class ProductsController:
 
 @microservice(TransporterType.redis)
 class RedisMessagesControllers:
-    def __init__(self, logger: Logger, messagebus: MessageBus) -> None:
-        self.logger = logger
-        self.messagebus = messagebus
+    logger: Logger
+    messagebus: MessageBus
 
     @on("change_batch_quantity")
     async def change_batch_quantity(self, cmd: ChangeBatchQuantity):

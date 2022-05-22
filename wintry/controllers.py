@@ -523,7 +523,7 @@ def _controller(
     `cls`
     """
     # Make this class constructor based injectable
-    cls = inject(container=container)(cls) #type: ignore
+    cls = inject(container=container)(cls)  # type: ignore
 
     # Fastapi will handle Dependency Injection based on the class
     # signature. For that we must ensure that FastAPI encounters
@@ -673,19 +673,10 @@ def microservice(
 ) -> type[T] | Callable[[type[T]], type[T]]:
     """Transform a class into a Container for rpc
     calls endpoints. This is use with the same purpouse as
-    `controller` for web endpoints. Microservices are based
-    on `nameko`, so the same functionality is available.
-    In here are provided some functionalities on top
-    to improve developer experience and make it fully
-    compatible with `Wintry`
+    `controller` for web endpoints.
 
     Args:
-        cls(type[T] | None): The class to decorate.
-
-        service_name(str | None): The name to access this service. If None
-        then the name will be contructed from the decorated class in lowercase.
-
-        transporter(str | None): The name of the configured transporter for this
+        transporter(:ref:`TransporterType`): The name of the configured transporter for this
         microservice. This would add an event dispatcher
 
     Returns
@@ -694,6 +685,16 @@ def microservice(
     """
 
     def make_microservice(_cls: type[T]) -> type[T]:
+        _cls = dataclass(
+            eq=False,
+            order=False,
+            frozen=False,
+            match_args=False,
+            init=True,
+            kw_only=False,
+            repr=False,
+            unsafe_hash=False,
+        )(_cls)
         _cls = inject(_cls)
 
         # register this class as a controller
