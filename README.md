@@ -11,15 +11,15 @@
 ![](https://img.shields.io/static/v1?label=pypi%20package&message=v0.1.0&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 
 
-Hello, friend, welcome to ☃️**Wintry**☃️. You may have stumble with this project searching
+Hello, friend, welcome to 🐧**Wintry**🐧. You may have stumble with this project searching
 for a python web framework, well, you got what you want.
 
 Pherhaps you know many other frameworks, pherhaps you know Django, or maybe Flask,
 or hopefully FastAPI. And odds are that you are willing to take a new project for a
-ride with a new alternative. Well, ☃️**Wintry**☃️ is this, your new alternative, one that
+ride with a new alternative. Well, 🐧**Wintry**🐧 is this, your new alternative, one that
 do not push you out of your confort zone, but do not take the "written before" path.
 
-Beign accured, if you have used FastAPI, you would feel at home, ☃️**Wintry**☃️ is heavilly
+Beign accured, if you have used FastAPI, you would feel at home, 🐧**Wintry**🐧 is heavilly
 inspired in FastAPI, it actually uses it whenever it can. But it add a bunch of 
 😎'cool'🆒 stuff on top.
 
@@ -37,22 +37,22 @@ Ok, but, Django has a lot of cool features too, it is even called 'Batteries inc
 framework', and it is true, I mean, who doesn't love the Django's builtin Admin Interface,
 or Django Forms?, not to mention DjangoRestFramework which is a REAALLY cool piece of software.
 
-Enough flattering, ☃️**Wintry**☃️ will try to be the new Kid in Town, to provide a DDD
+Enough flattering, 🐧**Wintry**🐧 will try to be the new Kid in Town, to provide a DDD
 focused experience, with builtin Dependency Injection system, a dataclasses based
 Repository Pattern implementation, Unit Of Work, Events Driven Components and a lot more.
 Actually, I aimed to provide a similar experience with Repositories than that of
-Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with ☃️**Wintry**☃️.
+Spring JPA. Just look at the example, it is really easy to write decoupled and modularized applications with 🐧**Wintry**🐧.
 
-Let's see what ☃️**Wintry**☃️ looks like:
+Let's see what 🐧**Wintry**🐧 looks like:
 
 ```python
 from wintry.models import Model
 from wintry.repository import Repository
 from wintry.controllers import controller, post, get
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 from wintry.errors import NotFoundError
 from dataclasses import field
-from bson import ObjectId
+from uuid import uuid4
 from pydantic import BaseModel
 from wintry import App
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
@@ -60,12 +60,12 @@ from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 class Hero(Model):
     city: str
     name: str
-    id: str = field(default_factory=lambda: str(ObjectId()))
+    id: str = field(default_factory=lambda: uuid4().hex)
 
 class Villain(Model):
     name: str
     city: str
-    id: str = field(default_factory=lambda: str(ObjectId()))
+    id: str = field(default_factory=lambda: uuid4().hex)
     hero: Hero | None = None
 
 class HeroForm(BaseModel):
@@ -83,9 +83,8 @@ class VillainRepository(Repository[Villain, str], entity=Villain):
 
 @controller
 class MarvelController:
-    def __init__(self, heroes: HeroRepository, villains: VillainRepository):
-        self.heroes = heroes
-        self.villains = villains
+    heroes: HeroRepository
+    villains: VillainRepository
 
     @post('/hero', response_model=Hero)
     async def save_hero(self, hero_form: HeroForm = Body(...)):
@@ -113,7 +112,7 @@ settings = WinterSettings(
     ],
 )
 
-api = App(settings=settings)
+api = App(settings)
 ```
 
 Note that the method **get_by_name** is NOT IMPLEMENTED, but it somehow still works :). The thing is Repositories are query compilers,
@@ -160,7 +159,7 @@ CQRS, etc.)
 
 * Reactive Domain Models.
 
-* Dependency Injection.
+* Dependency Injection (Next Level).
 
 * Publisher Subscribers.
 
