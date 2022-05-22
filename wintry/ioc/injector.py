@@ -199,19 +199,25 @@ def provider(cls: type[T], /) -> type[T]:
 
 
 @overload
-def provider(
-    cls: None, /
-) -> Callable[[type[T] | Callable[..., T]], type[T] | Callable[..., T]]:
+def provider(cls: Callable[..., T], /) -> Callable[..., T]:
     ...
 
 
 @overload
 def provider(
+    cls: None, /
+) -> Callable[[type[T] | Callable[..., T]], type[T] | Callable[..., T]]:
+    ...
+
+I = TypeVar("I")
+
+@overload
+def provider(
     *,
-    of: type[T] | None = None,
+    of: type[I] | None = None,
     singleton: bool = True,
     container: IGlooContainer = igloo,
-) -> Callable[[type[T]], type[T]]:
+) -> Callable[[type[T] | Callable[..., T]], type[T]]:
     ...
 
 

@@ -25,8 +25,6 @@ from fastapi.responses import JSONResponse
 from starlette.routing import Route, BaseRoute
 from starlette.types import ASGIApp
 from fastapi.routing import APIRoute
-from wintry.dependency_injection import Factory, __mappings__
-from inject import autoparams
 from dataclasses import dataclass
 from wintry.settings import TransporterType
 from wintry.utils.keys import __winter_transporter_name__, __winter_microservice_event__
@@ -696,8 +694,7 @@ def microservice(
     """
 
     def make_microservice(_cls: type[T]) -> type[T]:
-        wrapper = autoparams()
-        _cls = wrapper(_cls)
+        _cls = inject(_cls)
 
         # register this class as a controller
 

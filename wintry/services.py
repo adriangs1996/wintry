@@ -1,8 +1,7 @@
 from logging import Logger
 import logging
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 
-
-@provider(interface=Logger, as_provider=False)  # type: ignore
+@provider(of=Logger)
 def get_logger():
     return logging.getLogger("logger")
