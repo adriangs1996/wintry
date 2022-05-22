@@ -121,12 +121,12 @@ class User:
     name: str
     password: str
 
-@provider(container=container)
+@provider
 class UserService:
     def do_something_user(self, user: User):
         return user.name + " " + user.password
 
-@controller(container=container)
+@controller
 class Controller:
     service: UserService
     # This is populated on each request
