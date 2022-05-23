@@ -133,7 +133,7 @@ def decorate(func: Callable[..., Any], igloo: IGlooContainer):
 
     parameters_name, parameters = _inspect_function_arguments(func)
 
-    # Reproduce kink from now on. This is very standard DI Container Stuff
+    # This is very standard DI Container Stuff
 
     def _resolve_kwargs(args, kwargs) -> dict:
         # attach named arguments

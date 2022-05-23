@@ -8,7 +8,7 @@ from wintry.utils.keys import (
     __winter_backend_identifier_key__,
     __RepositoryType__,
     __winter_repository_is_using_sqlalchemy__,
-    __winter_session_key__
+    __winter_session_key__,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorClientSession
@@ -71,8 +71,8 @@ class Repository(abc.ABC, ICrudRepository[T, TypeId]):
         if (session := getattr(self, __winter_session_key__, None)) is not None:
             if isinstance(session, AsyncIOMotorClientSession):
                 # This is an AsyncioMotorSession. Inside that session, we have
-                # a client property that maps to the 
-                db_name = get_connection(backend_name).name #type: ignore
+                # a client property that maps to the
+                db_name = get_connection(backend_name).name  # type: ignore
                 return session.client[db_name]
             return session
 
@@ -111,7 +111,7 @@ class IRepository(abc.ABC):
                 # This is an AsyncioMotorSession. Inside that session, we have
                 # a client property that maps to the AsyncIOMotorClient. need to
                 # build the db from that
-                db_name = get_connection(backend_name).name #type: ignore
+                db_name = get_connection(backend_name).name  # type: ignore
                 return session.client[db_name]
             return session
 
@@ -147,7 +147,7 @@ class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
 
         if (session := getattr(self, __winter_session_key__, None)) is not None:
             # NOSQL Repository is for Mongo purpouses only
-            db_name = get_connection(backend_name).name #type: ignore
+            db_name = get_connection(backend_name).name  # type: ignore
             return session.client[db_name]
 
         return get_connection(backend_name)
@@ -175,7 +175,6 @@ class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
 class SqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
     def __init__(self) -> None:
         ...
-
 
     def connection(self) -> AsyncSession:
         if (session := getattr(self, __winter_session_key__, None)) is not None:
