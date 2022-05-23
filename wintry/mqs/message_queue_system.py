@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from functools import update_wrapper
 from inspect import iscoroutine, iscoroutinefunction, signature
 from typing import Any, Callable, Coroutine, TypeVar, overload

@@ -4,6 +4,7 @@ import mongomock
 from mongomock import collection as mongomock_collection
 from mongomock.mongo_client import MongoClient
 
+
 class WrappableClass:
     ASYNC_METHODS: ClassVar[list[str]] = []
 
@@ -67,7 +68,7 @@ class AsyncMongoCollection(WrappableClass, mongomock.Collection):
     ]
 
     # overwrite find as it returns a cursors
-    def find(self, *args, **kwargs)-> AsyncMongoCursor:
+    def find(self, *args, **kwargs) -> AsyncMongoCursor:
         cursor = super().find(*args, **kwargs)
 
         # Ok, this is going to feel like a bit of magic, and it is.
@@ -75,7 +76,8 @@ class AsyncMongoCollection(WrappableClass, mongomock.Collection):
         # with the methods defined in AsyncMongoCursor.
         cursor.__class__ = AsyncMongoCursor
 
-        return cursor #type: ignore
+        return cursor  # type: ignore
+
 
 class AsyncMongoMockDatabase(mongomock.Database):
     ASYNC_METHODS = ["list_collection_names"]
@@ -83,9 +85,17 @@ class AsyncMongoMockDatabase(mongomock.Database):
     def get_collection(self, *args, **kwargs) -> AsyncMongoCollection:
         collection = super().get_collection(*args, **kwargs)
         collection.__class__ = AsyncMongoCollection
-        return collection #type: ignore
+        return collection  # type: ignore
 
-class MongoSession():
+
+class MongoSession:
+    # The mongo session requires some specific functionalities
+    # from the wintry perspective. For example, we require
+    # that the session contains information about the client
+    #  who started it
+    def __init__(self, client: "AsyncMongoMockClient") -> None:
+        self.client = client
+
     async def __aenter__(self):
         await asyncio.sleep(0)
 
@@ -97,8 +107,8 @@ class AsyncMongoMockClient(MongoClient):
     def get_database(self, *args, **kwargs) -> AsyncMongoMockDatabase:
         db = super().get_database(*args, **kwargs)
         db.__class__ = AsyncMongoMockDatabase
-        return db # type: ignore
+        return db  # type: ignore
 
     async def start_session(self, **kwargs):
         await asyncio.sleep(0)
-        return MongoSession()
+        return MongoSession(self)

@@ -32,7 +32,7 @@ settings = WinterSettings(
             connection_options=ConnectionOptions(url="redis://localhost"),
         )
     ],
-    app_root="tuto",
+    modules=["tuto"],
     app_path="tuto.app:api",
     server_title="Testing Server API",
     server_version="0.0.1",

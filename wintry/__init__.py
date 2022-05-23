@@ -1,6 +1,5 @@
 import importlib
 import logging
-from enum import Enum
 from typing import Any, Callable, Coroutine, Sequence, Union
 
 import uvicorn
@@ -40,12 +39,6 @@ from wintry.utils.loaders import autodiscover_modules
 from wintry.ioc import inject
 
 BACKENDS: dict[str, Backend] = {}
-
-
-class ServerTypes(Enum):
-    API = 0
-    RPC = 1
-    SUBSCRIBER = 2
 
 
 class NotConfiguredFactoryForServerType(Exception):

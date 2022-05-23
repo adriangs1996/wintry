@@ -1,6 +1,7 @@
 from typer.testing import CliRunner
 from wintry.cli.cli import app
 from wintry.models import Model
+import pytest
 
 
 class Address(Model):
@@ -52,10 +53,9 @@ def test_generate_user_with_list_of_addresses():
     assert "name: str" in result.stdout
     assert "addresses: list[Address] = field(default_factory=list)" in result.stdout
 
+
 def test_generate_model_alias():
-    result = cli_runner.invoke(
-        app, ["g", "m", "User", '"age:int:0 name:str"', "--dry"]
-    )
+    result = cli_runner.invoke(app, ["g", "m", "User", '"age:int:0 name:str"', "--dry"])
     assert result.exit_code == 0
     assert "from wintry.models import Model" in result.stdout
     assert "from dataclasses import field" in result.stdout
@@ -64,6 +64,7 @@ def test_generate_model_alias():
     assert "name: str" in result.stdout
 
 
+@pytest.mark.skip
 def test_generate_controller():
     result = cli_runner.invoke(
         app, ["g", "controller", "user", "--tag", "Users", "--prefix", "users", "--dry"]

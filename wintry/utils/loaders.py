@@ -21,26 +21,8 @@ def to_package_format(path: Path) -> str:
     return module
 
 
-def autodiscover_modules(settings: WinterSettings = WinterSettings()):
-    """Utility to automatically import the app's modules so there is
-    no need to manual importing controllers, services, etc, to provide
-    the necessary registry for DI
-    
-    Args:
-        settings(WinterSettings): App global configuration. If omitted, will be
-        constructed with defaults and .env variables
-        
-    Returns:
-        None
-    
-    """
-    logger = logging.getLogger("logger")
-    app_root = Path(settings.app_root)
-
-    if not app_root.is_dir():
-        raise LoaderError(f"settings.app_root is not a dir: {app_root}")
-
-    dirs: list[Path] = [app_root]
+def discover(path: Path, settings: WinterSettings, logger: logging.Logger):
+    dirs: list[Path] = [path]
     while dirs:
         module = dirs.pop(0)
         for sub_module in module.iterdir():
@@ -55,3 +37,29 @@ def autodiscover_modules(settings: WinterSettings = WinterSettings()):
                             importlib.import_module(mod)
                     except ModuleNotFoundError as e:
                         raise LoaderError(str(e))
+
+
+def autodiscover_modules(settings: WinterSettings = WinterSettings()):
+    """Utility to automatically import the app's modules so there is
+    no need to manual importing controllers, services, etc, to provide
+    the necessary registry for DI
+
+    Args:
+        settings(WinterSettings): App global configuration. If omitted, will be
+        constructed with defaults and .env variables
+
+    Returns:
+        None
+
+    """
+    logger = logging.getLogger("logger")
+
+    for module in settings.modules:
+        app_root = Path(module)
+
+        if not app_root.is_dir():
+            raise LoaderError(
+                f"{app_root.resolve()} is not a dir. Autodiscovery must be called on a dir."
+            )
+
+        discover(app_root, settings, logger)

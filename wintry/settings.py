@@ -96,7 +96,7 @@ class WinterSettings(pdc.BaseSettings):
 
     ensure_metadata: bool = True
 
-    app_root: str = "."
+    modules: list[str] = ["."]
     """
     The root of the server implementation. This is not like a wwwroot
     in .NET, is a config param for auto_discovery tool and for app

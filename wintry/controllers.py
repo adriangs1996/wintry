@@ -458,7 +458,7 @@ def controller(
     type-hints would be used as interface-resolvers for this dependencies.
 
     This decorator effectively decorates the class constructor with
-    `inject.autoparams()` so any non-resolved dependency would
+    `inject()` so any non-resolved dependency would
     issue an exception at runtime.
 
     Controllers should be imported before `Server` creation, so the controller
