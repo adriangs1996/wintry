@@ -38,6 +38,8 @@ from wintry.transporters.service_container import ServiceContainer
 from wintry.utils.loaders import autodiscover_modules
 from wintry.ioc import inject
 
+__version__ = "0.1.2"
+
 BACKENDS: dict[str, Backend] = {}
 
 
