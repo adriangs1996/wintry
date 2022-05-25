@@ -107,13 +107,46 @@ def Notlt(field: str, value: Any) -> Dict[str, Dict[str, Any]]:
     return {field: {"$not": {"$lt": value}}}
 
 
+def get_field_from_args(expected_name: str, kwargs: dict[str, Any]):
+    """Resolve a field name from kwargs. The thing is that we use _ as
+    separator for parsing, but in python, default naming convention
+    is snake_case, so we must do some field preprocessing for supporting this
+    """
+    # normal case: field name is exactly contained in kwargs
+    if expected_name in kwargs:
+        return expected_name, kwargs.get(expected_name)
+
+    # ok, field name is not exactly in kwargs, but we might
+    # have a compressed version. For example, we want to match
+    # issystem with is_system and composed fields as
+    # user__address__streetname with user__address__street_name.
+
+    # The examples reveals that simply compressing args is not enough.
+    # We need to maintain the __, so we first replace __ with a dummy ($),
+    # then compress, and finally replace the dummy with __ again
+    def compress(arg: str):
+        arg_with_dummy = arg.replace("__", "$")
+        arg_compressed_with_dummy = arg_with_dummy.replace("_", "")
+        return arg_compressed_with_dummy.replace("$", "__")
+
+    args = zip(
+        tuple(map(compress, kwargs.keys())), tuple(kwargs.values()), tuple(kwargs.keys())
+    )
+    for field, value, original_field_name in args:
+        if expected_name == field:
+            return original_field_name, value
+
+    raise ExecutionError(f"{expected_name} was not suplied as argument")
+
+
 def create_expression(node: FilterNode, op: Any, **kwargs: Any) -> Any:
     field_name = node.field
     if "." in field_name:
         value_query = "__".join(field_name.split("."))
     else:
         value_query = field_name
-    value = kwargs.get(value_query, None)
+    field_name, value = get_field_from_args(value_query, kwargs)
+    field_name = field_name.replace("__", ".")
     if value is None:
         raise ExecutionError(f"{field_name} was not suplied as argument")
 
@@ -168,7 +201,8 @@ class MongoDbDriver(QueryDriver):
     def init(self, settings: BackendOptions) -> None:  # type: ignore
         if settings.connection_options.url is not None:
             self.client = cast(
-                Client, motor.motor_asyncio.AsyncIOMotorClient(settings.connection_options.url)
+                Client,
+                motor.motor_asyncio.AsyncIOMotorClient(settings.connection_options.url),
             )
         else:
             host = settings.connection_options.host
@@ -181,10 +215,14 @@ class MongoDbDriver(QueryDriver):
     async def init_async(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    async def get_query_repr(self, query_expression: RootNode, table: type, **kwargs: Any) -> str:
+    async def get_query_repr(
+        self, query_expression: RootNode, table: type, **kwargs: Any
+    ) -> str:
         return await self.query(query_expression, table, **kwargs)
 
-    async def run(self, query_expression: RootNode, table: type, session: Any = None, **kwargs: Any) -> Any:
+    async def run(
+        self, query_expression: RootNode, table: type, session: Any = None, **kwargs: Any
+    ) -> Any:
         return super().run(query_expression, table, session=session, **kwargs)
 
     async def run_async(
@@ -193,7 +231,9 @@ class MongoDbDriver(QueryDriver):
         return await self.visit(query_expression, table, session=session, **kwargs)
 
     @singledispatchmethod
-    async def query(self, node: OpNode, table: type, session: Any = None, **kwargs: Any) -> str:
+    async def query(
+        self, node: OpNode, table: type, session: Any = None, **kwargs: Any
+    ) -> str:
         return await self.visit(node, table, **kwargs)
 
     @query.register
@@ -205,7 +245,9 @@ class MongoDbDriver(QueryDriver):
         return f"db.{get_tablename(table)}.find({filters}).to_list()"
 
     @query.register
-    async def _(self, node: Delete, table: type, session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Delete, table: type, session: Any = None, **kwargs: Any
+    ) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table, **kwargs) or ""
         else:
@@ -218,7 +260,9 @@ class MongoDbDriver(QueryDriver):
         return f"db.{get_tablename(table)}.find_one({filters})"
 
     @query.register
-    async def _(self, node: Create, table: type, session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Create, table: type, session: Any = None, **kwargs: Any
+    ) -> str:
         entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
@@ -229,7 +273,9 @@ class MongoDbDriver(QueryDriver):
         return f"db.{get_tablename(table)}.insert_one({entity})"
 
     @query.register
-    async def _(self, node: Update, table: type, *, entity: Any, session: Any = None) -> str:
+    async def _(
+        self, node: Update, table: type, *, entity: Any, session: Any = None
+    ) -> str:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
@@ -240,11 +286,15 @@ class MongoDbDriver(QueryDriver):
         return f"db.{get_tablename(table)}.update_one({{'id': {_id}}}, {entity})"
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, table: type, session: Any = None, **kwargs: Any) -> Any:
+    async def visit(
+        self, node: OpNode, table: type, session: Any = None, **kwargs: Any
+    ) -> Any:
         raise NotImplementedError
 
     @visit.register
-    async def _(self, node: Create, table: type, session: Any = None, **kwargs: Any) -> Any:
+    async def _(
+        self, node: Create, table: type, session: Any = None, **kwargs: Any
+    ) -> Any:
         entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
@@ -257,7 +307,9 @@ class MongoDbDriver(QueryDriver):
         return map_to_table(table, entity)
 
     @visit.register
-    async def _(self, node: Update, table: type, *, entity: Any, session: Any = None) -> Any:
+    async def _(
+        self, node: Update, table: type, *, entity: Any, session: Any = None
+    ) -> Any:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
@@ -280,7 +332,9 @@ class MongoDbDriver(QueryDriver):
         return [map_to_table(table, doc) for doc in documents]
 
     @visit.register
-    async def _(self, node: Delete, table: type, session: Any = None, **kwargs: Any) -> Any:
+    async def _(
+        self, node: Delete, table: type, session: Any = None, **kwargs: Any
+    ) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table, **kwargs) or {}
         else:

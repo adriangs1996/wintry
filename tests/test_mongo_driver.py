@@ -35,7 +35,7 @@ async def test_driver_panics_on_update_with_no_id():
 
     query_repr = await driver.get_query_repr(query, User, entity=User(id=1, name="tests", age=10))
 
-    assert query_repr == "db.users.update_one({'id': 1}, {'name': 'tests', 'age': 10})"
+    assert query_repr == "db.users.update_one({'id': 1}, {'id': 1, 'name': 'tests', 'age': 10})"
 
 
 @pytest.mark.asyncio

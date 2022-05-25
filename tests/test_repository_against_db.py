@@ -11,6 +11,17 @@ from dataclass_wizard import fromdict
 from bson import ObjectId
 
 
+class HardFields(Model):
+    id: int
+    this_is_a_complex_field: str
+    easy_field: int
+
+
+class HardcoreFields(Model):
+    id: int
+    hard_fields: HardFields
+
+
 class Address(Model):
     latitude: float
     longitude: float
@@ -39,6 +50,27 @@ def db() -> AsyncIOMotorDatabase:
     RepositoryRegistry.configure_for_nosql()
     init_backends()
     return get_connection()  # type: ignore
+
+
+class HardFieldsRepository(
+    Repository[HardFields, int], entity=HardFields, table_name="hf"
+):
+    async def get_by_easyfield(self, *, easy_field: int) -> HardFields:
+        ...
+
+    async def get_by_thisisacomplexfield(
+        self, *, this_is_a_complex_field: str
+    ) -> HardFields:
+        ...
+
+
+class HardcoreRepository(
+    Repository[HardcoreFields, int], entity=HardcoreFields, table_name="hrd"
+):
+    async def get_by_hardfields__easyfield(
+        self, *, hard_fields__easy_field: int
+    ) -> HardcoreFields:
+        ...
 
 
 class UserRepository(Repository[User, int], entity=User):
@@ -71,10 +103,14 @@ async def clean(db: AsyncIOMotorDatabase) -> AsyncGenerator[None, None]:
     yield
     await db.users.delete_many({})
     await db.heroes.delete_many({})
+    await db.hf.delete_many({})
+    await db.hrd.delete_many({})
 
 
 @pytest.mark.asyncio
-async def test_repository_can_create_user_against_db(clean: Any, db: AsyncIOMotorDatabase) -> None:
+async def test_repository_can_create_user_against_db(
+    clean: Any, db: AsyncIOMotorDatabase
+) -> None:
     repo = UserRepository()
 
     await repo.create(entity=User(id=1, name="test", age=26))
@@ -84,7 +120,9 @@ async def test_repository_can_create_user_against_db(clean: Any, db: AsyncIOMoto
 
 
 @pytest.mark.asyncio
-async def test_repository_can_update_against_db(clean: Any, db: AsyncIOMotorDatabase) -> None:
+async def test_repository_can_update_against_db(
+    clean: Any, db: AsyncIOMotorDatabase
+) -> None:
     await db.users.insert_one({"id": 1, "name": "test", "age": 10})
 
     repo = UserRepository()
@@ -95,7 +133,9 @@ async def test_repository_can_update_against_db(clean: Any, db: AsyncIOMotorData
 
 
 @pytest.mark.asyncio
-async def test_repository_can_retrieve_all_users_from_db(clean: Any, db: AsyncIOMotorDatabase) -> None:
+async def test_repository_can_retrieve_all_users_from_db(
+    clean: Any, db: AsyncIOMotorDatabase
+) -> None:
     await db.users.insert_one({"id": 1, "name": "test", "age": 10})
     await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
@@ -119,7 +159,9 @@ async def test_repository_can_get_by_id(clean: Any, db: AsyncIOMotorDatabase) ->
 
 
 @pytest.mark.asyncio
-async def test_repository_returns_none_when_no_id(clean: Any, db: AsyncIOMotorDatabase) -> None:
+async def test_repository_returns_none_when_no_id(
+    clean: Any, db: AsyncIOMotorDatabase
+) -> None:
     await db.users.insert_one({"id": 1, "name": "test", "age": 10})
     await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
@@ -140,7 +182,9 @@ async def test_repository_runs_raw_method(clean: Any, db: AsyncIOMotorDatabase) 
 
 
 @pytest.mark.asyncio
-async def test_raw_method_can_call_compiled_method(clean: Any, db: AsyncIOMotorDatabase) -> None:
+async def test_raw_method_can_call_compiled_method(
+    clean: Any, db: AsyncIOMotorDatabase
+) -> None:
     await db.users.insert_one({"id": 1, "name": "test", "age": 10})
     await db.users.insert_one({"id": 2, "name": "test2", "age": 20})
 
@@ -191,7 +235,9 @@ async def test_nested_field_find_query(clean: Any, db: AsyncIOMotorDatabase) -> 
 
 
 @pytest.mark.asyncio
-async def test_repository_insert_nested_field(clean: Any, db: AsyncIOMotorDatabase) -> None:
+async def test_repository_insert_nested_field(
+    clean: Any, db: AsyncIOMotorDatabase
+) -> None:
     user = User(id=1, name="test", age=10, address=Address(latitude=3.0, longitude=4.0))
     repo = UserRepository()
     await repo.create(entity=user)
@@ -228,3 +274,61 @@ async def test_repository_can_retrieve_dataclass(clean: Any, db: Any) -> None:
     assert hero.name == "test2"
     assert len(hero.cities) == 1
     assert isinstance(hero.cities[0], City)
+
+
+@pytest.mark.asyncio
+async def test_field_snake_case(clean: Any, db: Any):
+    await db.hf.insert_many(
+        [
+            {"id": 1, "this_is_a_complex_field": "HUMM", "easy_field": 10},
+            {"id": 2, "this_is_a_complex_field": "GUMM", "easy_field": 20},
+        ]
+    )
+
+    repo = HardFieldsRepository()
+    hf = await repo.get_by_easyfield(easy_field=10)
+    assert hf == HardFields(id=1, this_is_a_complex_field="HUMM", easy_field=10)
+
+
+@pytest.mark.asyncio
+async def test_field_snake_case_hard(clean: Any, db: Any):
+    await db.hf.insert_many(
+        [
+            {"id": 1, "this_is_a_complex_field": "HUMM", "easy_field": 10},
+            {"id": 2, "this_is_a_complex_field": "GUMM", "easy_field": 20},
+        ]
+    )
+
+    repo = HardFieldsRepository()
+    hf = await repo.get_by_thisisacomplexfield(this_is_a_complex_field="HUMM")
+    assert hf == HardFields(id=1, this_is_a_complex_field="HUMM", easy_field=10)
+
+
+@pytest.mark.asyncio
+async def test_field_snake_case_nested(clean: Any, db: Any):
+    await db.hrd.insert_many(
+        [
+            {
+                "id": 1,
+                "hard_fields": {
+                    "id": 1,
+                    "this_is_a_complex_field": "HUMM",
+                    "easy_field": 10,
+                },
+            },
+            {
+                "id": 2,
+                "hard_fields": {
+                    "id": 2,
+                    "this_is_a_complex_field": "GUMM",
+                    "easy_field": 20,
+                },
+            },
+        ]
+    )
+
+    repo = HardcoreRepository()
+    hrd = await repo.get_by_hardfields__easyfield(hard_fields__easy_field=10)
+    assert hrd == HardcoreFields(
+        id=1, hard_fields=HardFields(id=1, this_is_a_complex_field="HUMM", easy_field=10)
+    )

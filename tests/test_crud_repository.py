@@ -42,7 +42,7 @@ async def test_repository_can_update_user() -> None:
 
     assert (
         str_query
-        == "db.users.update_one({'id': 10}, {'username': 'test', 'password': 'secret'})"
+        == "db.users.update_one({'id': 10}, {'id': 10, 'username': 'test', 'password': 'secret'})"
     )
 
 
