@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wintry"
-version = "0.1.1"
+version = "0.1.2"
 description = "A modern python web framework. Based on python-3.10, dataclasses and type-hints"
 authors = ["adriangs1996 <adriangonzalezsanchez1996@gmail.com>"]
 license = "MIT"
@@ -22,6 +22,7 @@ motor = "^2.5.1"
 SQLAlchemy = "^1.4.35"
 asyncpg = "^0.25.0"
 dataclass-wizard = "^0.22.0"
+pydantic = "1.9.0"
 aioredis = {version = "^2.0.1", optional = true }
 fastapi = "^0.78.0"
 aio-pika = "^7.2.0"
