@@ -69,7 +69,7 @@ def proxyfied(result: Any | list[Any], tracker, origin: Any):
     to comply to the interface defined by the new :func:`__setattr__` implemented
     with a call to :func:`make_proxy_ref`
     """
-    if result is None:
+    if result is None or type(result) in __mappings_builtins__:
         return result
 
     if not isinstance(result, list):

@@ -24,8 +24,8 @@ from wintry.query.nodes import (
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
 from wintry.settings import BackendOptions, EngineType
-from dataclasses import is_dataclass
-from dataclass_wizard import asdict, fromdict
+from dataclasses import is_dataclass, asdict
+from dataclass_wizard import fromdict
 
 
 class MongoSession(AgnosticClientSession):
@@ -224,7 +224,7 @@ class MongoDbDriver(QueryDriver):
             raise ExecutionError("Entity parameter required for create operation")
 
         if is_dataclass(entity):
-            entity = asdict(entity, skip_defaults=True)
+            entity = asdict(entity)
 
         return f"db.{get_tablename(table)}.insert_one({entity})"
 
@@ -235,7 +235,7 @@ class MongoDbDriver(QueryDriver):
             raise ExecutionError("Entity must have id field")
 
         if is_dataclass(entity):
-            entity = asdict(entity, exclude=["id"])
+            entity = asdict(entity)
 
         return f"db.{get_tablename(table)}.update_one({{'id': {_id}}}, {entity})"
 
@@ -250,7 +250,7 @@ class MongoDbDriver(QueryDriver):
             raise ExecutionError("Entity parameter required for create operation")
 
         if is_dataclass(entity):
-            entity = asdict(entity, skip_defaults=True)
+            entity = asdict(entity)
 
         collection = self.db[get_tablename(table)]
         await collection.insert_one(entity, session=session)  # type: ignore
@@ -263,7 +263,7 @@ class MongoDbDriver(QueryDriver):
             raise ExecutionError("Entity must have id field")
 
         if is_dataclass(entity):
-            entity = asdict(entity, exclude=["id"])
+            entity = asdict(entity)
 
         collection = self.db[get_tablename(table)]
         await collection.update_one({"id": _id}, {"$set": entity}, session=session)  # type: ignore
