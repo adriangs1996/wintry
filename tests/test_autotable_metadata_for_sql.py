@@ -1,6 +1,7 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection, BACKENDS
 from wintry.models import VirtualDatabaseSchema, Model
+from wintry.repository.base import query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
@@ -48,12 +49,14 @@ class Bar(Model):
 
 
 class UserRepository(Repository[TestUser, int], entity=TestUser):
+    @query
     async def find_by_id_or_name_and_age_lowerThan(
         self, *, id: int, name: str, age: int
     ) -> List[TestUser]:
         ...
 
 class FooRepository(Repository[Foo, str], entity=Foo):
+    @query
     async def find_by_bar__y_lowerThan(self, *, bar__y: int) -> list[Foo]:
         ...
 

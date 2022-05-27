@@ -5,7 +5,7 @@ from wintry import get_connection, init_backends, BACKENDS
 from wintry.models import Model
 from wintry.orm import for_model
 from wintry.transactions.unit_of_work import UnitOfWork, UnitOfWorkError
-from wintry.repository import NoSqlCrudRepository, SqlCrudRepository, RepositoryRegistry
+from wintry.repository import Repository
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import MetaData, select, delete, insert, Column, Integer, String
@@ -37,7 +37,7 @@ UserTable = for_model(
 # User has already been mapped to a SQLAlchemy Table. And User could still be used
 # as a regular POPO class, and for MONGO, winter is really powerful
 class UserMongoRepository(
-    NoSqlCrudRepository[User, int],
+    Repository[User, int],
     entity=User,
     mongo_session_managed=True,
     for_backend="default",
@@ -49,7 +49,7 @@ class UserMongoRepository(
 # define two data sources for the same model, at least not in this way.
 # But winter is powerful, and winter is comming, so I will allow it here
 class UserPostgressRepository(
-    SqlCrudRepository[User, int], entity=User, for_backend="postgres"
+    Repository[User, int], entity=User, for_backend="postgres"
 ):
     pass
 

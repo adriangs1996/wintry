@@ -1,7 +1,7 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection
 from wintry.models import Model
-from wintry.repository import raw_method
+from wintry.repository import managed
 from wintry.repository import Repository, RepositoryRegistry
 import pytest
 import pytest_asyncio
@@ -9,6 +9,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from dataclasses import field
 from dataclass_wizard import fromdict
 from bson import ObjectId
+
+from wintry.repository.base import query
 
 
 class HardFields(Model):
@@ -55,9 +57,11 @@ def db() -> AsyncIOMotorDatabase:
 class HardFieldsRepository(
     Repository[HardFields, int], entity=HardFields, table_name="hf"
 ):
+    @query
     async def get_by_easyfield(self, *, easy_field: int) -> HardFields:
         ...
 
+    @query
     async def get_by_thisisacomplexfield(
         self, *, this_is_a_complex_field: str
     ) -> HardFields:
@@ -67,6 +71,7 @@ class HardFieldsRepository(
 class HardcoreRepository(
     Repository[HardcoreFields, int], entity=HardcoreFields, table_name="hrd"
 ):
+    @query
     async def get_by_hardfields__easyfield(
         self, *, hard_fields__easy_field: int
     ) -> HardcoreFields:
@@ -74,7 +79,7 @@ class HardcoreRepository(
 
 
 class UserRepository(Repository[User, int], entity=User):
-    @raw_method
+    @managed
     async def get_user_by_name(self, name: str, session: Any = None) -> User | None:
         db = self.connection()
         row = await db.users.find_one({"name": name})
@@ -83,13 +88,15 @@ class UserRepository(Repository[User, int], entity=User):
         else:
             return None
 
-    @raw_method
+    @managed
     async def list(self, session: Any = None) -> List[User]:
         return await self.find()
 
+    @query
     async def find_by_name_or_age_lowerThan(self, *, name: str, age: int) -> List[User]:
         ...
 
+    @query
     async def find_by_address__latitude(self, *, address__latitude: float) -> List[User]:
         ...
 

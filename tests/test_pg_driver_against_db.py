@@ -1,6 +1,7 @@
 from typing import Any, AsyncGenerator, List
 from wintry import init_backends, get_connection, BACKENDS
 from wintry.models import Model
+from wintry.repository.base import managed, query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
@@ -25,7 +26,7 @@ from dataclasses import field
 
 
 # Now import the repository
-from wintry.repository import SqlCrudRepository, raw_method
+from wintry.repository import Repository, managed
 
 
 class Address(Model):
@@ -68,13 +69,14 @@ UserTable = for_model(
 )
 
 
-class UserRepository(SqlCrudRepository[User, int], entity=User):
+class UserRepository(Repository[User, int], entity=User):
+    @query
     async def find_by_id_or_name_and_age_lowerThan(
         self, *, id: int, name: str, age: int
     ) -> List[User]:
         ...
 
-    @raw_method
+    @managed
     async def get_user(self, id: int) -> User | None:
         session = self.connection()
         return await session.get(User, id)

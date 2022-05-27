@@ -17,6 +17,7 @@ from sqlalchemy import (
     MetaData,
 )
 from wintry.repository import Repository, RepositoryRegistry
+from wintry.repository.base import query
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.transactions import UnitOfWork
 import pytest_asyncio
@@ -81,6 +82,7 @@ HeroTable = for_model(
 
 
 class UserRepository(Repository[User, int], entity=User):
+    @query
     async def find_by_id_or_name_and_age_lowerThan(
         self, *, id: int, name: str, age: int
     ) -> List[User]:

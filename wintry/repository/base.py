@@ -1,11 +1,10 @@
 import inspect
-from functools import lru_cache, partial
-from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar
+from functools import cache, lru_cache, partial, update_wrapper, wraps
+from typing import Any, Callable, Coroutine, List, Optional, Type, TypeVar, overload
 from wintry.errors.definitions import InternalServerError, InvalidRequestError
 from wintry.models import _is_private_attr
 from wintry import BACKENDS
 from wintry.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
-from wintry.sessions import MongoSessionTracker
 from wintry.utils.keys import (
     __mappings_builtins__,
     __RepositoryType__,
@@ -117,160 +116,6 @@ def marked(method: Callable[..., Any]) -> bool:
     return not getattr(method, "_raw_method", False)
 
 
-def repository(
-    entity: Type[T],
-    for_backend: str = "default",
-    table_name: Optional[str] = None,
-    dry: bool = False,
-    mongo_session_managed: bool = False,
-    force_nosql: bool = False,
-) -> Callable[[Type[TDecorated]], Type[TDecorated]]:
-    """
-    Convert a class into a repository (basically an object store) of `entity`.
-    Methods not marked with :func:`raw_method` will be compiled and processed by
-    the winter engine to automatically generate a query for the given function name.
-
-    This resembles JPA behaviour, but `entity` is not enforced to contain any DB
-    information. In fact, is possible to create a `Backend` based on Python's
-    built-in `Set` type, so in-memory testing is posible.
-
-    Repository classes are can be used with MongoDB, or any relational DB supported
-    by SQLAlchemy. `entity` does not need to fulfill any special rule, but if it is
-    recomended that it'd be a `dataclass`.
-
-    Example
-    =======
-
-    >>> @dataclass
-    >>> class User:
-    >>>     id: int
-    >>>     name: str
-    >>>
-    >>> @repository(User)
-    >>> class UserRepository:
-    >>>     async def get_by_id(self, *, id: int) -> User | None:
-    >>>         ...
-    >>>
-    >>> repo = UserRepository()
-    >>> loop = asyncio.get_event_loop()
-    >>> user = loop.run_until_complete(repo.get_by_id(id=2)) # It works!
-    >>>                                                      # And if an user exists, it automatically retrieves an
-    >>>                                                      # `User` instance. Use MongoDB by default
-
-    """
-
-    def __winter_init__(self, *args, **kwargs):
-        original_init = getattr(self, __winter_repo_old_init__)
-        original_init(*args, **kwargs)
-
-        # init tracker in the instance, because we do not
-        # want to share trackers among repositories
-        if mongo_session_managed:
-            setattr(self, __winter_tracker__, MongoSessionTracker(entity, for_backend))
-
-    def _runtime_method_parsing(cls: Type[TDecorated]) -> Type[TDecorated]:
-        # Augment the repository with a special property to reference the backend this
-        # repository is going to use
-        setattr(cls, __winter_backend_identifier_key__, for_backend)
-
-        # update the init method and save the original init
-        setattr(cls, __winter_repo_old_init__, cls.__init__)
-
-        # Need to stablish the signature of the new init as the old
-        # one for the sake of the framework inspection
-        sig = inspect.signature(cls.__init__)
-        setattr(__winter_init__, "__signature__", sig)
-
-        # replace the original init
-        setattr(cls, "__init__", __winter_init__)
-
-        if table_name is not None:
-            setattr(entity, "__tablename__", table_name)
-
-        # Prepare the repository with augmented properties
-        setattr(cls, __winter_session_key__, None)
-        if mongo_session_managed:
-            setattr(cls, __winter_manage_objects__, True)
-
-        def _getattribute(self: Any, __name: str) -> Any:
-            using_sqlalchemy = super(cls, self).__getattribute__(  # type: ignore
-                __winter_repository_is_using_sqlalchemy__
-            )
-
-            attr = super(cls, self).__getattribute__(__name)  # type: ignore
-            # Need to call super on this because we need to obtain a session without passing
-            # through this method
-            session = super(cls, self).__getattribute__(__winter_session_key__)  # type: ignore
-            try:
-                new_attr = _parse_function_name(for_backend, __name, attr, entity, dry)  # type: ignore
-            except Exception as e:
-                return attr
-
-            def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                try:
-                    result = new_attr(*args, session=session, **kwargs)
-                except Exception as e:
-                    handle_error(e)
-                if not using_sqlalchemy and mongo_session_managed:
-                    # Track the results, get the tracker instance from
-                    # the repo instance
-                    tracker = getattr(self, __winter_tracker__)
-                    return proxyfied(result, tracker, result)  # type: ignore
-                return result
-
-            async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                try:
-                    result = await new_attr(*args, session=session, **kwargs)
-                except Exception as e:
-                    handle_error(e)
-                if not using_sqlalchemy and mongo_session_managed:
-                    tracker = getattr(self, __winter_tracker__)
-                    return proxyfied(result, tracker, result)  # type: ignore
-                return result
-
-            def raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                try:
-                    result = new_attr(*args, **kwargs)
-                except Exception as e:
-                    handle_error(e)
-                if not using_sqlalchemy and mongo_session_managed:
-                    # Track the results, get the tracker instance from
-                    # the repo instance
-                    tracker = getattr(self, __winter_tracker__)
-                    return proxyfied(result, tracker, result)  # type: ignore
-                return result
-
-            async def async_raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
-                try:
-                    result = await new_attr(*args, **kwargs)
-                except Exception as e:
-                    handle_error(e)
-                if not using_sqlalchemy and mongo_session_managed:
-                    tracker = getattr(self, __winter_tracker__)
-                    return proxyfied(result, tracker, result)  # type: ignore
-                return result
-
-            if isinstance(new_attr, partial):
-                if inspect.iscoroutinefunction(new_attr.func):
-                    return async_wrapper
-                else:
-                    return wrapper
-            elif inspect.iscoroutinefunction(new_attr) and is_raw(new_attr):
-                return async_raw_wrapper
-            elif (inspect.isfunction(new_attr) or inspect.ismethod(new_attr)) and is_raw(
-                new_attr
-            ):
-                return raw_wrapper
-            else:
-                return new_attr
-
-        cls.__getattribute__ = _getattribute  # type: ignore
-
-        return cls
-
-    return _runtime_method_parsing
-
-
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 
@@ -289,13 +134,10 @@ def _parse_function_name(
     if repo_backend is None:
         raise RepositoryError(f"Not configured backend: {backend}")
 
-    if is_processable(fobject):
-        if inspect.iscoroutinefunction(fobject):
-            return repo_backend.run_async(fname, target, dry_run=dry)
-        else:
-            return repo_backend.run(fname, target, dry_run=dry)
+    if inspect.iscoroutinefunction(fobject):
+        return repo_backend.run_async(fname, target, dry_run=dry)
     else:
-        return fobject
+        return repo_backend.run(fname, target, dry_run=dry)
 
 
 def handle_error(exc: Exception):
@@ -308,3 +150,123 @@ def handle_error(exc: Exception):
 
 def is_raw(func):
     return getattr(func, "_raw_method", False)
+
+
+class Managed:
+    def __init__(self, fget=None):
+        self.fget = fget
+
+    def __set_name__(self, owner, name):
+        self.__winter_owner__ = owner
+
+    def __get__(self, obj, objtype=None):
+        self.__no_sql_session_manged__ = getattr(
+            self.__winter_owner__, "__nosql_session_managed__"
+        )
+        using_sqlalchemy = getattr(obj, __winter_repository_is_using_sqlalchemy__)
+
+        def raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
+            try:
+                result = self.fget(obj, *args, **kwargs)
+            except Exception as e:
+                handle_error(e)
+            if not using_sqlalchemy and self.__no_sql_session_manged__:
+                # Track the results, get the tracker instance from
+                # the repo instance
+                tracker = getattr(obj, __winter_tracker__)
+                return proxyfied(result, tracker, result)  # type: ignore
+            return result
+
+        async def async_raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
+            try:
+                result = await self.fget(obj, *args, **kwargs)
+            except Exception as e:
+                handle_error(e)
+            if not using_sqlalchemy and self.__no_sql_session_manged__:
+                tracker = getattr(obj, __winter_tracker__)
+                return proxyfied(result, tracker, result)  # type: ignore
+            return result
+
+        if inspect.iscoroutinefunction(self.fget):
+            return async_raw_wrapper
+        else:
+            return raw_wrapper
+
+
+class Query:
+    def __init__(self, fget=None, doc=None):
+        self.fget = fget
+        if doc is None and fget is not None:
+            doc = fget.__doc__
+        self.__doc__ = doc
+
+    def __set_name__(self, owner, name):
+        self.__winter_name__ = name
+        self.__winter_owner__ = owner
+
+    def __get__(self, obj, objtype=None):
+        dry = getattr(self.__winter_owner__, "__dry__", False)
+        backend = getattr(
+            self.__winter_owner__, __winter_backend_identifier_key__, "default"
+        )
+        ent = getattr(self.__winter_owner__, "__winter_entity__")
+
+        self.__func_application__ = _parse_function_name(
+            backend, self.__winter_name__, self.fget, ent, dry
+        )
+
+        self.__no_sql_session_manged__ = getattr(
+            self.__winter_owner__, "__nosql_session_managed__"
+        )
+
+        session = getattr(obj, __winter_session_key__, None)
+        using_sqlalchemy = getattr(obj, __winter_repository_is_using_sqlalchemy__)
+
+        def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
+            try:
+                result = self.__func_application__(*args, session=session, **kwargs)
+            except Exception as e:
+                handle_error(e)
+            if not using_sqlalchemy and self.__no_sql_session_manged__:
+                # Track the results, get the tracker instance from
+                # the repo instance
+                tracker = getattr(obj, __winter_tracker__)
+                return proxyfied(result, tracker, result)  # type: ignore
+            return result
+
+        async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
+            try:
+                result = await self.__func_application__(*args, session=session, **kwargs)
+            except Exception as e:
+                handle_error(e)
+            if not using_sqlalchemy and self.__no_sql_session_manged__:
+                tracker = getattr(obj, __winter_tracker__)
+                return proxyfied(result, tracker, result)  # type: ignore
+            return result
+
+        if inspect.iscoroutinefunction(self.fget):
+            return async_wrapper
+        else:
+            return wrapper
+
+
+@overload
+def query(func: T) -> T:  # type: ignore
+    ...
+
+
+def query(  # type: ignore
+    func: Callable[..., T] | Callable[..., Coroutine[None, None, T]]
+) -> Callable[..., T] | Callable[..., Coroutine[None, None, T]]:
+    new_func = Query(func)
+    return update_wrapper(new_func, func)  # type: ignore
+
+
+@overload
+def managed(func: T) -> T:  # type: ignore
+    ...
+
+
+def managed(func):  # type: ignore
+    new_func = Managed(func)
+    return update_wrapper(new_func, func)

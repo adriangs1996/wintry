@@ -4,7 +4,7 @@ from wintry import get_connection, init_backends
 from wintry.models import Model
 
 from wintry.repository import Repository, RepositoryRegistry
-from wintry.repository.base import raw_method
+from wintry.repository.base import query, managed
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.transactions import UnitOfWork
 import pytest
@@ -26,7 +26,7 @@ class User(Model):
 
 
 class UserRepository(Repository[User, int], entity=User, mongo_session_managed=True):
-    @raw_method
+    @managed
     async def get_user_by_name(self, name: str):
         db = self.connection()
         row = await db.users.find_one({"name": name})
@@ -43,9 +43,9 @@ class Hero(Model):
 
 
 class HeroRepository(Repository[Hero, str], entity=Hero, table_name="heroes"):
+    @query
     async def get_by_name(self, *, name: str) -> Hero | None:
         ...
-
 
 class HeroUow(UnitOfWork):
     heroes: HeroRepository

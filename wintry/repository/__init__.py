@@ -1,6 +1,7 @@
 import abc
+import inspect
 from typing import Any, Generic, TypeVar
-from .base import raw_method, repository
+from .base import TDecorated, raw_method, query, managed
 from wintry import get_connection
 from wintry.utils.keys import (
     NO_SQL,
@@ -9,17 +10,22 @@ from wintry.utils.keys import (
     __RepositoryType__,
     __winter_repository_is_using_sqlalchemy__,
     __winter_session_key__,
+    __winter_repo_old_init__,
+    __winter_tracker__,
+    __winter_manage_objects__,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorClientSession
+from wintry.models import Model
+from wintry.sessions import MongoSessionTracker
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=Model)
 TypeId = TypeVar("TypeId")
 
 
 class RepositoryRegistry:
-    repositories: list[type["ICrudRepository"] | type["IRepository"]] = []
+    repositories: list[type["Repository"]] = []
 
     @classmethod
     def configure_for_sqlalchemy(cls, backend: str = "default"):
@@ -38,9 +44,22 @@ class RepositoryRegistry:
                 setattr(repo, __RepositoryType__, NO_SQL)
 
 
-class ICrudRepository(Generic[T, TypeId]):
+class Repository(abc.ABC, Generic[T, TypeId]):
     def __init__(self) -> None:
         ...
+
+    def connection(self) -> Any:
+        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+
+        if (session := getattr(self, __winter_session_key__, None)) is not None:
+            if isinstance(session, AsyncIOMotorClientSession):
+                # This is an AsyncioMotorSession. Inside that session, we have
+                # a client property that maps to the
+                db_name = get_connection(backend_name).name  # type: ignore
+                return session.client[db_name]
+            return session
+
+        return get_connection(backend_name)
 
     async def find(self) -> list[T]:
         ...
@@ -60,98 +79,6 @@ class ICrudRepository(Generic[T, TypeId]):
     async def create(self, *, entity: T) -> T:
         ...
 
-
-class Repository(abc.ABC, ICrudRepository[T, TypeId]):
-    def __init__(self) -> None:
-        ...
-
-    def connection(self) -> Any:
-        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
-
-        if (session := getattr(self, __winter_session_key__, None)) is not None:
-            if isinstance(session, AsyncIOMotorClientSession):
-                # This is an AsyncioMotorSession. Inside that session, we have
-                # a client property that maps to the
-                db_name = get_connection(backend_name).name  # type: ignore
-                return session.client[db_name]
-            return session
-
-        return get_connection(backend_name)
-
-    def __init_subclass__(
-        cls,
-        *,
-        entity: type[T],
-        for_backend: str = "default",
-        table_name: str | None = None,
-        dry: bool = False,
-        mongo_session_managed: bool = False,
-        force_nosql: bool = False,
-    ) -> None:
-        RepositoryRegistry.repositories.append(cls)
-        repository(
-            entity,
-            for_backend=for_backend,
-            table_name=table_name,
-            dry=dry,
-            mongo_session_managed=mongo_session_managed,
-            force_nosql=force_nosql,
-        )(cls)
-
-
-class IRepository(abc.ABC):
-    def __init__(self) -> None:
-        ...
-
-    def connection(self) -> Any:
-        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
-
-        if (session := getattr(self, __winter_session_key__, None)) is not None:
-            if isinstance(session, AsyncIOMotorClientSession):
-                # This is an AsyncioMotorSession. Inside that session, we have
-                # a client property that maps to the AsyncIOMotorClient. need to
-                # build the db from that
-                db_name = get_connection(backend_name).name  # type: ignore
-                return session.client[db_name]
-            return session
-
-        return get_connection(backend_name)
-
-    def __init_subclass__(
-        cls,
-        *,
-        entity: type[T],
-        for_backend: str = "default",
-        table_name: str | None = None,
-        dry: bool = False,
-        mongo_session_managed: bool = False,
-        force_nosql: bool = False,
-    ) -> None:
-        RepositoryRegistry.repositories.append(cls)
-        repository(
-            entity,
-            for_backend=for_backend,
-            table_name=table_name,
-            dry=dry,
-            mongo_session_managed=mongo_session_managed,
-            force_nosql=force_nosql,
-        )(cls)
-
-
-class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
-    def __init__(self) -> None:
-        ...
-
-    def connection(self) -> Any:
-        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
-
-        if (session := getattr(self, __winter_session_key__, None)) is not None:
-            # NOSQL Repository is for Mongo purpouses only
-            db_name = get_connection(backend_name).name  # type: ignore
-            return session.client[db_name]
-
-        return get_connection(backend_name)
-
     def __init_subclass__(
         cls,
         *,
@@ -162,50 +89,68 @@ class NoSqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
         mongo_session_managed: bool = False,
     ) -> None:
         RepositoryRegistry.repositories.append(cls)
-        repository(
-            entity,
-            for_backend=for_backend,
-            table_name=table_name,
-            dry=dry,
-            mongo_session_managed=mongo_session_managed,
-            force_nosql=True,
-        )(cls)
 
+        def __winter_init__(self, *args, **kwargs):
+            original_init = getattr(self, __winter_repo_old_init__)
+            original_init(*args, **kwargs)
 
-class SqlCrudRepository(abc.ABC, ICrudRepository[T, TypeId]):
-    def __init__(self) -> None:
-        ...
+            # init tracker in the instance, because we do not
+            # want to share trackers among repositories
+            if mongo_session_managed:
+                setattr(
+                    self, __winter_tracker__, MongoSessionTracker(entity, for_backend)
+                )
 
-    def connection(self) -> AsyncSession:
-        if (session := getattr(self, __winter_session_key__, None)) is not None:
-            # This is for sqlalchemy purpouses only
-            return session
+        # Augment the repository with a special property to reference the backend this
+        # repository is going to use
+        setattr(cls, __winter_backend_identifier_key__, for_backend)
 
-        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
-        return get_connection(backend_name)
+        # update the init method and save the original init
+        setattr(cls, __winter_repo_old_init__, cls.__init__)
 
-    def __init_subclass__(
-        cls,
-        *,
-        entity: type[T],
-        for_backend: str = "default",
-        table_name: str | None = None,
-        dry: bool = False,
-    ) -> None:
-        RepositoryRegistry.repositories.append(cls)
-        repository(
-            entity,
-            for_backend=for_backend,
-            table_name=table_name,
-            dry=dry,
-        )(cls)
+        # Need to stablish the signature of the new init as the old
+        # one for the sake of the framework inspection
+        sig = inspect.signature(cls.__init__)
+        setattr(__winter_init__, "__signature__", sig)
 
+        # replace the original init
+        setattr(cls, "__init__", __winter_init__)
+
+        if table_name is not None:
+            setattr(entity, "__tablename__", table_name)
+
+        # Prepare the repository with augmented properties
+        setattr(cls, __winter_session_key__, None)
+        if mongo_session_managed:
+            setattr(cls, __winter_manage_objects__, True)
+
+        setattr(cls, "__dry__", dry)
+
+        setattr(cls, "__winter_entity__", entity)
+
+        setattr(cls, "__nosql_session_managed__", mongo_session_managed)
+
+        setattr(cls, "find", query(cls.find))
+        vars(cls)["find"].__set_name__(cls, "find")
+
+        setattr(cls, "get_by_id", query(cls.get_by_id))
+        vars(cls)["get_by_id"].__set_name__(cls, "get_by_id")
+
+        setattr(cls, "update", query(cls.update))
+        vars(cls)["update"].__set_name__(cls, "update")
+
+        setattr(cls, "delete", query(cls.delete))
+        vars(cls)["delete"].__set_name__(cls, "delete")
+
+        setattr(cls, "delete_by_id", query(cls.delete_by_id))
+        vars(cls)["delete_by_id"].__set_name__(cls, "delete_by_id")
+
+        setattr(cls, "create", query(cls.create))
+        vars(cls)["create"].__set_name__(cls, "create")
 
 __all__ = [
     "raw_method",
-    "repository",
+    "query",
+    "managed",
     "Repository",
-    "NoSqlCrudRepository",
-    "SqlCrudRepository",
-    "IRepository",
 ]

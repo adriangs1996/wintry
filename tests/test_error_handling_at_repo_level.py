@@ -2,8 +2,8 @@ from typing import AsyncGenerator
 import wintry.errors.definitions as errors
 from wintry.models import Model, VirtualDatabaseSchema
 from wintry import get_connection, init_backends, BACKENDS
-from wintry.repository import RepositoryRegistry, SqlCrudRepository
-from wintry.repository.base import raw_method
+from wintry.repository import Repository, RepositoryRegistry
+from wintry.repository.base import managed
 from wintry.settings import WinterSettings, BackendOptions, ConnectionOptions
 from sqlalchemy import MetaData, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,8 +18,8 @@ class ErrorHandlingUser(Model):
     name: str
 
 
-class UserRepository(SqlCrudRepository[ErrorHandlingUser, int], entity=ErrorHandlingUser):
-    @raw_method
+class UserRepository(Repository[ErrorHandlingUser, int], entity=ErrorHandlingUser):
+    @managed
     def bad_method(self):
         raise Exception("Bad Method")
 
