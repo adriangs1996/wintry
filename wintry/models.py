@@ -550,24 +550,24 @@ def Id(
 
 
 def Array(*, repr: bool = True) -> Any:
-    return field(
-        default_factory=list, repr=repr, compare=False, hash=False, kw_only=True
-    )
+    return field(default_factory=list, repr=repr, compare=False, hash=False, kw_only=True)
 
 
 def ModelSet(*, repr: bool = True):
-    return field(
-        default_factory=set, repr=repr, compare=False, hash=False, kw_only=True
-    )
+    return field(default_factory=set, repr=repr, compare=False, hash=False, kw_only=True)
 
 
 def Ref(*, model: type["Model"], default=None):
     return field(default=default, kw_only=True, metadata={"ref": model})
 
 
-@__dataclass_transform__(
-    kw_only_default=True, field_descriptors=(field, Field)
-)
+def RequiredId(repr: bool = True, compare: bool = True, hash: bool = True):
+    return field(
+        repr=repr, compare=compare, hash=hash, kw_only=True, metadata={"id": True}
+    )
+
+
+@__dataclass_transform__(kw_only_default=True, field_descriptors=(field, Field))
 class Model(JSONSerializable):
     def __setattr__(self, __name: str, __value: Any) -> None:
         # Check for presence of some state flag
