@@ -23,9 +23,9 @@ async def test_driver_handles_single_create_command():
     query = Create()
     driver = MongoDbDriver()
 
-    query_repr = await driver.get_query_repr(query, User, entity={"name": "test", "age": 10})
+    query_repr = await driver.get_query_repr(query, User, entity=User(id=1, name='test', age=10))
 
-    assert query_repr == "db.users.insert_one({'name': 'test', 'age': 10})"
+    assert query_repr == "db.users.insert_one({'id': 1, 'name': 'test', 'age': 10})"
 
 
 @pytest.mark.asyncio

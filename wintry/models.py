@@ -5,24 +5,37 @@ from typing import (
     Callable,
     ClassVar,
     ForwardRef,
+    Generator,
     Iterable,
+    Literal,
     Sequence,
     Tuple,
     TypeVar,
     Union,
+    cast,
     get_args,
     overload,
 )
 from typing_extensions import Self
-from dataclass_wizard import fromdict, fromlist
-from dataclasses import (
-    Field,
+from uuid import uuid4
+from dataclass_wizard import (
+    fromdict,
+    fromlist,
+    JSONSerializable,
     asdict,
+    DumpMeta,
+    LoadMeta,
+)
+from dataclass_wizard.enums import LetterCase
+from dataclasses import (
+    MISSING,
+    Field,
     dataclass,
     field,
     fields,
     is_dataclass,
 )
+from wintry.generators import AutoIncrement
 from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
@@ -31,6 +44,7 @@ from wintry.utils.keys import (
     __winter_old_setattr__,
     __SQL_ENABLED_FLAG__,
     __winter_model_collection_name__,
+    __winter_model_primary_keys__,
 )
 from sqlalchemy import (
     Column,
@@ -484,8 +498,69 @@ def to_dict(cls: type, obj: Any):
     return d
 
 
-@__dataclass_transform__(kw_only_default=True)
-class Model:
+def alias(target: Callable) -> Callable[[T], T]:
+    def wrapper(_f: T):
+        return cast(T, target)
+
+    return wrapper
+
+
+def inspect_model(cls: type["Model"]):
+    model_fields = fields(cls)
+    primary_keys: dict[str, Field] = {}
+    refs: dict[str, type[Model]] = {}
+
+    for f in model_fields:
+        # save the primary key, this might be a composite one
+        if f.metadata.get("id", False) or f.name.lower() == "id":
+            primary_keys[f.name] = f
+
+        if (model := f.metadata.get("ref", None)) is not None:
+            refs[f.name] = model
+
+    if not primary_keys:
+        primary_keys["id"] = Id()
+
+    setattr(cls, __winter_model_primary_keys__, primary_keys)
+
+
+def Id(
+    *,
+    default_factory: Callable[[], Any] = AutoIncrement,
+    repr: bool = True,
+    compare: bool = True,
+    hash: bool = True,
+):
+    return field(
+        default_factory=default_factory,
+        repr=repr,
+        compare=compare,
+        hash=hash,
+        kw_only=True,
+        metadata={"id": True},
+    )
+
+
+def Array(*, repr: bool = True):
+    return field(
+        default_factory=lambda: list, repr=repr, compare=False, hash=False, kw_only=True
+    )
+
+
+def ModelSet(*, repr: bool = True):
+    return field(
+        default_factory=lambda: set, repr=repr, compare=False, hash=False, kw_only=True
+    )
+
+
+def Ref(*, model: type["Model"], default=None):
+    return field(default=default, kw_only=True, metadata={"ref": model})
+
+
+@__dataclass_transform__(
+    kw_only_default=True, field_descriptors=(field, Field, Id, Array, ModelSet, Ref)
+)
+class Model(JSONSerializable):
     def __setattr__(self, __name: str, __value: Any) -> None:
         # Check for presence of some state flag
         # same as self.__winter_in_session_flag__
@@ -536,9 +611,26 @@ class Model:
         table_name = name or cls.__name__.lower() + "s"
         setattr(cls, __winter_model_collection_name__, table_name)
 
+        inspect_model(cls)
+
+        DumpMeta(key_transform=LetterCase.SNAKE, skip_defaults=False).bind_to(cls)
+        LoadMeta(key_transform=LetterCase.SNAKE).bind_to(cls)
+
         # Register model if it is mapped
         if mapped:
             ModelRegistry.register(cls)  # type: ignore
+
+    def id_name(self) -> tuple[str]:
+        pks: dict[str, Field] = getattr(self, __winter_model_primary_keys__)
+        return tuple(pks.keys())
+
+    def ids(self):
+        pks: dict[str, Field] = getattr(self, __winter_model_primary_keys__)
+        return {name: getattr(self, name) for name in pks}
+
+    @alias(asdict)
+    def to_dict(self, *, exclude: list[str] = list(), skip_defaults: bool = False):
+        ...
 
     @overload
     @classmethod
@@ -553,11 +645,8 @@ class Model:
     @classmethod
     def build(cls, _dict: dict[str, Any] | list[dict[str, Any]]) -> Self | list[Self]:
         if isinstance(_dict, list):
-            return fromlist(cls, _dict)
-        return fromdict(cls, _dict)
-
-    def to_dict(self):
-        return asdict(self)
+            return cls.from_list(_dict)
+        return cls.from_dict(_dict)
 
     @overload
     @classmethod

@@ -23,6 +23,7 @@ __winter_repository_is_using_sqlalchemy__ = "__winter_repository_is_using_sqlalc
 __winter_model_collection_name__ = "__winter_model_collection_name__"
 __winter_transporter_name__ = "__winter_transporter_name__"
 __winter_microservice_event__ = "__winter_microservice_event__"
+__winter_model_primary_keys__ = "__winter_model_primary_keys__"
 
 NO_SQL = "NO_SQL"
 SQL = "SQL"

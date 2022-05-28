@@ -1,6 +1,7 @@
 from functools import singledispatchmethod
 from typing import Any, Dict, Type, cast
 from wintry.backend import QueryDriver
+from wintry.models import Model
 from wintry.query.nodes import (
     AndNode,
     Create,
@@ -24,8 +25,8 @@ from wintry.query.nodes import (
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
 from wintry.settings import BackendOptions, EngineType
-from dataclasses import is_dataclass, asdict
-from dataclass_wizard import fromdict
+from dataclasses import is_dataclass
+from dataclass_wizard import fromdict, asdict
 
 
 class MongoSession(AgnosticClientSession):
@@ -161,10 +162,7 @@ def get_tablename(cls: type) -> str:
     return getattr(cls, "__tablename__", cls.__name__.lower() + "s")
 
 
-def map_to_table(cls: type, instance: dict):
-    if not is_dataclass(cls):
-        raise DriverMappingError(f"{cls} is not a dataclass")
-
+def map_to_table(cls: type[Model], instance: dict):
     if instance is None:
         return None
 
@@ -216,28 +214,38 @@ class MongoDbDriver(QueryDriver):
         pass
 
     async def get_query_repr(
-        self, query_expression: RootNode, table: type, **kwargs: Any
+        self, query_expression: RootNode, table: type[Model], **kwargs: Any
     ) -> str:
         return await self.query(query_expression, table, **kwargs)
 
     async def run(
-        self, query_expression: RootNode, table: type, session: Any = None, **kwargs: Any
+        self,
+        query_expression: RootNode,
+        table: type[Model],
+        session: Any = None,
+        **kwargs: Any,
     ) -> Any:
         return super().run(query_expression, table, session=session, **kwargs)
 
     async def run_async(
-        self, query_expression: RootNode, table: type, session: Any = None, **kwargs: Any
+        self,
+        query_expression: RootNode,
+        table: type[Model],
+        session: Any = None,
+        **kwargs: Any,
     ) -> Any:
         return await self.visit(query_expression, table, session=session, **kwargs)
 
     @singledispatchmethod
     async def query(
-        self, node: OpNode, table: type, session: Any = None, **kwargs: Any
+        self, node: OpNode, table: type[Model], session: Any = None, **kwargs: Any
     ) -> str:
         return await self.visit(node, table, **kwargs)
 
     @query.register
-    async def _(self, node: Find, table: type, session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Find, table: type[Model], session: Any = None, **kwargs: Any
+    ) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table, **kwargs) or ""
         else:
@@ -246,7 +254,7 @@ class MongoDbDriver(QueryDriver):
 
     @query.register
     async def _(
-        self, node: Delete, table: type, session: Any = None, **kwargs: Any
+        self, node: Delete, table: type[Model], session: Any = None, **kwargs: Any
     ) -> str:
         if node.filters is not None:
             filters = await self.query(node.filters, table, **kwargs) or ""
@@ -255,73 +263,69 @@ class MongoDbDriver(QueryDriver):
         return f"db.{get_tablename(table)}.delete_many({filters})"
 
     @query.register
-    async def _(self, node: Get, table: type, session: Any = None, **kwargs: Any) -> str:
+    async def _(
+        self, node: Get, table: type[Model], session: Any = None, **kwargs: Any
+    ) -> str:
         filters = await self.query(node.filters, table, **kwargs) or ""
         return f"db.{get_tablename(table)}.find_one({filters})"
 
     @query.register
     async def _(
-        self, node: Create, table: type, session: Any = None, **kwargs: Any
+        self, node: Create, table: type[Model], *, entity: Model, session: Any = None
     ) -> str:
-        entity = kwargs.get("entity", None)
-        if entity is None:
-            raise ExecutionError("Entity parameter required for create operation")
 
-        if is_dataclass(entity):
-            entity = asdict(entity)
+        data = entity.to_dict()
 
-        return f"db.{get_tablename(table)}.insert_one({entity})"
+        return f"db.{get_tablename(table)}.insert_one({data})"
 
     @query.register
     async def _(
-        self, node: Update, table: type, *, entity: Any, session: Any = None
+        self, node: Update, table: type[Model], *, entity: Model, session: Any = None
     ) -> str:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
-        if is_dataclass(entity):
-            entity = asdict(entity)
+        data = entity.to_dict()
 
-        return f"db.{get_tablename(table)}.update_one({{'id': {_id}}}, {entity})"
+        return f"db.{get_tablename(table)}.update_one({{'id': {_id}}}, {data})"
 
     @singledispatchmethod
     async def visit(
-        self, node: OpNode, table: type, session: Any = None, **kwargs: Any
+        self, node: OpNode, table: type[Model], session: Any = None, **kwargs: Any
     ) -> Any:
         raise NotImplementedError
 
     @visit.register
     async def _(
-        self, node: Create, table: type, session: Any = None, **kwargs: Any
+        self, node: Create, table: type[Model], *, entity: Model, session: Any = None
     ) -> Any:
-        entity = kwargs.get("entity", None)
         if entity is None:
             raise ExecutionError("Entity parameter required for create operation")
 
-        if is_dataclass(entity):
-            entity = asdict(entity)
+        data = entity.to_dict()
 
         collection = self.db[get_tablename(table)]
-        await collection.insert_one(entity, session=session)  # type: ignore
-        return map_to_table(table, entity)
+        await collection.insert_one(data, session=session)  # type: ignore
+        return entity
 
     @visit.register
     async def _(
-        self, node: Update, table: type, *, entity: Any, session: Any = None
+        self, node: Update, table: type[Model], *, entity: Model, session: Any = None
     ) -> Any:
         _id = getattr(entity, "id", None)
         if _id is None:
             raise ExecutionError("Entity must have id field")
 
-        if is_dataclass(entity):
-            entity = asdict(entity)
+        data = entity.to_dict()
 
         collection = self.db[get_tablename(table)]
-        await collection.update_one({"id": _id}, {"$set": entity}, session=session)  # type: ignore
+        await collection.update_one({"id": _id}, {"$set": data}, session=session)  # type: ignore
 
     @visit.register
-    async def _(self, node: Find, table: type, session: Any = None, **kwargs: Any) -> Any:
+    async def _(
+        self, node: Find, table: type[Model], session: Any = None, **kwargs: Any
+    ) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table, **kwargs) or {}
         else:
@@ -333,7 +337,7 @@ class MongoDbDriver(QueryDriver):
 
     @visit.register
     async def _(
-        self, node: Delete, table: type, session: Any = None, **kwargs: Any
+        self, node: Delete, table: type[Model], session: Any = None, **kwargs: Any
     ) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table, **kwargs) or {}
@@ -344,7 +348,9 @@ class MongoDbDriver(QueryDriver):
         await collection.delete_many(filters, session=session)  # type: ignore
 
     @visit.register
-    async def _(self, node: Get, table: type, session: Any = None, **kwargs: Any) -> Any:
+    async def _(
+        self, node: Get, table: type[Model], session: Any = None, **kwargs: Any
+    ) -> Any:
         if node.filters is not None:
             filters = await self.visit(node.filters, table, **kwargs) or {}
         else:
@@ -355,7 +361,7 @@ class MongoDbDriver(QueryDriver):
         return map_to_table(table, documents)
 
     @visit.register
-    async def _(self, node: AndNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: AndNode, table: type[Model], **kwargs: Any) -> Any:
         conditions = await self.visit(node.left, table, **kwargs)
 
         # conditions should be a list of tuples name, value where
@@ -374,7 +380,7 @@ class MongoDbDriver(QueryDriver):
         return where
 
     @visit.register
-    async def _(self, node: OrNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: OrNode, table: type[Model], **kwargs: Any) -> Any:
         or_condition = await self.visit(node.left, table, **kwargs)
 
         # or_condition should be a list of tuples name, value where
@@ -394,35 +400,35 @@ class MongoDbDriver(QueryDriver):
         return where
 
     @visit.register
-    async def _(self, node: EqualToNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: EqualToNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Eq, **kwargs)
 
     @visit.register
-    async def _(self, node: NotEqualNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: NotEqualNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Ne, **kwargs)
 
     @visit.register
-    async def _(self, node: LowerThanNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: LowerThanNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Lt, **kwargs)
 
     @visit.register
-    async def _(self, node: NotLowerThanNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: NotLowerThanNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Notlt, **kwargs)
 
     @visit.register
-    async def _(self, node: GreaterThanNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: GreaterThanNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Gt, **kwargs)
 
     @visit.register
-    async def _(self, node: NotGreaterThanNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: NotGreaterThanNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Notlt, **kwargs)
 
     @visit.register
-    async def _(self, node: InNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: InNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, In, **kwargs)
 
     @visit.register
-    async def _(self, node: NotInNode, table: type, **kwargs: Any) -> Any:
+    async def _(self, node: NotInNode, table: type[Model], **kwargs: Any) -> Any:
         return create_expression(node, Nin, **kwargs)
 
 
