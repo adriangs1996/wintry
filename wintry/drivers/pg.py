@@ -5,6 +5,7 @@ from wintry.backend import QueryDriver
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.engine.result import Result
 import sqlalchemy.orm as orm
+from wintry.models import Model
 from wintry.query.nodes import (
     AndNode,
     Create,
@@ -238,32 +239,27 @@ class SqlAlchemyDriver(QueryDriver):
 
     @query.register
     async def _(
-        self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None
+        self, node: Update, schema: Type[Any], *, entity: Model, session: Any = None
     ) -> str:
-        if not is_dataclass(entity):
-            raise ExecutionError("Entity must be a dataclass")
-
-        _id = getattr(entity, "id", None)
-        if _id is None:
+        pks = entity.ids()
+        pks_names = entity.id_name()
+        if not pks:
             raise ExecutionError("Entity must have an id field")
 
         stmt: UpdateStatement = update(schema)
         stmt = (
-            stmt.filter_by(id=_id)
-            .values(**asdict(entity, exclude=["id"]))
+            stmt.filter_by(**pks)
+            .values(**entity.to_dict(exclude=[*pks_names]))
             .execution_options(synchronize_session=False)
         )
         return str(stmt)
 
     @query.register
     async def _(
-        self, node: Create, schema: Type[Any], *, entity: Any, session: Any = None
+        self, node: Create, schema: Type[Any], *, entity: Model, session: Any = None
     ) -> str:
-        if not is_dataclass(entity):
-            raise ExecutionError("Entity must be a dataclass")
-
         stmt: InsertStatement = insert(schema)
-        stmt = stmt.values(**asdict(entity))  # type: ignore
+        stmt = stmt.values(entity.to_dict())  # type: ignore
 
         return str(stmt)
 
@@ -313,19 +309,17 @@ class SqlAlchemyDriver(QueryDriver):
 
     @visit.register
     async def _(
-        self, node: Update, schema: Type[Any], *, entity: Any, session: Any = None
+        self, node: Update, schema: Type[Any], *, entity: Model, session: Any = None
     ) -> None:
-        if not is_dataclass(entity):
-            raise ExecutionError("Entity must be a dataclass")
-
-        _id = getattr(entity, "id", None)
-        if _id is None:
+        pks = entity.ids()
+        pks_names = entity.id_name()
+        if not pks:
             raise ExecutionError("Entity must have id field")
 
         stmt: UpdateStatement = update(schema)
         stmt = (
-            stmt.filter_by(id=_id)
-            .values(**asdict(entity, exclude=["id"], skip_defaults=True))
+            stmt.filter_by(**pks)
+            .values(**entity.to_dict(exclude=[*pks_names], skip_defaults=True))
             .execution_options(synchronize_session=False)
         )
 
@@ -343,12 +337,9 @@ class SqlAlchemyDriver(QueryDriver):
         node: Create,
         schema: Type[Any],
         *,
-        entity: Any,
+        entity: Model,
         session: AsyncSession | None = None,
-    ) -> None:
-        if not is_dataclass(entity):
-            raise ExecutionError("Entity must be a dataclass")
-
+    ):
         if session is not None:
             session.add(entity)
         else:

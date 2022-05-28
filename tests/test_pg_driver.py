@@ -73,19 +73,6 @@ async def test_pg_driver_can_update_entity() -> None:
 
 
 @pytest.mark.asyncio
-async def test_pg_driver_panics_when_update_with_no_id() -> None:
-    driver = SqlAlchemyDriver()
-    user = User(id=1, username="test")
-
-    query = Update()
-
-    with pytest.raises(ExecutionError):
-        query_expr = await driver.get_query_repr(
-            query, User, entity=asdict(user, exclude=["id"])
-        )
-
-
-@pytest.mark.asyncio
 async def test_pg_driver_handles_find() -> None:
     driver = SqlAlchemyDriver()
     query = Find()
