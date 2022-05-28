@@ -282,13 +282,13 @@ class MongoDbDriver(QueryDriver):
     async def _(
         self, node: Update, table: type[Model], *, entity: Model, session: Any = None
     ) -> str:
-        _id = getattr(entity, "id", None)
-        if _id is None:
-            raise ExecutionError("Entity must have id field")
+        pks = entity.ids()
+        if not pks:
+            raise ExecutionError(f"There is not id configured for {entity}")
 
         data = entity.to_dict()
 
-        return f"db.{get_tablename(table)}.update_one({{'id': {_id}}}, {data})"
+        return f"db.{get_tablename(table)}.update_one({pks}, {data})"
 
     @singledispatchmethod
     async def visit(
@@ -313,14 +313,13 @@ class MongoDbDriver(QueryDriver):
     async def _(
         self, node: Update, table: type[Model], *, entity: Model, session: Any = None
     ) -> Any:
-        _id = getattr(entity, "id", None)
-        if _id is None:
-            raise ExecutionError("Entity must have id field")
-
+        pks = entity.ids()
+        if not pks:
+            raise Exception(f"There is not id configured for {entity}")
         data = entity.to_dict()
 
         collection = self.db[get_tablename(table)]
-        await collection.update_one({"id": _id}, {"$set": data}, session=session)  # type: ignore
+        await collection.update_one(pks, {"$set": data}, session=session)  # type: ignore
 
     @visit.register
     async def _(
