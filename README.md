@@ -45,19 +45,18 @@ Spring JPA. Just look at the example, it is really easy to write decoupled and m
 Let's see what 🐧**Wintry**🐧 looks like:
 
 ```python
-from wintry.models import Model
-from wintry.repository import Repository
+from wintry.models import Model, Id
+from wintry.generators import AutoString
+from wintry.repository import Repository, query
 from wintry.controllers import controller, post, get
 from wintry.ioc import provider
 from wintry.errors import NotFoundError
 from wintry import App
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
-from dataclasses import field
-from uuid import uuid4
 from pydantic import BaseModel
 
 class Hero(Model):
-    id: str = field(default_factory=lambda: uuid4().hex)
+    id: str = Id(default_factory=AutoString)
     city: str
     name: str
 
@@ -67,6 +66,7 @@ class HeroForm(BaseModel):
 
 @provider
 class HeroRepository(Repository[Hero, str], entity=Hero):
+    @query
     async def get_by_name(self, *, name: str) -> Hero | None:
         ...
 
