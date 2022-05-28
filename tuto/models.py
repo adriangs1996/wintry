@@ -1,6 +1,5 @@
 from datetime import date
-from wintry.models import Model
-from dataclasses import field
+from wintry.models import Array, Model, RequiredId
 
 
 class OutOfStock(Exception):
@@ -10,14 +9,14 @@ class OutOfStock(Exception):
 class OrderLine(Model):
     sku: str
     qty: int
-    orderid: str = field(metadata={"id": True})
+    orderid: str = RequiredId()
 
 
 class Batch(Model):
     sku: str
     purchased_quantity: int
-    reference: str = field(metadata={"id": True})
-    allocations: list[OrderLine] = field(default_factory=list)
+    reference: str = RequiredId()
+    allocations: list[OrderLine] = Array()
     eta: date | None = None
 
     def allocate(self, line: OrderLine):
@@ -51,8 +50,8 @@ class Batch(Model):
 
 
 class Product(Model):  # (1)
-    sku: str = field(metadata={"id": True})  # (2)
-    batches: list[Batch] = field(default_factory=list)
+    sku: str = RequiredId()  # (2)
+    batches: list[Batch] = Array()
 
     def allocate(self, line: OrderLine) -> str | None:
         try:
