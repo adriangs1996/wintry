@@ -1,6 +1,7 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection, BACKENDS
-from wintry.models import VirtualDatabaseSchema, Model
+from wintry.generators import AutoString
+from wintry.models import Array, Id, VirtualDatabaseSchema, Model
 from wintry.repository.base import query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
@@ -10,9 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine.result import Result
 import pytest
 import pytest_asyncio
-from dataclasses import field
 from wintry.transactions import UnitOfWork
-from uuid import uuid4
 
 
 # Now import the repository
@@ -26,7 +25,7 @@ class UserAddress(Model):
     id: int
     latitude: float
     longitude: float
-    users: list["TestUser"] = field(default_factory=list)
+    users: list["TestUser"] = Array()
 
 
 class TestUser(Model):
@@ -38,13 +37,13 @@ class TestUser(Model):
 
 class Foo(Model):
     x: int
-    id: str = field(default_factory=lambda : uuid4().hex)
+    id: str = Id(default_factory=AutoString)
     bar: Optional["Bar"] = None
 
 
 class Bar(Model):
     y: int
-    id: str = field(default_factory=lambda : uuid4().hex)
+    id: str = Id(default_factory=AutoString)
     foo: Foo | None = None
 
 

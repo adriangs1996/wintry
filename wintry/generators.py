@@ -22,6 +22,11 @@ class RandomUUID:
     def __call__(self) -> UUID:
         return uuid4()
 
+class UniqueString:
+    def __call__(self) -> Any:
+        return uuid4().hex
+
 
 AutoIncrement = Increment()
 AutoUUID = RandomUUID()
+AutoString = UniqueString()

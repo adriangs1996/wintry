@@ -291,6 +291,14 @@ class TableMetadata:
         return Relation(target_model, field.name)
 
     def dispatch_column_type_for_field(self, field: Field) -> None:
+        if (ref := field.metadata.get("ref", None)) is not None:
+            # This field is a ForeignKey to another model
+            if isinstance(ref, str):
+                ref = get_type_by_str(ref)
+            fk = ForeignKeyInfo(ref, field.name)
+            if fk not in self.foreing_keys:
+                self.foreing_keys.append(fk)
+            return
         if isinstance(field.type, str):
             field.type = get_type_by_str(field.type)
         elif isinstance(field.type, ForwardRef):
@@ -541,15 +549,15 @@ def Id(
     )
 
 
-def Array(*, repr: bool = True):
+def Array(*, repr: bool = True) -> Any:
     return field(
-        default_factory=lambda: list, repr=repr, compare=False, hash=False, kw_only=True
+        default_factory=list, repr=repr, compare=False, hash=False, kw_only=True
     )
 
 
 def ModelSet(*, repr: bool = True):
     return field(
-        default_factory=lambda: set, repr=repr, compare=False, hash=False, kw_only=True
+        default_factory=set, repr=repr, compare=False, hash=False, kw_only=True
     )
 
 
@@ -558,7 +566,7 @@ def Ref(*, model: type["Model"], default=None):
 
 
 @__dataclass_transform__(
-    kw_only_default=True, field_descriptors=(field, Field, Id, Array, ModelSet, Ref)
+    kw_only_default=True, field_descriptors=(field, Field)
 )
 class Model(JSONSerializable):
     def __setattr__(self, __name: str, __value: Any) -> None:
@@ -615,6 +623,9 @@ class Model(JSONSerializable):
 
         DumpMeta(key_transform=LetterCase.SNAKE, skip_defaults=False).bind_to(cls)
         LoadMeta(key_transform=LetterCase.SNAKE).bind_to(cls)
+
+        # allow JsonSerializable to init this cls
+        super().__init_subclass__()
 
         # Register model if it is mapped
         if mapped:
