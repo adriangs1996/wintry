@@ -1,8 +1,13 @@
 from dataclasses import is_dataclass, asdict
 from typing import Any
 from wintry.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
+from wintry.models import Model
 from wintry.utils.keys import __winter_track_target__
 from wintry import BACKENDS
+
+
+class TrackerError(Exception):
+    pass
 
 
 class MongoSessionTracker:
@@ -13,7 +18,7 @@ class MongoSessionTracker:
 
     def __init__(self, owner: type, backend_name: str) -> None:
         self.owner = owner
-        self._modified = list()
+        self._modified: list[Model] = list()
         self._backend_name = backend_name
 
     def add(self, instance: Any):
@@ -30,10 +35,12 @@ class MongoSessionTracker:
         collection = db[get_tablename(self.owner)]
 
         for modified_instance in self._modified:
-            if (_id := getattr(modified_instance, "id", None)) is not None:
-                values = asdict(modified_instance)
-                values.pop("id", None)
-                await collection.update_one({"id": _id}, {"$set": values}, session=session)
+            pks = modified_instance.ids()
+            if not pks:
+                raise TrackerError(f"{modified_instance} has not defined an id property")
+            await collection.update_one(
+                pks, {"$set": modified_instance.to_dict()}, session=session
+            )
 
         self._modified = list()
 
