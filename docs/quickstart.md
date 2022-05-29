@@ -371,7 +371,7 @@ let's declare one for our app:
 
 ```python title="uow.py" linenums="1"
 from wintry.transactions import UnitOfWork as WintryUnitOfWork
-from wintry.dependency_injection import provider
+from wintry.ioc import provider
 from .repositories import ProductRepository
 
 @provider
@@ -771,8 +771,8 @@ All that, while working with Postgres and MongoDB databases, without writting a 
 line of SQL or MQL (Mongo Query Language), without worrying about ForeignKeys, Relations,
 Columns or stuff like that, using components where you want, when you want, saving Models state
 as if you where just manipulating objects in memory, listening to a Redis instance, that may as well
-be a RabbitMQ server and still would be the same declaring your app's requirements as if you
+be a RabbitMQ server and still would be the same, declaring your app's requirements as if you
 where telling the framework what you need instead of commanding it to do
 stuffs, at the same time you get automatic documentation of your API and in general unleash the power of FastAPI,
 and still you have the promise that you haven't see it all, that it just the begining,
-I mean come on, I think you deserve a coffee☕, and 🐧**Wintry**🐧 deserves you give it a shot🔫.
+I mean come on, I think you deserve a coffee☕, and 🐧**Wintry**🐧 deserves you to give it a shot🔫.
