@@ -133,3 +133,7 @@ def generate_model_alias(
 @generate.command(name="controller")
 def generate_controller():
     pass
+
+@generate.command(name="c")
+def generate_controller_alias():
+    generate_controller()
