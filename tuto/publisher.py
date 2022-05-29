@@ -1,5 +1,5 @@
 import json
-from typing import Any, Protocol
+from typing import Protocol
 from wintry.ioc import provider
 import aioredis
 

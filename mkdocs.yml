@@ -53,11 +53,11 @@ theme:
         icon: material/weather-night 
         name: Switch to dark mode
         accent: teal
-        primary: deep purple
+        primary: teal
     - scheme: slate 
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
         accent: teal
-        primary: deep purple
+        primary: teal
   highlightjs: false

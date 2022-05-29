@@ -1,5 +1,7 @@
-# Wintry: A Web Framework for you, the developer, in a clean way, a cool way. Build apps with speed and ease, with the power of the winter at your side.
+<img src="img/logo.jpg" />
 
+
+# Wintry: A Web Framework for you, the developer, in a clean way, a cool way. Build apps with speed and ease, with the power of the winter at your side.
 
 
 
@@ -37,7 +39,8 @@ Let's see what **Wintry** looks like:
 
 ```python title="app.py" linenums="1"
 from wintry.controllers import controller, get
-from wintry import ServerTypes, Winter
+from wintry import App
+from wintry.settings import WinterSettings
 
 @controller
 class MarvelController:
@@ -46,7 +49,8 @@ class MarvelController:
     async def hello_world(self):
         return "Hello World"
 
-api = Winter.factory(server_type=ServerTypes.API)
+settings = WinterSettings()
+api = App(settings)
 ```
 
 Yeap, is that easy to build an API, self documented, everything that you would
@@ -69,33 +73,6 @@ a developer's editor best friend.
 
 ## Run it
 ---------
-You can either create a python file:
-
-```py linenums="1" title="main.py"
-if __name__ == '__main__':
-    from wintry import Winter
-    from wintry.settings import WinterSettings
-    Winter.serve(with_settings=WinterSettings(app_path="app:api"))
-```
-
-and run it with:
-
-<div class="termy">
-
-```console
-$ python main.py
-
-INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [124387] using statreload
-INFO:     Started server process [124390]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
-```
-</div>
-
-or you can just call uvicorn directly on it
-
 <div class="termy">
 
 ```console
@@ -121,7 +98,7 @@ Go to <a href=http://localhost:8000/marvel class="external-link" target=_blank>h
 ## Interactive API docs
 -----------------------
 
-Go to <a href=http://localhost:8000/swag class="external-link" target=_blank>http://localhost:8000/swag</a>
+Go to <a href=http://localhost:8000/docs class="external-link" target=_blank>http://localhost:8000/docs</a>
 
 You will see the automatic API Documentation, just as like you are used from FastAPI:
 
