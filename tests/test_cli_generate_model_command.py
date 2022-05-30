@@ -13,7 +13,7 @@ cli_runner = CliRunner()
 
 def test_generate_model_command_produces_model():
     result = cli_runner.invoke(
-        snowman, ["g", "model", "User", '"age:int:0 name:str"', "--dry"]
+        snowman, ["g", "model", "doesntmatter", "User", '"age:int:0 name:str"', "--dry"]
     )
     assert result.exit_code == 0
     assert "from wintry.models import Model" in result.stdout
@@ -25,7 +25,15 @@ def test_generate_model_command_produces_model():
 
 def test_generate_model_command_make_one_to_one_relation():
     result = cli_runner.invoke(
-        snowman, ["g", "model", "User", '"name:str address:Address:None"', "--dry"]
+        snowman,
+        [
+            "g",
+            "model",
+            "doesntmatter",
+            "User",
+            '"name:str address:Address:None"',
+            "--dry",
+        ],
     )
     assert result.exit_code == 0
     assert "from wintry.models import Model" in result.stdout
@@ -41,6 +49,7 @@ def test_generate_user_with_list_of_addresses():
         [
             "g",
             "model",
+            "doesntmatter",
             "User",
             '"name:str addresses:list[Address]:field(default_factory=list)"',
             "--dry",
@@ -55,7 +64,9 @@ def test_generate_user_with_list_of_addresses():
 
 
 def test_generate_model_alias():
-    result = cli_runner.invoke(snowman, ["g", "m", "User", '"age:int:0 name:str"', "--dry"])
+    result = cli_runner.invoke(
+        snowman, ["g", "m", "doesntmatter", "User", '"age:int:0 name:str"', "--dry"]
+    )
     assert result.exit_code == 0
     assert "from wintry.models import Model" in result.stdout
     assert "from dataclasses import field" in result.stdout
@@ -67,7 +78,8 @@ def test_generate_model_alias():
 @pytest.mark.skip
 def test_generate_controller():
     result = cli_runner.invoke(
-        snowman, ["g", "controller", "user", "--tag", "Users", "--prefix", "users", "--dry"]
+        snowman,
+        ["g", "controller", "user", "--tag", "Users", "--prefix", "users", "--dry"],
     )
 
     assert result.exit_code == 0

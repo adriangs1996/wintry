@@ -63,20 +63,23 @@ generate = typer.Typer()
 
 @generate.command(name="model")
 def generate_model(
+    app: str = typer.Argument(..., help="app where to which this model belongs to."),
     model: str = typer.Argument(..., help="Model name. Use a CamelCase name here please"),
     fields: str = typer.Argument(
         "",
         help='Fields to add to the model. The template is as follows: "<name>[:<type>[:<default>]] ..."',
     ),
     path: Path = typer.Option(
-        Path("models"),
-        help="The path to where create your model. By default it stores on a models folder.",
+        None,
+        help="The path to where create your model. By default it stores on a models folder o your selected app.",
     ),
     dry: bool = typer.Option(
         False, help="Do not do any changes, only print the content to stdin."
     ),
     format: bool = typer.Option(False, help="Format generated code using black."),
 ):
+    if path is None:
+        path = Path(f"apps/{app}/models")
     model_fields = ModelField.parse_list(fields)
     reg_models = ModelRegistry.get_all_models()
     imports: list[ModuleImport] = []
@@ -113,6 +116,7 @@ def generate_model(
 
 @generate.command(name="m")
 def generate_model_alias(
+    app: str = typer.Argument(..., help="app where to which this model belongs to."),
     model: str = typer.Argument(..., help="Model name. Use a CamelCase name here please"),
     fields: str = typer.Argument(
         "",
@@ -127,12 +131,13 @@ def generate_model_alias(
     ),
     format: bool = typer.Option(False, help="Format generated code using black."),
 ):
-    generate_model(model, fields, path, dry, format)
+    generate_model(app, model, fields, path, dry, format)
 
 
 @generate.command(name="controller")
 def generate_controller():
     pass
+
 
 @generate.command(name="c")
 def generate_controller_alias():
