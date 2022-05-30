@@ -4,10 +4,10 @@ from tuto.repositories import AllocationViewModelRepository
 from tuto.viewmodels import AllocationsViewModel
 from wintry.mqs import event_handler, command_handler, MessageQueue
 from wintry.ioc import provider
-from .uow import UnitOfWork
-from .commands import Allocate, ChangeBatchQuantity, CreateBatch
-from .models import Batch, OrderLine, Product
-from .events import Allocated, Deallocated, OutOfStock as OutOfStockEvent
+from uow import UnitOfWork
+from commands import Allocate, ChangeBatchQuantity, CreateBatch
+from models import Batch, OrderLine, Product
+from events import Allocated, Deallocated, OutOfStock as OutOfStockEvent
 
 
 class InvalidSku(Exception):

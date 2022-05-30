@@ -1,6 +1,6 @@
 from wintry.transactions import UnitOfWork as WintryUnitOfWork
 from wintry.ioc import provider
-from .repositories import ProductRepository
+from repositories import ProductRepository
 
 
 @provider

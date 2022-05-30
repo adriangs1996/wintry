@@ -1,10 +1,10 @@
 from logging import Logger
 from tuto.viewmodels import AllocationsViewModel
 from wintry.settings import TransporterType
-from .views import AllocationReadModel, Views
-from .commands import Allocate, ChangeBatchQuantity, CreateBatch
+from views import AllocationReadModel, Views
+from commands import Allocate, ChangeBatchQuantity, CreateBatch
 from wintry.controllers import controller, microservice, on, post, get
-from .services import InvalidSku, MessageBus
+from services import InvalidSku, MessageBus
 from wintry.responses import DataResponse
 from wintry.errors import NotFoundError
 

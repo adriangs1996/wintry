@@ -1,8 +1,10 @@
 from enum import Enum, unique
+from importlib import import_module
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 import pydantic as pdc
+import os
 
 
 def json_config_settings_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
@@ -15,8 +17,21 @@ def json_config_settings_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
     """
     encoding = settings.__config__.env_file_encoding
     try:
-        return json.loads(Path("settings.json").read_text(encoding))
+        return json.loads(
+            Path(os.getenv("WINTRY_SETTINGS_FILE", "config.json")).read_text(encoding)
+        )
     except FileNotFoundError:
+        return {}
+
+
+def py_config_setting_source(settings: pdc.BaseSettings) -> Dict[str, Any]:
+    settings_module = os.getenv("WINTRY_PY_SETTINGS_MODULE", "config:settings")
+    try:
+        module_path, obj_name = settings_module.split(":")
+        module = import_module(module_path)
+        config = getattr(module, obj_name)
+        return config
+    except:
         return {}
 
 
@@ -162,12 +177,14 @@ class WinterSettings(pdc.BaseSettings):
     class Config:
         env_file_encoding = "utf-8"
         env_nested_delimiter = "__"
+        env_file = os.getenv("ENVIROMENT_FILE", ".env")
 
         @classmethod
         def customise_sources(cls, init_settings, env_settings, file_secret_settings):  # type: ignore
             return (
                 init_settings,
-                json_config_settings_source,
+                py_config_setting_source,
                 env_settings,
+                json_config_settings_source,
                 file_secret_settings,
             )

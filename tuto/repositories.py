@@ -1,7 +1,7 @@
 from tuto.viewmodels import AllocationsViewModel
 from wintry.ioc import provider
 from wintry.repository import Repository, query
-from .models import Product
+from models import Product
 
 
 @provider

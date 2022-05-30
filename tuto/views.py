@@ -1,5 +1,5 @@
 from wintry.ioc import provider
-from .repositories import AllocationViewModelRepository
+from repositories import AllocationViewModelRepository
 from pydantic import BaseModel
 
 

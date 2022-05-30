@@ -4,6 +4,8 @@ from wintry.ioc import provider
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from wintry.settings import WinterSettings
+
 DatabaseConnection = AsyncSession | AsyncIOMotorDatabase
 
 
@@ -17,3 +19,7 @@ def get_database_connection():
     from wintry import get_connection
 
     return get_connection()
+
+@provider(of=WinterSettings)
+def settings():
+    return WinterSettings()
