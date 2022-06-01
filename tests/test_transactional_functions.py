@@ -1,12 +1,19 @@
 from typing import Any, AsyncGenerator
 from wintry import get_connection, init_backends
 from wintry.generators import AutoString
+from wintry.ioc.injector import inject
 from wintry.models import Array, Id, Model
 from wintry.repository.base import managed, query
 from wintry.settings import WinterSettings, BackendOptions, ConnectionOptions
 from wintry.repository import Repository, RepositoryRegistry
 import pytest
 import pytest_asyncio
+
+from wintry.transactions.transactional import transactional
+from wintry.ioc.container import IGlooContainer
+from wintry.ioc import provider
+
+container = IGlooContainer()
 
 
 class Address(Model):
@@ -45,6 +52,13 @@ class HeroRepository(Repository[Hero, str], entity=Hero, table_name="heroes"):
         ...
 
 
+@provider(container=container, singleton=False)
+class UserRepositoryInjected(
+    Repository[User, int], entity=User, mongo_session_managed=True
+):
+    ...
+
+
 @pytest.fixture(scope="module", autouse=True)
 def db() -> Any:
     RepositoryRegistry.configure_for_nosql()
@@ -73,11 +87,10 @@ async def clean(db: Any) -> AsyncGenerator[None, None]:
 @pytest.mark.asyncio
 async def test_transactional_decorator_save_objects_on_success(clean: Any, db: Any):
     @transactional
-    async def create_user():
-        repository = UserRepository()
+    async def create_user(repository: UserRepository):
         user = await repository.create(entity=User(id=1, age=28, name="Batman"))
 
-    await create_user()
+    await create_user(UserRepository())
     rows = await db.users.find({}).to_list(None)
     assert len(rows) == 1
 
@@ -85,13 +98,12 @@ async def test_transactional_decorator_save_objects_on_success(clean: Any, db: A
 @pytest.mark.asyncio
 async def test_transactional_decorator_rollback_on_error(clean: Any, db: Any):
     @transactional
-    async def create_user_with_error():
-        repository = UserRepository()
+    async def create_user_with_error(repository: UserRepository):
         user1 = await repository.create(entity=User(id=1, age=28, name="Batman"))
         user2 = await repository.create(entity=User(id=2, age=20 // 0, name="tests"))
 
     with pytest.raises(ZeroDivisionError):
-        await create_user_with_error()
+        await create_user_with_error(UserRepository())
 
     rows = await db.users.find({}).to_list(None)
     assert rows == []
@@ -102,15 +114,14 @@ async def test_transactional_decorator_updates_simple_object_properties(
     clean: Any, db: Any
 ):
     @transactional
-    async def update_user():
-        repository = UserRepository()
+    async def update_user(repository: UserRepository):
         user = await repository.get_by_id(id=1)
         assert user is not None
         user.age = 30
         user.name = "Superman"
 
     await db.users.insert_one({"id": 1, "age": 28, "name": "Batman"})
-    await update_user()
+    await update_user(UserRepository())
     user_row = await db.users.find_one({"id": 1})
     assert user_row["name"] == "Superman"
     assert user_row["age"] == 30
@@ -119,14 +130,13 @@ async def test_transactional_decorator_updates_simple_object_properties(
 @pytest.mark.asyncio
 async def test_transactional_decorator_create_nested_object(clean: Any, db: Any):
     @transactional
-    async def create_nested_object():
-        repository = UserRepository()
+    async def create_nested_object(repository: UserRepository):
         user = await repository.get_by_id(id=1)
         assert user is not None
         user.address = Address(latitude=12.1, longitude=1.1)
 
     await db.users.insert_one({"id": 1, "age": 28, "name": "Batman"})
-    await create_nested_object()
+    await create_nested_object(UserRepository())
     user_row = await db.users.find_one({"id": 1})
     assert user_row["address"] == {"latitude": 12.1, "longitude": 1.1}
 
@@ -134,9 +144,8 @@ async def test_transactional_decorator_create_nested_object(clean: Any, db: Any)
 @pytest.mark.asyncio
 async def test_transactional_decorator_updates_object_in_list(clean: Any, db: Any):
     @transactional
-    async def update_object_in_list():
-        user_repository = UserRepository()
-        users = await user_repository.find()
+    async def update_object_in_list(repository: UserRepository):
+        users = await repository.find()
         users[2].name = "Luke"
 
     await db.users.insert_one({"id": 1, "age": 28, "name": "Batman"})
@@ -145,20 +154,20 @@ async def test_transactional_decorator_updates_object_in_list(clean: Any, db: An
     await db.users.insert_one({"id": 4, "age": 26, "name": "Aquaman"})
     await db.users.insert_one({"id": 5, "age": 29, "name": "IronMan"})
 
-    await update_object_in_list()
+    await update_object_in_list(UserRepository())
     user_row = await db.users.find_one({"name": "Luke"})
     assert user_row is not None
+
 
 @pytest.mark.asyncio
 async def test_transactional_decorator_updates_nested_object(clean: Any, db: Any):
     @transactional
-    async def update_nested_object():
-        user_repository = UserRepository()
-        user = await user_repository.get_by_id(id=1)
+    async def update_nested_object(repository: UserRepository):
+        user = await repository.get_by_id(id=1)
         assert user is not None
         assert user.address is not None
         user.address.latitude = 3.0
-    
+
     await db.users.insert_one(
         {
             "id": 1,
@@ -167,6 +176,49 @@ async def test_transactional_decorator_updates_nested_object(clean: Any, db: Any
             "address": {"latitude": 1.0, "longitude": 2.0},
         }
     )
-    await update_nested_object()
+    await update_nested_object(UserRepository())
     user_row = await db.users.find_one({"id": 1})
     assert user_row["address"] == {"latitude": 3.0, "longitude": 2.0}
+
+
+@pytest.mark.asyncio
+async def test_transactional_decorator_handles_multiple_repos(clean: Any, db: Any):
+    @transactional
+    async def create_multiple_repositories(users: UserRepository, heroes: HeroRepository):
+        await users.create(entity=User(id=1, age=28, name="Batman"))
+        await heroes.create(entity=Hero(name="Batman"))
+        await users.create(entity=User(id=2, age=28 // 0, name="Batman"))
+
+    with pytest.raises(ZeroDivisionError):
+        await create_multiple_repositories(UserRepository(), HeroRepository())
+
+    rows = await db.users.find({}).to_list(None)
+    assert rows == []
+
+    rows = await db.heroes.find({}).to_list(None)
+    assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_service_can_use_transactional(clean: Any, db: Any):
+    class Service:
+        @transactional(container=container)
+        async def use_repository(self, users: UserRepositoryInjected):
+            await users.create(entity=User(id=1, age=28, name="Batman"))
+            await users.create(entity=User(id=2, age=28 // 0, name="Batman"))
+
+        @transactional(container=container)
+        async def create_user(self, name: str, users: UserRepositoryInjected):
+            await users.create(entity=User(id=1, age=29, name=name))
+
+    service = Service()
+    with pytest.raises(ZeroDivisionError):
+        await service.use_repository()
+
+    rows = await db.users.find({}).to_list(None)
+    assert rows == []
+
+    await service.create_user(name="Superman")
+    rows = await db.users.find_one({"name": "Superman"})
+    assert rows is not None
+    assert rows['id'] == 1

@@ -12,7 +12,7 @@ container = IGlooContainer()
 
 
 def test_simple_ioc_provides_singletons_by_default():
-    @provider(container=container)
+    @provider(container=container, singleton=True)
     class Provider:
         pass
 
@@ -26,7 +26,7 @@ def test_simple_ioc_provides_singletons_by_default():
 
 
 def test_provider_also_injects():
-    @provider(container=container)
+    @provider(container=container, singleton=True)
     class Provider:
         pass
 
@@ -44,7 +44,7 @@ def test_a_function_can_be_a_provider():
     class Interface:
         pass
 
-    @provider(of=Interface, container=container)  # type: ignore
+    @provider(of=Interface, container=container, singleton=True)  # type: ignore
     def Provider():
         return Interface()
 
@@ -104,11 +104,11 @@ def test_an_injected_class_can_be_overwritten_by_arguments():
 
 
 def test_nested_injection():
-    @provider(container=container)
+    @provider(container=container, singleton=True)
     class ServiceA:
         pass
 
-    @provider(container=container)
+    @provider(container=container, singleton=True)
     class ServiceB:
         def __init__(self, a: ServiceA) -> None:
             self.a = a

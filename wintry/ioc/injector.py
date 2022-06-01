@@ -2,7 +2,7 @@ from abc import ABC
 import asyncio
 from dataclasses import dataclass
 from functools import wraps
-from inspect import isclass
+from inspect import isclass, signature
 from typing import Any, Callable, NewType, Protocol, TypeVar, overload
 import inspect
 from wintry.ioc.container import SnowFactory, igloo
@@ -63,7 +63,7 @@ def inject(service: type[T]) -> type[T]:
 
 
 @overload
-def inject(service: Callable[..., Any]) -> Callable[..., Any]:
+def inject(service: Callable[..., T]) -> Callable[[], T]:
     ...
 
 
@@ -131,6 +131,7 @@ def decorate(func: Callable[..., Any], igloo: IGlooContainer):
     if func in (ABC.__init__, ProtocolInit.__init__):
         return func
 
+    sig = signature(func)
     parameters_name, parameters = _inspect_function_arguments(func)
 
     # This is very standard DI Container Stuff
@@ -188,8 +189,10 @@ def decorate(func: Callable[..., Any], igloo: IGlooContainer):
         return await func(**all_kwargs)
 
     if asyncio.iscoroutinefunction(func):
+        setattr(_async_decorated, "__signature__", sig)
         return _async_decorated
 
+    setattr(_decorated, "__signature__", sig)
     return _decorated
 
 
@@ -209,7 +212,9 @@ def provider(
 ) -> Callable[[type[T] | Callable[..., T]], type[T] | Callable[..., T]]:
     ...
 
+
 I = TypeVar("I")
+
 
 @overload
 def provider(
@@ -226,7 +231,7 @@ def provider(
     /,
     *,
     of: type | None = None,
-    singleton: bool = True,
+    singleton: bool = False,
     container: IGlooContainer = igloo,
 ):
     def decorator(_cls: Any):
