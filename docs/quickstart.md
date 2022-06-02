@@ -366,7 +366,7 @@ will transform our app into a Message Pipeline.
 ### First thing First, ensure atomicity and consistency, use an UnitOfWork
 --------------------------------------------------------------------------
 
-Out of the box, 🐧**Wintry**🐧 integrates an UnitOfWork with your Repositories,
+Out of the box, 🐧**Wintry**🐧 integrates an Unit Of Work with your Repositories,
 let's declare one for our app:
 
 ```python title="uow.py" linenums="1"
@@ -393,8 +393,32 @@ class UnitOfWork(WintryUnitOfWork):
 Yes, thats all it takes. But how we use this?? If you read the idea of "Unit of Work", you probably
 associate it with a lovely piece of python syntax: a context manager. That's how we use it, we enclose
 our transaction inside a context manager and then commit the changes when we have done. If the transaction
-fails for some reason, then the changes are rolled back. Let's see this in action, with the Unit of Work in place
-we have everything we need to define our service layer.
+fails for some reason, then the changes are rolled back. That could look like this:
+
+```python
+    async with self.uow as uow:
+        product = await uow.products.get_by_sku(sku=line.sku)
+        if product is None:
+            raise InvalidSku(f"Invalid sku {line.sku}")
+
+        batchref = product.allocate(line)
+        if batchref is not None:
+            self.register(
+                Allocated(orderid=line.orderid, sku=line.sku, qty=line.qty, batchref=batchref)
+            )
+            self.logger.info(f"Allocated {line}")
+        else:
+            self.register(OutOfStockEvent(sku=line.sku))
+
+        await uow.commit()
+```
+
+This is really nice, but can you see something there? Repeating the context manager for
+each transaction is quite cumbersome. Futhermore, our <a href="/wintry/user-guide/unitofwork">
+Unit of Work</a> class can only handle a single type of repository (More on this on the 
+<a href="/wintry/user-guide/repository">Repositories</a> section). For common use case like
+this, 🐧**Wintry** provides another shortcut: the `@transaction` decorator. Let's see how
+we can use all this in our service layer.
 
 ### The service layer
 ---------------------
@@ -407,72 +431,69 @@ Also, services usually are represented in terms of verbs, that represent a desir
 to be executed by our system. This concept of action is what give the name to the `Command`
 input that you will see in every service function. So, our service layer could look like this:
 
-```python linenums="1" title="services.py" hl_lines="26 27 28 29 30 31 32 33 34 35 36 37 38 39 40""
+```python linenums="1" title="services.py""
 from logging import Logger
 from tuto.publisher import Publisher
-from tuto.repositories import AllocationViewModelRepository
+from tuto.repositories import AllocationViewModelRepository, ProductRepository
 from tuto.viewmodels import AllocationsViewModel
 from wintry.mqs import event_handler, command_handler, MessageQueue
 from wintry.ioc import provider
-from .uow import UnitOfWork
-from .commands import Allocate, ChangeBatchQuantity, CreateBatch
-from .models import Batch, OrderLine, Product
-from .events import Allocated, Deallocated, OutOfStock as OutOfStockEvent
+from commands import Allocate, ChangeBatchQuantity, CreateBatch
+from models import Batch, OrderLine, Product
+from events import Allocated, Deallocated, OutOfStock as OutOfStockEvent
+from wintry.transactions.transactional import transaction
+
 
 class InvalidSku(Exception):
     pass
 
+
 @provider
 class MessageBus(MessageQueue): # (1)
-    uow: UnitOfWork # (3)
+    products: ProductRepository
     logger: Logger
     sender: Publisher # (2)
     allocations: AllocationViewModelRepository
 
     @command_handler # (4)
+    @transaction
     async def allocate(self, command: Allocate):
         line = OrderLine.build(command.dict())
+        product = await self.products.get_by_sku(sku=line.sku)
+        if product is None:
+            raise InvalidSku(f"Invalid sku {line.sku}")
 
-        async with self.uow as uow:
-            product = await uow.products.get_by_sku(sku=line.sku)
-            if product is None:
-                raise InvalidSku(f"Invalid sku {line.sku}")
-
-            batchref = product.allocate(line)
-            if batchref is not None:
-                self.register(
-                    Allocated(orderid=line.orderid, sku=line.sku, qty=line.qty, batchref=batchref)
-                )
-                self.logger.info(f"Allocated {line}")
-            else:
-                self.register(OutOfStockEvent(sku=line.sku))
-
-            await uow.commit()
+        batchref = product.allocate(line)
+        if batchref is not None:
+            self.register(
+                Allocated(orderid=line.orderid, sku=line.sku, qty=line.qty, batchref=batchref)
+            )
+            self.logger.info(f"Allocated {line}")
+        else:
+            self.register(OutOfStockEvent(sku=line.sku))
 
     @command_handler
+    @transaction
     async def add_batch(self, command: CreateBatch):
-        async with self.uow as uow:
-            product = await uow.products.get_by_sku(sku=command.sku)
-            if product is None:
-                product = Product(sku=command.sku)
-                product = await uow.products.create(entity=product)
-            product.batches.append(
-                Batch(reference=command.ref, purchased_quantity=command.qty, sku=command.sku, eta=command.eta,)
-            )
-            await uow.commit()
+        product = await self.products.get_by_sku(sku=command.sku)
+        if product is None:
+            product = Product(sku=command.sku)
+            product = await self.products.create(entity=product)
+        product.batches.append(
+            Batch(reference=command.ref, purchased_quantity=command.qty, sku=command.sku, eta=command.eta)
+        )
 
         self.logger.info("Created Batch")
 
     @command_handler
+    @transaction
     async def change_batch_quantity(self, cmd: ChangeBatchQuantity):
-        async with self.uow as uow:
-            product = await uow.products.get_by_batches__reference(
-                batches__reference=cmd.ref
-            )
-            assert product is not None
-            for line in product.change_batch_quantity(**cmd.dict()):
-                self.register(Deallocated(**line.to_dict()))
-            await uow.commit()
+        product = await self.products.get_by_batches__reference(
+            batches__reference=cmd.ref
+        )
+        assert product is not None
+        for line in product.change_batch_quantity(**cmd.dict()):
+            self.register(Deallocated(**line.to_dict()))
 ```
 
 1.  The `MessageQueue` will be explained in the Message Pipeline Chapter, but long story short,  
@@ -489,15 +510,17 @@ and usually they are used as inputs in controllers.
 
 There is a lot going on there, but notice something: we are never calling the `#!python Repository.update()`
 method, we just call functions over model instances that manage the state of the instance and its
-relations with other models. And notice that we do all this inside an `#!python uow` context manager, and we
-issue a `#!python uow.commit()` at the end. Should be scratching your head right now, because, I mean, this
+relations with other models. And notice that we do all this inside a function decorated with 
+`@transaction`. Long story short, `@transaction` will initialize the repositories of the `MessageBus` class
+and issue a commit at the end of the function if everything went well.
+You should be scratching your head right now, because, I mean, this
 can not work, right ??!! Well, it does, and actually is not even thanks to 🐧**Wintry**🐧 (at least not
 entirely) because in here, we are using the full power of SQLAlchemy sessions to achieve this effect.
-The cool part, and when 🐧**Wintry**🐧 becomes a really powerfull tool for this endeavor, is that it doesnt
+The cool😎 part, and when 🐧**Wintry**🐧 becomes a really powerfull tool for this endeavor, is that it doesnt
 matter if you change to use MongoDB as your primary DB (a NOSQL one), it will provide you with the same
 features of automatic model synchronization. Futhermore, look at how clean the implementation of the
 services is, and of course, testability is achieved with so many components decoupled and used through
-the Depedency Injection System.
+<a href="/wintry/user-guide/di" class="external-link">Dependency Injection💉</a>.
 
 !!! note  "About Models"
     If you ever have used Vue.js in the past, the idea with reactive models is somehow similar as
@@ -519,10 +542,8 @@ But firing🚀 events is not useful if we do not supply handlers for them, right
 # ... Rest of the code of the service layer
     @event_handler
     async def reallocate(self, event: Deallocated):
-        async with self.uow as uow:
-            product = await uow.products.get_by_sku(sku=event.sku)
-            self.register(Allocate(**event.dict()))
-            await uow.commit()
+        product = await self.products.get_by_sku(sku=event.sku)
+        self.register(Allocate(**event.dict()))
 
     @event_handler
     async def save_allocation_view(self, event: Allocated):
