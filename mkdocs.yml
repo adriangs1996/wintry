@@ -61,3 +61,5 @@ theme:
         accent: teal
         primary: teal
   highlightjs: false
+  logo: img/penguin-logo.png
+  favicon: img/penguin-logo.png
