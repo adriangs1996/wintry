@@ -66,6 +66,7 @@ class MessageQueue:
     async def handle_event(self, event: Event):
         handlers = __event_handlers__.get(type(event), [])
         for handler in handlers:
+            print(f"Handling event: {event}")
             try:
                 if ismethoddescriptor(handler):
                     handler = handler.__get__(self)
@@ -74,7 +75,7 @@ class MessageQueue:
                     result = handler(self, event)
                 if iscoroutine(result):
                     await result  # type: ignore
-            except:
+            except Exception as e:
                 pass
 
     async def handle_command(self, cmd: Command):

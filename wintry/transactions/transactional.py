@@ -68,6 +68,7 @@ async def close_repositories_sessions(repositories: list[Repository]):
         backend_name = getattr(repository, __winter_backend_identifier_key__)
         session = getattr(repository, __winter_session_key__)
         await close_session(session, backend_name)
+        setattr(repository, __winter_session_key__, None)
         if (
             getattr(repository, __winter_manage_objects__, False)
             and getattr(repository, __RepositoryType__, None) == NO_SQL
