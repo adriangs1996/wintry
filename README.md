@@ -185,7 +185,33 @@ settings = WinterSettings(
 Of course, you maybe want to use refs instead of embedded documents, in that case then you need to do
 exactly that, make your model split its objects with refs relations and the simply use it as usual.
 
-You can look for an example at this [test app](https://github.com/adriangs1996/wintry/tree/master/tuto) or
+One big concern when dealing with business operations, is that of logical consistency and
+atomic transactions. Many ORMs provide different solutions. Well, 🐧**Wintry**🐧 calls for an unified
+approach. An actually is clean and readable, and really beautiful, check this out:
+
+```python
+@provider
+class UserService:
+    users: UserRepository
+
+    @transaction
+    async def update_user_and_delete_others(self, id: int, name: str):
+        await self.users.delete_by_name(name=name)
+        user = await self.users.get_by_id(id=id)
+        assert user is not None
+        assert user.address is not None
+        user.address.latitude = 3.0
+```
+
+The above code, could fail if we accidentaly delete some users from database before
+updating user with the given id. Well, being running in a transaction, means that
+if any assertion fails, database changes automatically rollbacks and users are not
+deleted, so we maintain our DB in a consistent way (according to our restrictions, yeah I know,
+this is a bizarre one). Futhermore, notice how we never have to call update on a
+transaction (except in some rare cases), because the transaction keeps track of changes
+in objects properties and issue updates for them accordingly.
+
+You can look for a complete example at this [test app](https://github.com/adriangs1996/wintry/tree/master/tuto) or
 [this app](https://github.com/adriangs1996/wintry/tree/master/test_app)
 
 You can also go and read the [📜documentation, it is still under development, but eventually will cover the whole API, just as FastAPI or Django](https://adriangs1996.github.io/wintry)
@@ -219,6 +245,9 @@ CQRS, etc.)
 * Reactive Domain Models.
 
 * Dependency Injection (Next Level).
+
+* Transactional methods. This a really powerful feature that pairs with Dependency Injection
+and Command&Event handler, providing a robust implementation of atomic write/update/delete operations.
 
 * Publisher Subscribers.
 
