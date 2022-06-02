@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import update_wrapper, wraps
 from inspect import iscoroutinefunction
 from typing import Any, Callable, Coroutine, TypeVar, overload
 from wintry.ioc.container import IGlooContainer, igloo
@@ -16,6 +16,13 @@ from wintry.utils.keys import (
     NO_SQL,
     __winter_tracker__,
 )
+
+
+def collect_repositories_from_self(self_object: Any) -> list[Repository]:
+    # Do this looks clumsy ??? I think it is beautiful, but still...
+    return list(
+        filter(lambda value: isinstance(value, Repository), vars(self_object).values())
+    )
 
 
 def collect_repositories_from_args(args: tuple[Any, ...], kwargs: dict[str, Any]):
@@ -75,37 +82,50 @@ async def close_repositories_sessions(repositories: list[Repository]):
 T = TypeVar("T")
 
 
-def transactional(
-    func: Callable[..., Any] | None = None,
-    /,
-    *,
-    container: IGlooContainer = igloo,
-    use_injection: bool = True,
-) -> Callable[..., Any]:
-    def decorate(f) -> Any:
-        @wraps(f)
-        async def transaction(*args, **kwargs):
-            repositories = collect_repositories_from_args(args, kwargs)
-            await set_session_in_repositories(repositories)
-            try:
-                if iscoroutinefunction(f):
-                    func_result = await f(*args, **kwargs)  # type: ignore
-                else:
-                    func_result = f(*args, **kwargs)
-                await commit_repositories_sessions(repositories)
-                return func_result
-            except Exception as e:
-                await rollback_repositories_sessions(repositories)
-                raise e
-            finally:
-                await close_repositories_sessions(repositories)
-
-        if use_injection:
-            return inject(container=container)(transaction)
+async def run_transaction(func, repositories, args, kwargs):
+    await set_session_in_repositories(repositories)
+    try:
+        if iscoroutinefunction(func):
+            func_result = await func(*args, **kwargs)  # type: ignore
         else:
-            return transaction
+            func_result = func(*args, **kwargs)
+        await commit_repositories_sessions(repositories)
+        return func_result
+    except Exception as e:
+        await rollback_repositories_sessions(repositories)
+        raise e
+    finally:
+        await close_repositories_sessions(repositories)
 
-    if func is None:
-        return decorate
 
-    return decorate(func)
+def transactional(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    async def transaction(*args, **kwargs):
+        repositories = collect_repositories_from_args(args, kwargs)
+        result = await run_transaction(func, repositories, args, kwargs)
+        return result
+
+    return transaction
+
+
+class transaction_method:
+    def __init__(self, fget: Callable):
+        self.fget = fget
+
+    def __get__(self, obj: Any, type_: type | None = None):
+        async def transactional_function(*args, **kwargs):
+            repositories = collect_repositories_from_self(obj)
+            result = await run_transaction(self.fget, repositories, (obj,) + args, kwargs)
+            return result
+
+        return transactional_function
+
+
+@overload
+def transaction(func: T) -> T: #type: ignore
+    ...
+
+
+def transaction(func: Callable):  # type: ignore
+    new_func = transaction_method(func)
+    return update_wrapper(new_func, func)

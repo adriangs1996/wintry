@@ -1,5 +1,5 @@
 from functools import update_wrapper
-from inspect import iscoroutine, iscoroutinefunction, signature
+from inspect import iscoroutine, iscoroutinefunction, ismethoddescriptor, signature
 from typing import Any, Callable, Coroutine, TypeVar, overload
 from pydantic import BaseModel
 
@@ -39,9 +39,6 @@ __command_handlers__: dict[type[Command], list[CommandHandler]] = {}
 
 
 class MessageQueue:
-    def __init__(self) -> None:
-        self._message_queue: list[Message] = []
-
     async def handle(self, cmd: Message):
         self._message_queue = [cmd]
         messages_queue = self._message_queue
@@ -71,17 +68,24 @@ class MessageQueue:
         handlers = __event_handlers__.get(type(event), [])
         for handler in handlers:
             try:
-                if iscoroutinefunction(handler):
-                    await handler(self, event)  # type: ignore
+                if ismethoddescriptor(handler):
+                    handler = handler.__get__(self)
+                    result = handler(event)
                 else:
-                    handler(self, event)
+                    result = handler(self, event)
+                if iscoroutine(result):
+                    await result  # type: ignore
             except:
                 pass
 
     async def handle_command(self, cmd: Command):
         handlers = __command_handlers__.get(type(cmd), [])
         for handler in handlers:
-            result = handler(self, cmd)
+            if ismethoddescriptor(handler):
+                handler = handler.__get__(self)
+                result = handler(cmd)
+            else:
+                result = handler(self, cmd)
             if iscoroutine(result):
                 await result
 
@@ -132,7 +136,10 @@ def event_handler(
         [_TQueue, _TEvent], Coroutine[None, None, None]
     ]:
         if _type is None:
-            sig = signature(func)
+            if ismethoddescriptor(func):
+                sig = signature(func.fget) #type: ignore
+            else:
+                sig = signature(func)
             parameters = sig.parameters
             _self = parameters.get("self", None)
             if _self is None:
@@ -160,7 +167,6 @@ def event_handler(
         except:
             __event_handlers__[t] = [func]  # type: ignore
 
-        update_wrapper(wrapper, func)
         return func
 
     if fn is None:
@@ -215,7 +221,10 @@ def command_handler(
         [_TQueue, _TCommand], Coroutine[None, None, None]
     ]:
         if _type is None:
-            sig = signature(func)
+            if ismethoddescriptor(func):
+                sig = signature(func.fget) #type: ignore
+            else:
+                sig = signature(func)
             parameters = sig.parameters
             _self = parameters.get("self", None)
             if _self is None:
@@ -243,7 +252,6 @@ def command_handler(
         except:
             __command_handlers__[t] = [func]  # type: ignore
 
-        update_wrapper(wrapper, func)
         return func
 
     if fn is None:

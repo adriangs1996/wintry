@@ -3,15 +3,17 @@ from wintry import get_connection, init_backends
 from wintry.generators import AutoString
 from wintry.ioc.injector import inject
 from wintry.models import Array, Id, Model
+from wintry.mqs.message_queue_system import Command, command_handler
 from wintry.repository.base import managed, query
 from wintry.settings import WinterSettings, BackendOptions, ConnectionOptions
 from wintry.repository import Repository, RepositoryRegistry
 import pytest
 import pytest_asyncio
 
-from wintry.transactions.transactional import transactional
+from wintry.transactions.transactional import transaction, transactional
 from wintry.ioc.container import IGlooContainer
 from wintry.ioc import provider
+from wintry.mqs import MessageQueue
 
 container = IGlooContainer()
 
@@ -202,12 +204,14 @@ async def test_transactional_decorator_handles_multiple_repos(clean: Any, db: An
 @pytest.mark.asyncio
 async def test_service_can_use_transactional(clean: Any, db: Any):
     class Service:
-        @transactional(container=container)
+        @inject(container=container)
+        @transactional
         async def use_repository(self, users: UserRepositoryInjected):
             await users.create(entity=User(id=1, age=28, name="Batman"))
             await users.create(entity=User(id=2, age=28 // 0, name="Batman"))
 
-        @transactional(container=container)
+        @inject(container=container)
+        @transactional
         async def create_user(self, name: str, users: UserRepositoryInjected):
             await users.create(entity=User(id=1, age=29, name=name))
 
@@ -221,4 +225,65 @@ async def test_service_can_use_transactional(clean: Any, db: Any):
     await service.create_user(name="Superman")
     rows = await db.users.find_one({"name": "Superman"})
     assert rows is not None
-    assert rows['id'] == 1
+    assert rows["id"] == 1
+
+
+@pytest.mark.asyncio
+async def test_transaction_descriptor(clean: Any, db: Any):
+    @inject(container=container)
+    class UserService:
+        def __init__(self, users: UserRepositoryInjected):
+            self.users = users
+
+        @transaction
+        async def update_batman(self):
+            user = await self.users.get_by_id(id=1)
+            assert user is not None
+            assert user.address is not None
+            user.address.latitude = 3.0
+
+    service = UserService()  # type: ignore
+    await db.users.insert_one(
+        {
+            "id": 1,
+            "age": 28,
+            "name": "Batman",
+            "address": {"latitude": 1.0, "longitude": 2.0},
+        }
+    )
+
+    await service.update_batman()
+    user_row = await db.users.find_one({"id": 1})
+    assert user_row["address"] == {"latitude": 3.0, "longitude": 2.0}
+
+
+@pytest.mark.asyncio
+async def test_transaction_descriptor_with_message_pipeline(clean: Any, db: Any):
+    class UpdateBatman(Command):
+        ...
+
+    @provider(container=container)
+    class UserPipeline(MessageQueue):
+        users: UserRepositoryInjected
+
+        @command_handler
+        @transaction
+        async def update_batman(self, command: UpdateBatman):
+            user = await self.users.get_by_id(id=1)
+            assert user is not None
+            assert user.address is not None
+            user.address.latitude = 3.0
+
+    service = UserPipeline()  # type: ignore
+    await db.users.insert_one(
+        {
+            "id": 1,
+            "age": 28,
+            "name": "Batman",
+            "address": {"latitude": 1.0, "longitude": 2.0},
+        }
+    )
+
+    await service.handle(UpdateBatman())
+    user_row = await db.users.find_one({"id": 1})
+    assert user_row["address"] == {"latitude": 3.0, "longitude": 2.0}
