@@ -1,5 +1,4 @@
-from functools import update_wrapper
-from inspect import iscoroutine, iscoroutinefunction, ismethoddescriptor, signature
+from inspect import iscoroutine, ismethoddescriptor, signature
 from typing import Any, Callable, Coroutine, TypeVar, overload
 from pydantic import BaseModel
 

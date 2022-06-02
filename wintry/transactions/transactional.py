@@ -1,19 +1,16 @@
 from functools import update_wrapper, wraps
 from inspect import iscoroutinefunction
-from typing import Any, Callable, Coroutine, TypeVar, overload
-from wintry.ioc.container import IGlooContainer, igloo
-from wintry.ioc.injector import inject
+from typing import Any, Callable, TypeVar, overload
 
 from wintry.repository import Repository
-from wintry.transactions.unit_of_work import commit, rollback, close_session
 from wintry.sessions import MongoSessionTracker
-from wintry.transactions.unit_of_work import get_session
+from wintry.transactions.unit_of_work import close_session, commit, get_session, rollback
 from wintry.utils.keys import (
-    __winter_backend_identifier_key__,
-    __winter_session_key__,
-    __winter_manage_objects__,
-    __RepositoryType__,
     NO_SQL,
+    __RepositoryType__,
+    __winter_backend_identifier_key__,
+    __winter_manage_objects__,
+    __winter_session_key__,
     __winter_tracker__,
 )
 
@@ -122,7 +119,7 @@ class transaction_method:
 
 
 @overload
-def transaction(func: T) -> T: #type: ignore
+def transaction(func: T) -> T:  # type: ignore
     ...
 
 
