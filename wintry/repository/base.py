@@ -7,6 +7,7 @@ from wintry import BACKENDS
 from wintry.errors.definitions import InternalServerError, InvalidRequestError
 from wintry.models import _is_private_attr
 from wintry.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
+from wintry.utils.decorators import alias
 from wintry.utils.keys import (
     __mappings_builtins__,
     __RepositoryType__,
@@ -117,13 +118,6 @@ def marked(method: Callable[..., Any]) -> bool:
 
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
-
-
-def raw_method(method: FuncT) -> FuncT:
-    # annotate this function as a raw method, so it is ignored
-    # by the engine
-    setattr(method, "_raw_method", True)
-    return method
 
 
 @lru_cache(typed=True, maxsize=1000)
@@ -270,3 +264,8 @@ def managed(func: T) -> T:  # type: ignore
 def managed(func):  # type: ignore
     new_func = Managed(func)
     return update_wrapper(new_func, func)
+
+
+@alias(managed)
+def raw_method(method: FuncT) -> FuncT:
+    ...

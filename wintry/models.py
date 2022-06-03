@@ -36,6 +36,7 @@ from dataclasses import (
     is_dataclass,
 )
 from wintry.generators import AutoIncrement
+from wintry.utils.decorators import alias
 from wintry.utils.keys import (
     __winter_in_session_flag__,
     __winter_tracker__,
@@ -504,14 +505,6 @@ def to_dict(cls: type, obj: Any):
             d.pop(k)
 
     return d
-
-
-def alias(target: Callable) -> Callable[[T], T]:
-    def wrapper(_f: T):
-        return cast(T, target)
-
-    return wrapper
-
 
 def inspect_model(cls: type["Model"]):
     model_fields = fields(cls)
