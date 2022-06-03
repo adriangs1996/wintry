@@ -37,6 +37,7 @@ from wintry.settings import BackendOptions, EngineType, WinterSettings
 from wintry.transporters.service_container import ServiceContainer
 from wintry.utils.loaders import autodiscover_modules
 from wintry.ioc import inject
+from wintry.utils.keys import __winter_backend_identifier_key__
 
 __version__ = "0.1.2"
 
@@ -259,11 +260,32 @@ class App(FastAPI):
                 InvalidRequestError, invalid_request_exception_handler
             )
 
+    def _get_repo_driver(self, repo):
+        backend_name = getattr(repo, __winter_backend_identifier_key__, "default")
+        back = BACKENDS[backend_name]
+        assert back.driver is not None
+        return back.driver
+
+    async def _load_metadata(self):
+        from wintry.repository import RepositoryRegistry
+
+        for repo in RepositoryRegistry.repositories:
+            driver = self._get_repo_driver(repo)
+            if driver.driver_class == EngineType.Sql:
+                from wintry.models import metadata
+
+                engine = getattr(driver, "_engine")
+                async with engine.begin() as conn:
+                    await conn.run_sync(metadata.create_all)
+
         @self.on_startup
         @inject
         async def wintry_startup(logger: logging.Logger):
             if self.settings.transporters:
                 self.service_container.start_services()
+
+            if self.settings.ensure_metadata:
+                await self._load_metadata()
 
         @self.on_shutdown
         @inject

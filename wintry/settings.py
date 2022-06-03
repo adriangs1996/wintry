@@ -109,7 +109,7 @@ class WinterSettings(pdc.BaseSettings):
     repositories, etc
     """
 
-    ensure_metadata: bool = True
+    ensure_metadata: bool = False
 
     modules: list[str] = ["."]
     """

@@ -1,6 +1,7 @@
 from inspect import iscoroutine, ismethoddescriptor, signature
-from typing import Any, Callable, Coroutine, TypeVar, overload
+from typing import Any, Callable, Coroutine, ParamSpec, TypeVar, overload
 from pydantic import BaseModel
+from fastapi import BackgroundTasks
 
 
 class EventRegistrationError(Exception):
@@ -36,16 +37,21 @@ Message = Command | Event
 __event_handlers__: dict[type[Event], list[EventHandler]] = {}
 __command_handlers__: dict[type[Command], list[CommandHandler]] = {}
 
+P = ParamSpec("P")
+
 
 class MessageQueue:
-    async def handle(self, cmd: Message):
+    async def handle(self, cmd: Message, tasks: BackgroundTasks | None = None):
         self._message_queue = [cmd]
         messages_queue = self._message_queue
         while messages_queue:
             msg = messages_queue.pop(0)
             if isinstance(msg, Event):
                 try:
-                    await self.handle_event(msg)
+                    if tasks is not None:
+                        tasks.add_task(self.handle_event, msg)
+                    else:
+                        await self.handle_event(msg)
                 except:
                     pass
             else:
@@ -137,7 +143,7 @@ def event_handler(
     ]:
         if _type is None:
             if ismethoddescriptor(func):
-                sig = signature(func.fget) #type: ignore
+                sig = signature(func.fget)  # type: ignore
             else:
                 sig = signature(func)
             parameters = sig.parameters
@@ -222,7 +228,7 @@ def command_handler(
     ]:
         if _type is None:
             if ismethoddescriptor(func):
-                sig = signature(func.fget) #type: ignore
+                sig = signature(func.fget)  # type: ignore
             else:
                 sig = signature(func)
             parameters = sig.parameters

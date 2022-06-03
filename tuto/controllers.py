@@ -7,6 +7,7 @@ from wintry.controllers import controller, microservice, on, post, get
 from services import InvalidSku, MessageBus
 from wintry.responses import DataResponse
 from wintry.errors import NotFoundError
+from fastapi import BackgroundTasks
 
 
 @controller(prefix="", tags=["Products"])
@@ -15,14 +16,14 @@ class ProductsController:
     views: Views
 
     @post("/add_batch", response_model=DataResponse[str])
-    async def add_batch(self, cmd: CreateBatch):
-        await self.messagebus.handle(cmd)
+    async def add_batch(self, cmd: CreateBatch, background_tasks: BackgroundTasks):
+        await self.messagebus.handle(cmd, background_tasks)
         return DataResponse[str](data="Created Batch")
 
     @post("/allocate", response_model=DataResponse[str])
-    async def allocate(self, cmd: Allocate):
+    async def allocate(self, cmd: Allocate, background_tasks: BackgroundTasks):
         try:
-            await self.messagebus.handle(cmd)
+            await self.messagebus.handle(cmd, background_tasks)
             return DataResponse[str](data="Allocated", status_code=202)
         except InvalidSku as e:
             return DataResponse(status_code=400, message=str(e))

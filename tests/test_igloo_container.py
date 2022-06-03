@@ -152,18 +152,18 @@ def test_controllers_works_with_classical_injection():
         def do_something(self):
             return 10
 
-    @controller(container=container)
-    class Controller:
+    @controller(prefix="/some", container=container)
+    class SomeController:
         service: Service
 
-        @get("/")
+        @get("")
         async def run(self):
             return self.service.do_something()
 
     app = App(settings)
     client = TestClient(app)
 
-    response = client.get("/")
+    response = client.get("/some")
     assert response.json() == 10
 
     __controllers__ = []

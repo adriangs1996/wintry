@@ -220,7 +220,7 @@ I = TypeVar("I")
 def provider(
     *,
     of: type[I] | None = None,
-    singleton: bool = True,
+    singleton: bool = False,
     container: IGlooContainer = igloo,
 ) -> Callable[[type[T] | Callable[..., T]], type[T]]:
     ...

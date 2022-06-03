@@ -77,13 +77,10 @@ class MessageBus(MessageQueue):
         self.register(Allocate(**event.dict()))
 
     @event_handler
+    @transaction
     async def save_allocation_view(self, event: Allocated):
         allocation = AllocationsViewModel(**event.dict(exclude={"qty"}))
-        try:
-            allocation = await self.allocations.create(entity=allocation)
-        except Exception as e:
-            print(type(e))
-            raise e
+        allocation = await self.allocations.create(entity=allocation)
         await self.sender.send("line_allocated", allocation.to_dict())
         self.logger.info("Synced Allocation View")
 
