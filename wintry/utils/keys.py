@@ -24,6 +24,7 @@ __winter_model_collection_name__ = "__winter_model_collection_name__"
 __winter_transporter_name__ = "__winter_transporter_name__"
 __winter_microservice_event__ = "__winter_microservice_event__"
 __winter_model_primary_keys__ = "__winter_model_primary_keys__"
+__winter_model_instance_state__ = "__model_instance_state__"
 
 NO_SQL = "NO_SQL"
 SQL = "SQL"

@@ -5,8 +5,9 @@ from typing import Any, Callable, Coroutine, List, Type, TypeVar, overload
 from sqlalchemy.exc import IntegrityError
 from wintry import BACKENDS
 from wintry.errors.definitions import InternalServerError, InvalidRequestError
-from wintry.models import _is_private_attr
+from wintry.models import Model, _is_private_attr
 from wintry.orm import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
+from wintry.sessions import Tracker
 from wintry.utils.decorators import alias
 from wintry.utils.keys import (
     __mappings_builtins__,
@@ -73,6 +74,11 @@ def proxyfied(result: Any | list[Any], tracker, origin: Any):
         return result
 
     if not isinstance(result, list):
+        # Ignore already proxified objects. This might not be
+        # true very often because this is only used when querying
+        # for objects that hasn't already been commited to the db
+        if getattr(result, "__wintry_proxy_processed_object__", False):
+            return result
         for k, v in vars(result).items():
             # Proxify recursively this instance.
             # Ignore private attributes as well as builtin ones
@@ -98,6 +104,7 @@ def proxyfied(result: Any | list[Any], tracker, origin: Any):
         setattr(result, __winter_tracker__, tracker)
         # Set the instance state (not modified)
         setattr(result, __winter_modified_entity_state__, False)
+        setattr(result, "__wintry_proxy_processed_object__", True)
         return result
     else:
         if isinstance(origin, list):
@@ -146,6 +153,22 @@ def is_raw(func):
     return getattr(func, "_raw_method", False)
 
 
+def track_result_instances(instance: Model | list[Model], tracker: Tracker):
+    if isinstance(instance, list):
+        for i, obj in enumerate(instance):
+            if obj in tracker:
+                instance[i] = tracker.get_tracked_instance(obj)
+            else:
+                tracker.track(obj)
+    else:
+        if instance in tracker:
+            instance = tracker.get_tracked_instance(instance)
+        else:
+            tracker.track(instance)
+
+    return instance
+
+
 class Managed:
     def __init__(self, fget=None):
         self.fget = fget
@@ -168,6 +191,7 @@ class Managed:
                 # Track the results, get the tracker instance from
                 # the repo instance
                 tracker = getattr(obj, __winter_tracker__)
+                result = track_result_instances(result, tracker)
                 return proxyfied(result, tracker, result)  # type: ignore
             return result
 
@@ -178,6 +202,7 @@ class Managed:
                 handle_error(e)
             if not using_sqlalchemy and self.__no_sql_session_manged__:
                 tracker = getattr(obj, __winter_tracker__)
+                result = track_result_instances(result, tracker)
                 return proxyfied(result, tracker, result)  # type: ignore
             return result
 
@@ -225,6 +250,7 @@ class Query:
                 # Track the results, get the tracker instance from
                 # the repo instance
                 tracker = getattr(obj, __winter_tracker__)
+                result = track_result_instances(result, tracker)
                 return proxyfied(result, tracker, result)  # type: ignore
             return result
 
@@ -235,6 +261,7 @@ class Query:
                 handle_error(e)
             if not using_sqlalchemy and self.__no_sql_session_manged__:
                 tracker = getattr(obj, __winter_tracker__)
+                result = track_result_instances(result, tracker)
                 return proxyfied(result, tracker, result)  # type: ignore
             return result
 

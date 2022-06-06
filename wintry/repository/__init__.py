@@ -17,7 +17,7 @@ from wintry.utils.keys import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorClientSession
 from wintry.models import Model
-from wintry.sessions import MongoSessionTracker
+from wintry.sessions import Tracker
 
 
 T = TypeVar("T", bound=Model)
@@ -98,7 +98,7 @@ class Repository(abc.ABC, Generic[T, TypeId]):
             # want to share trackers among repositories
             if mongo_session_managed:
                 setattr(
-                    self, __winter_tracker__, MongoSessionTracker(entity, for_backend)
+                    self, __winter_tracker__, Tracker(entity, for_backend)
                 )
 
         # Augment the repository with a special property to reference the backend this

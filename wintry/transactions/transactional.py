@@ -3,7 +3,7 @@ from inspect import iscoroutinefunction
 from typing import Any, Callable, TypeVar, overload
 
 from wintry.repository import Repository
-from wintry.sessions import MongoSessionTracker
+from wintry.sessions import Tracker
 from wintry.transactions.unit_of_work import close_session, commit, get_session, rollback
 from wintry.utils.keys import (
     NO_SQL,
@@ -51,7 +51,7 @@ async def commit_repositories_sessions(repositories: list[Repository]):
             getattr(repository, __winter_manage_objects__, False)
             and getattr(repository, __RepositoryType__, None) == NO_SQL
         ):
-            tracker: MongoSessionTracker = getattr(repository, __winter_tracker__)
+            tracker: Tracker = getattr(repository, __winter_tracker__)
             await tracker.flush(session)
         await commit(session, backend_name)
 
@@ -73,7 +73,7 @@ async def close_repositories_sessions(repositories: list[Repository]):
             getattr(repository, __winter_manage_objects__, False)
             and getattr(repository, __RepositoryType__, None) == NO_SQL
         ):
-            tracker: MongoSessionTracker = getattr(repository, __winter_tracker__)
+            tracker: Tracker = getattr(repository, __winter_tracker__)
             tracker.clean()
 
 

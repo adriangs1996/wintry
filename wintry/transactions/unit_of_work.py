@@ -3,7 +3,7 @@ from typing_extensions import Self
 from wintry.drivers.mongo import MongoSession
 from sqlalchemy.ext.asyncio import AsyncSession
 from wintry import BACKENDS, DriverNotFoundError, DriverNotSetError
-from wintry.sessions import MongoSessionTracker
+from wintry.sessions import Tracker
 from wintry.utils.keys import (
     __winter_manage_objects__,
     __winter_tracker__,
@@ -97,7 +97,7 @@ class UnitOfWork:
                     getattr(repo, __winter_manage_objects__, False)
                     and getattr(repo, __RepositoryType__, None) == NO_SQL
                 ):
-                    tracker: MongoSessionTracker = getattr(repo, __winter_tracker__)
+                    tracker: Tracker = getattr(repo, __winter_tracker__)
                     await tracker.flush(self.session)
             await commit(self.session, self.backend)
 
@@ -138,7 +138,7 @@ class UnitOfWork:
                 getattr(repo, __winter_manage_objects__, False)
                 and getattr(repo, __RepositoryType__, None) == NO_SQL
             ):
-                tracker: MongoSessionTracker = getattr(repo, __winter_tracker__)
+                tracker: Tracker = getattr(repo, __winter_tracker__)
                 tracker.clean()
 
     def __getattribute__(self, __name: str) -> Any:

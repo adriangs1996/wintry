@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Callable, Type, TypeVar
 from sqlalchemy.orm import registry
 from sqlalchemy import Table, Column, MetaData
@@ -24,6 +25,5 @@ def for_model(
     table = Table(table_name, metadata, *columns)
     mapper_registry.map_imperatively(cls, table, properties=kwargs)
     return table
-
 
 __all__ = ["__SQL_ENABLED_FLAG__", "__WINTER_MAPPED_CLASS__", "for_model"]

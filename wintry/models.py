@@ -46,6 +46,7 @@ from wintry.utils.keys import (
     __SQL_ENABLED_FLAG__,
     __winter_model_collection_name__,
     __winter_model_primary_keys__,
+    __winter_model_instance_state__
 )
 from sqlalchemy import (
     Column,
