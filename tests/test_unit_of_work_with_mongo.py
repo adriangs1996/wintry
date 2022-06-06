@@ -25,7 +25,7 @@ class User(Model):
     heroes: list["Hero"] = field(default_factory=list)
 
 
-class UserRepository(Repository[User, int], entity=User, mongo_session_managed=True):
+class UserRepository(Repository[User, int], entity=User):
     @managed
     async def get_user_by_name(self, name: str):
         db = self.connection()
@@ -205,7 +205,7 @@ async def test_unit_of_work_respects_ignore_synchronization_flag(
         hero.name = "Superman"
         await uow.commit()
 
-    row = await db.heroes.find_one({"name": "Superman"})
+    row = await db.heroes.find_one({"name": "Batman"})
     assert row is None
 
     rows = await db.heroes.find({}).to_list(None)

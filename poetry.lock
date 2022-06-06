@@ -44,6 +44,17 @@ yarl = "*"
 develop = ["aiomisc (>=11.0,<12.0)", "coverage (!=4.3)", "coveralls", "pylava", "pytest", "pytest-cov", "tox (>=2.4)"]
 
 [[package]]
+name = "aiosqlite"
+version = "0.17.0"
+description = "asyncio bridge to the standard sqlite3 module"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+typing_extensions = ">=3.7.2"
+
+[[package]]
 name = "anyio"
 version = "3.6.1"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
@@ -793,7 +804,7 @@ redis = ["aioredis"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "3d96304703a7dbc30c75c08d7352032c1cc854ceaf7912dc04e8c565b78dc59f"
+content-hash = "1602c6cc5d6a18a1adc06b605c48a526982ec9d939f3657639868bb5f27e0377"
 
 [metadata.files]
 aio-pika = [
@@ -806,6 +817,10 @@ aioredis = [
 aiormq = [
     {file = "aiormq-6.2.3-py3-none-any.whl", hash = "sha256:95f0da57edd55f214a2e6c5b7ac98fa58a7c33911acd0d3315e86926b2dd2605"},
     {file = "aiormq-6.2.3.tar.gz", hash = "sha256:db6c1e6e384f1d4dafe19f8df70c6dfc994932b40f4e542690016023ff8e952b"},
+]
+aiosqlite = [
+    {file = "aiosqlite-0.17.0-py3-none-any.whl", hash = "sha256:6c49dc6d3405929b1d08eeccc72306d3677503cc5e5e43771efc1e00232e8231"},
+    {file = "aiosqlite-0.17.0.tar.gz", hash = "sha256:f0e6acc24bc4864149267ac82fb46dfb3be4455f99fe21df82609cc6e6baee51"},
 ]
 anyio = [
     {file = "anyio-3.6.1-py3-none-any.whl", hash = "sha256:cb29b9c70620506a9a8f87a309591713446953302d7d995344d0d7c6c0c9a7be"},

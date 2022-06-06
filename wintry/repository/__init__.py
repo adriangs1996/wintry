@@ -86,7 +86,6 @@ class Repository(abc.ABC, Generic[T, TypeId]):
         for_backend: str = "default",
         table_name: str | None = None,
         dry: bool = False,
-        mongo_session_managed: bool = False,
     ) -> None:
         RepositoryRegistry.repositories.append(cls)
 
@@ -96,10 +95,7 @@ class Repository(abc.ABC, Generic[T, TypeId]):
 
             # init tracker in the instance, because we do not
             # want to share trackers among repositories
-            if mongo_session_managed:
-                setattr(
-                    self, __winter_tracker__, Tracker(entity, for_backend)
-                )
+            setattr(self, __winter_tracker__, Tracker(entity, for_backend))
 
         # Augment the repository with a special property to reference the backend this
         # repository is going to use
@@ -121,14 +117,10 @@ class Repository(abc.ABC, Generic[T, TypeId]):
 
         # Prepare the repository with augmented properties
         setattr(cls, __winter_session_key__, None)
-        if mongo_session_managed:
-            setattr(cls, __winter_manage_objects__, True)
 
         setattr(cls, "__dry__", dry)
 
         setattr(cls, "__winter_entity__", entity)
-
-        setattr(cls, "__nosql_session_managed__", mongo_session_managed)
 
         setattr(cls, "find", query(cls.find))
         vars(cls)["find"].__set_name__(cls, "find")
@@ -147,6 +139,7 @@ class Repository(abc.ABC, Generic[T, TypeId]):
 
         setattr(cls, "create", query(cls.create))
         vars(cls)["create"].__set_name__(cls, "create")
+
 
 __all__ = [
     "raw_method",

@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any, Callable, Type, TypeVar
 from sqlalchemy.orm import registry
 from sqlalchemy import Table, Column, MetaData

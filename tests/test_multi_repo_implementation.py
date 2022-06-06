@@ -36,21 +36,14 @@ UserTable = for_model(
 # This is wrong, but winter allows to force this as a nosql repository, even if
 # User has already been mapped to a SQLAlchemy Table. And User could still be used
 # as a regular POPO class, and for MONGO, winter is really powerful
-class UserMongoRepository(
-    Repository[User, int],
-    entity=User,
-    mongo_session_managed=True,
-    for_backend="default",
-):
+class UserMongoRepository(Repository[User, int], entity=User, for_backend="default"):
     pass
 
 
 # this is wrong, like very wrong, the same application should not
 # define two data sources for the same model, at least not in this way.
 # But winter is powerful, and winter is comming, so I will allow it here
-class UserPostgressRepository(
-    Repository[User, int], entity=User, for_backend="postgres"
-):
+class UserPostgressRepository(Repository[User, int], entity=User, for_backend="postgres"):
     pass
 
 
@@ -158,15 +151,6 @@ async def test_repos_retrieve_from_different_databases(clean: Any) -> None:
     postgres_users = await posgres.find()
 
     assert len(postgres_users) == 4
-
-
-def test_cannot_use_a_uow_with_different_backends(clean: Any) -> None:
-    with pytest.raises(UnitOfWorkError):
-        pg = UserPostgressRepository()
-        mng = UserMongoRepository()
-
-        uow = InvalidUnitOfWork(pg_users=pg, mg_users=mng)
-
 
 @pytest.mark.asyncio
 async def test_uow_can_be_created_from_either_repository(clean: Any) -> None:

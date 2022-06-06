@@ -34,6 +34,7 @@ from sqlalchemy.sql import (
 from sqlalchemy.orm import Mapper, RelationshipProperty
 from dataclass_wizard import asdict
 from dataclasses import is_dataclass
+from sqlalchemy.sql.expression import text, TextClause
 
 
 class ExecutionError(Exception):

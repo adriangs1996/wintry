@@ -38,6 +38,7 @@ def collect_repositories_from_args(args: tuple[Any, ...], kwargs: dict[str, Any]
 
 async def set_session_in_repositories(repositories: list[Repository]):
     for repository in repositories:
+        setattr(repository, "__nosql_session_managed__", True)
         backend_name = getattr(repository, __winter_backend_identifier_key__)
         session = await get_session(backend_name)
         setattr(repository, __winter_session_key__, session)
@@ -47,10 +48,7 @@ async def commit_repositories_sessions(repositories: list[Repository]):
     for repository in repositories:
         backend_name = getattr(repository, __winter_backend_identifier_key__)
         session = getattr(repository, __winter_session_key__)
-        if (
-            getattr(repository, __winter_manage_objects__, False)
-            and getattr(repository, __RepositoryType__, None) == NO_SQL
-        ):
+        if getattr(repository, __RepositoryType__, None) == NO_SQL:
             tracker: Tracker = getattr(repository, __winter_tracker__)
             await tracker.flush(session)
         await commit(session, backend_name)
@@ -69,10 +67,7 @@ async def close_repositories_sessions(repositories: list[Repository]):
         session = getattr(repository, __winter_session_key__)
         await close_session(session, backend_name)
         setattr(repository, __winter_session_key__, None)
-        if (
-            getattr(repository, __winter_manage_objects__, False)
-            and getattr(repository, __RepositoryType__, None) == NO_SQL
-        ):
+        if getattr(repository, __RepositoryType__, None) == NO_SQL:
             tracker: Tracker = getattr(repository, __winter_tracker__)
             tracker.clean()
 

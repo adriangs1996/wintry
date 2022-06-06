@@ -46,7 +46,8 @@ from wintry.utils.keys import (
     __SQL_ENABLED_FLAG__,
     __winter_model_collection_name__,
     __winter_model_primary_keys__,
-    __winter_model_instance_state__
+    __winter_model_instance_state__,
+    __winter_model_fields_set__,
 )
 from sqlalchemy import (
     Column,
@@ -354,6 +355,11 @@ class VirtualDatabaseMeta(type):
 
 class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
     tables: dict[type["Model"], TableMetadata] = {}
+    sql_generated_tables: dict[type["Model"], Table] = {}
+    
+    @classmethod
+    def get_table(cls, model: type["Model"]):
+        return cls.sql_generated_tables.get(model)
 
     @staticmethod
     def create_table_for_model(model: type["Model"], table_metadata: TableMetadata):
@@ -442,11 +448,9 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
                         rel.with_model, lazy="joined", back_populates=other_endpoint
                     )
 
-        mapper_registry.map_imperatively(
-            model,
-            Table(table_metadata.table_name, table_metadata.metadata, *columns),
-            properties=properties,
-        )
+        table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
+        VirtualDatabaseSchema.sql_generated_tables[model] = table
+        mapper_registry.map_imperatively(model, table, properties=properties)
 
     @classmethod
     def use_sqlalchemy(cls, metadata: MetaData = metadata):
@@ -506,6 +510,7 @@ def to_dict(cls: type, obj: Any):
             d.pop(k)
 
     return d
+
 
 def inspect_model(cls: type["Model"]):
     model_fields = fields(cls)
@@ -612,6 +617,7 @@ class Model(JSONSerializable):
 
         table_name = name or cls.__name__.lower() + "s"
         setattr(cls, __winter_model_collection_name__, table_name)
+        setattr(cls, __winter_model_fields_set__, tuple(f.name for f in fields(cls)))
 
         inspect_model(cls)
 

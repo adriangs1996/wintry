@@ -36,7 +36,7 @@ class Hero(Model):
     id: str = Id(default_factory=AutoString)
 
 
-class UserRepository(Repository[User, int], entity=User, mongo_session_managed=True):
+class UserRepository(Repository[User, int], entity=User):
     @managed
     async def get_user_by_name(self, name: str):
         db = self.connection()
@@ -55,9 +55,7 @@ class HeroRepository(Repository[Hero, str], entity=Hero, table_name="heroes"):
 
 
 @provider(container=container, singleton=False)
-class UserRepositoryInjected(
-    Repository[User, int], entity=User, mongo_session_managed=True
-):
+class UserRepositoryInjected(Repository[User, int], entity=User):
     ...
 
 

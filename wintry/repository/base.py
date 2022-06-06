@@ -177,9 +177,7 @@ class Managed:
         self.__winter_owner__ = owner
 
     def __get__(self, obj, objtype=None):
-        self.__no_sql_session_manged__ = getattr(
-            self.__winter_owner__, "__nosql_session_managed__"
-        )
+        __no_sql_session_manged__ = getattr(obj, "__nosql_session_managed__", False)
         using_sqlalchemy = getattr(obj, __winter_repository_is_using_sqlalchemy__)
 
         def raw_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
@@ -187,7 +185,7 @@ class Managed:
                 result = self.fget(obj, *args, **kwargs)
             except Exception as e:
                 handle_error(e)
-            if not using_sqlalchemy and self.__no_sql_session_manged__:
+            if not using_sqlalchemy and __no_sql_session_manged__:
                 # Track the results, get the tracker instance from
                 # the repo instance
                 tracker = getattr(obj, __winter_tracker__)
@@ -200,7 +198,7 @@ class Managed:
                 result = await self.fget(obj, *args, **kwargs)
             except Exception as e:
                 handle_error(e)
-            if not using_sqlalchemy and self.__no_sql_session_manged__:
+            if not using_sqlalchemy and __no_sql_session_manged__:
                 tracker = getattr(obj, __winter_tracker__)
                 result = track_result_instances(result, tracker)
                 return proxyfied(result, tracker, result)  # type: ignore
@@ -218,6 +216,7 @@ class Query:
         if doc is None and fget is not None:
             doc = fget.__doc__
         self.__doc__ = doc
+        self.__func_application__ = None
 
     def __set_name__(self, owner, name):
         self.__winter_name__ = name
@@ -230,23 +229,22 @@ class Query:
         )
         ent = getattr(self.__winter_owner__, "__winter_entity__")
 
-        self.__func_application__ = _parse_function_name(
-            backend, self.__winter_name__, self.fget, ent, dry
-        )
+        if self.__func_application__ is None:
+            self.__func_application__ = _parse_function_name(
+                backend, self.__winter_name__, self.fget, ent, dry
+            )
 
-        self.__no_sql_session_manged__ = getattr(
-            self.__winter_owner__, "__nosql_session_managed__"
-        )
+        __no_sql_session_manged__ = getattr(obj, "__nosql_session_managed__", False)
 
         session = getattr(obj, __winter_session_key__, None)
         using_sqlalchemy = getattr(obj, __winter_repository_is_using_sqlalchemy__)
 
         def wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
             try:
-                result = self.__func_application__(*args, session=session, **kwargs)
+                result = self.__func_application__(*args, session=session, **kwargs)  # type: ignore
             except Exception as e:
                 handle_error(e)
-            if not using_sqlalchemy and self.__no_sql_session_manged__:
+            if not using_sqlalchemy and __no_sql_session_manged__:
                 # Track the results, get the tracker instance from
                 # the repo instance
                 tracker = getattr(obj, __winter_tracker__)
@@ -256,10 +254,10 @@ class Query:
 
         async def async_wrapper(*args: Any, **kwargs: Any) -> List[T] | T | None:
             try:
-                result = await self.__func_application__(*args, session=session, **kwargs)
+                result = await self.__func_application__(*args, session=session, **kwargs)  # type: ignore
             except Exception as e:
                 handle_error(e)
-            if not using_sqlalchemy and self.__no_sql_session_manged__:
+            if not using_sqlalchemy and __no_sql_session_manged__:
                 tracker = getattr(obj, __winter_tracker__)
                 result = track_result_instances(result, tracker)
                 return proxyfied(result, tracker, result)  # type: ignore

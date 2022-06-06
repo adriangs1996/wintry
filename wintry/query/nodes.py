@@ -1,4 +1,5 @@
-from typing import Optional
+from dataclasses import Field
+from typing import Any, Optional
 
 
 class OpNode:
@@ -14,11 +15,18 @@ class RootNode(OpNode):
 
 
 class FilterNode(OpNode):
-    def __init__(self, field: str) -> None:
+    def __init__(self, field: str, value: Any = None) -> None:
         self.field = field
+        self.value = value
 
     def __eq__(self, __o: "FilterNode") -> bool:
-        return __o.field == self.field
+        return __o.field == self.field and self.value == __o.value
+
+    def __and__(self, node: Optional["BinaryNode"]) -> "AndNode":
+        return AndNode(self, node)
+
+    def __or__(self, node: Optional["BinaryNode"]) -> "OrNode":
+        return OrNode(self, node)
 
 
 class BinaryNode(OpNode):
@@ -44,11 +52,19 @@ class Update(RootNode):
 
 
 class Find(RootNode):
-    pass
+    def __init__(
+        self, filters: Optional["BinaryNode"] = None, projection: list[str] = []
+    ) -> None:
+        super().__init__(filters)
+        self.projection = projection
 
 
 class Get(RootNode):
-    pass
+    def __init__(
+        self, filters: Optional["BinaryNode"] = None, projection: list[Field] = []
+    ) -> None:
+        super().__init__(filters)
+        self.projection = projection
 
 
 class Delete(RootNode):

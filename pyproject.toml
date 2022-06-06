@@ -30,6 +30,7 @@ typer = {extras = ["all"], version = "^0.4.1"}
 cookiecutter = "^1.7.3"
 uvicorn = {extras = ["standard"], version = "^0.17.6"}
 mongomock = "^4.0.0"
+aiosqlite = "^0.17.0"
 
 [tool.poetry.extras]
 redis = ["aioredis"]
