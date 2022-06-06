@@ -5,7 +5,7 @@ from wintry.repository.base import managed, query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
-from wintry.orm import for_model
+from wintry.orm.mapping import for_model
 from sqlalchemy import (
     Integer,
     Column,

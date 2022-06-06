@@ -1,7 +1,7 @@
 from typing import Any, AsyncGenerator, List
 from wintry import get_connection, init_backends, BACKENDS
 from wintry.models import Model
-from wintry.orm import for_model
+from wintry.orm.mapping import for_model
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relation

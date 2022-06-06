@@ -3,7 +3,7 @@ import pytest_asyncio
 import pytest
 from wintry import get_connection, init_backends, BACKENDS
 from wintry.models import Model
-from wintry.orm import for_model
+from wintry.orm.mapping import for_model
 from wintry.transactions.unit_of_work import UnitOfWork, UnitOfWorkError
 from wintry.repository import Repository
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings

@@ -65,7 +65,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, backref
 from enum import Enum as std_enum
-from wintry.orm import metadata, mapper_registry
+from wintry.orm.mapping import metadata, mapper_registry
 from pydantic import BaseModel
 
 _mapper: dict[type, type] = {

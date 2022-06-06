@@ -1,7 +1,7 @@
 import pytest
 from wintry.drivers.pg import ExecutionError, SqlAlchemyDriver
 from wintry.models import Model
-from wintry.orm import for_model
+from wintry.orm.mapping import for_model
 from sqlalchemy.orm import relation
 from sqlalchemy import Integer, String, Column, ForeignKey, MetaData
 from sqlalchemy.exc import CompileError
