@@ -1,10 +1,20 @@
 from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
-from wintry.backend import QueryDriver
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.engine.result import Result
+
 import sqlalchemy.orm as orm
+from sqlalchemy import delete, insert, inspect, select, update
+from sqlalchemy.engine.result import Result
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio.engine import create_async_engine
+from sqlalchemy.ext.asyncio.engine import AsyncConnection
+from sqlalchemy.orm import Mapper, RelationshipProperty
+from sqlalchemy.sql import Delete as DeleteStatement
+from sqlalchemy.sql import Insert as InsertStatement
+from sqlalchemy.sql import Select
+from sqlalchemy.sql import Update as UpdateStatement
+from sqlalchemy.sql.expression import TextClause, text
+from wintry.backend import QueryDriver
 from wintry.models import Model
 from wintry.query.nodes import (
     AndNode,
@@ -24,17 +34,11 @@ from wintry.query.nodes import (
     Update,
 )
 from wintry.settings import BackendOptions, EngineType
-from sqlalchemy import select, update, delete, inspect, insert
-from sqlalchemy.sql import (
-    Select,
-    Update as UpdateStatement,
-    Delete as DeleteStatement,
-    Insert as InsertStatement,
+from wintry.utils.virtual_db_schema import (
+    compute_model_insert_values,
+    get_model_sql_table,
+    serialize_for_update,
 )
-from sqlalchemy.orm import Mapper, RelationshipProperty
-from dataclass_wizard import asdict
-from dataclasses import is_dataclass
-from sqlalchemy.sql.expression import text, TextClause
 
 
 class ExecutionError(Exception):
@@ -152,26 +156,28 @@ class SqlAlchemyDriver(QueryDriver):
 
         self._session: Optional[AsyncSession] = None
 
-    def get_connection(self) -> Any:
-        if self._session is not None:
-            return self._session
+        self._connection: AsyncConnection | None = None
+
+    def get_connection(self) -> AsyncConnection:
+        if self._connection is not None:
+            return self._connection
         else:
-            return self._sessionmaker()
+            return self._engine.connect()
 
-    async def get_started_session(self) -> AsyncSession:
-        session: AsyncSession = self._sessionmaker()
-        session.begin()
-        return session
+    async def get_started_session(self) -> AsyncConnection:
+        connection: AsyncConnection = self._engine.connect()
+        connection.begin()
+        return connection
 
-    async def commit_transaction(self, session: AsyncSession) -> None:
+    async def commit_transaction(self, session: AsyncConnection) -> None:
         if session.in_transaction():
             await session.commit()
 
-    async def abort_transaction(self, session: AsyncSession) -> None:
+    async def abort_transaction(self, session: AsyncConnection) -> None:
         if session.in_transaction():
             await session.rollback()
 
-    async def close_session(self, session: AsyncSession) -> None:
+    async def close_session(self, session: AsyncConnection) -> None:
         if session.in_transaction():
             await session.close()
 
@@ -185,7 +191,7 @@ class SqlAlchemyDriver(QueryDriver):
         self,
         query_expression: RootNode,
         table_name: str | Type[Any],
-        session: Any = None,
+        session: AsyncConnection | None = None,
         **kwargs: Any,
     ) -> Any:
         return await self.visit(query_expression, table_name, session=session, **kwargs)
@@ -197,13 +203,21 @@ class SqlAlchemyDriver(QueryDriver):
 
     @singledispatchmethod
     async def query(
-        self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: OpNode,
+        schema: Type[Any],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
         raise NotImplementedError
 
     @query.register
     async def _(
-        self, node: Find, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Find,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
         stmt: Select = select(schema)
 
@@ -215,9 +229,14 @@ class SqlAlchemyDriver(QueryDriver):
 
     @query.register
     async def _(
-        self, node: Get, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Get,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
-        stmt: Select = select(schema)
+        table = get_model_sql_table(schema)
+        stmt: Select = select(table)
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
@@ -227,9 +246,14 @@ class SqlAlchemyDriver(QueryDriver):
 
     @query.register
     async def _(
-        self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Delete,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
-        stmt: DeleteStatement = delete(schema)
+        table = get_model_sql_table(schema)
+        stmt: DeleteStatement = delete(table)
         stmt = stmt.execution_options(synchronize_session=False)
 
         if node.filters is not None:
@@ -240,39 +264,49 @@ class SqlAlchemyDriver(QueryDriver):
 
     @query.register
     async def _(
-        self, node: Update, schema: Type[Any], *, entity: Model, session: Any = None
+        self,
+        node: Update,
+        schema: Type[Model],
+        *,
+        entity: Model,
+        session: AsyncConnection | None = None,
     ) -> str:
+        table = get_model_sql_table(schema)
         pks = entity.ids()
-        pks_names = entity.id_name()
         if not pks:
             raise ExecutionError("Entity must have an id field")
+        data = serialize_for_update(entity)
 
-        stmt: UpdateStatement = update(schema)
-        stmt = (
-            stmt.filter_by(**pks)
-            .values(**entity.to_dict(exclude=[*pks_names]))
-            .execution_options(synchronize_session=False)
-        )
+        stmt: UpdateStatement = update(table)
+        stmt = stmt.filter_by(**pks).values(data)
         return str(stmt)
 
     @query.register
     async def _(
-        self, node: Create, schema: Type[Any], *, entity: Model, session: Any = None
+        self,
+        node: Create,
+        schema: Type[Model],
+        *,
+        entity: Model,
+        session: AsyncConnection | None = None,
     ) -> str:
-        stmt: InsertStatement = insert(schema)
-        stmt = stmt.values(entity.to_dict())  # type: ignore
+        table = get_model_sql_table(schema)
+        stmt: InsertStatement = insert(table)
+        data = compute_model_insert_values(entity)
+        stmt = stmt.values(**data)  # type: ignore
 
         return str(stmt)
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any):  # type: ignore
+    async def visit(self, node: OpNode, schema: Type[Model], session: AsyncConnection | None = None, **kwargs: Any):  # type: ignore
         raise NotImplementedError
 
     @visit.register
     async def _(
         self, node: Find, schema: Type[T], session: Any = None, **kwargs: Any
     ) -> List[T]:
-        stmt: Select = select(schema)
+        table = get_model_sql_table(schema)
+        stmt: Select = select(table)
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)

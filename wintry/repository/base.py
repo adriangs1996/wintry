@@ -1,6 +1,6 @@
 import inspect
 from functools import lru_cache, partial, update_wrapper
-from typing import Any, Callable, Coroutine, List, Type, TypeVar, overload
+from typing import Any, Callable, Coroutine, Iterable, List, SupportsIndex, Type, TypeVar, overload
 
 from sqlalchemy.exc import IntegrityError
 from wintry import BACKENDS
@@ -39,7 +39,7 @@ RuntimeParsedMethod = partial[Any], partial[Coroutine[Any, Any, Any]]
 Func = Callable[..., Any]
 
 
-class ProxyList(list):
+class ProxyList(list[T]):
     def set_tracking_info(self, tracker, instance):
         self.tracker = tracker
         self.instance = instance
@@ -60,6 +60,13 @@ class ProxyList(list):
     def remove(self, __value: Any) -> None:
         self.track()
         return super().remove(__value)
+
+    def extend(self, __iterable: Iterable[T]) -> None:
+        self.track()
+        return super().extend(__iterable)
+    
+    def pop(self, __index: SupportsIndex = ...) -> T:
+        return super().pop(__index)
 
 
 def proxyfied(result: Any | list[Any], tracker, origin: Any):

@@ -259,6 +259,7 @@ class TableMetadata:
     foreing_keys: list[ForeignKeyInfo] = field(default_factory=list)
     relations: list[Relation] = field(default_factory=list)
     columns: list[Field] = field(default_factory=list)
+    many_to_one_relations: list[Relation] = field(default_factory=list)
 
     def many_to_one_relation(self, field: Field) -> Relation:
         # Here we have a many_to relation, the other endpoint must define either
@@ -312,6 +313,7 @@ class TableMetadata:
             return
 
         if isinstance(field.type, GenericAlias) and field.type.__origin__ in sequences:
+            self.many_to_one_relations.append(self.many_to_one_relation(field))
             self.relations.append(self.many_to_one_relation(field))
             return
 
@@ -329,7 +331,7 @@ class TableMetadata:
 
         # At this point, this is a one_to relation, so we just add a foreing key and a
         # relation
-        foregin_key = ForeignKeyInfo(_type, f"{field.name}_id")
+        foregin_key = ForeignKeyInfo(_type, field.name)
         relationship = Relation(with_model=_type, field_name=field.name)
 
         if foregin_key not in self.foreing_keys:
@@ -450,7 +452,7 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
 
         table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
         VirtualDatabaseSchema.sql_generated_tables[model] = table
-        mapper_registry.map_imperatively(model, table, properties=properties)
+        # mapper_registry.map_imperatively(model, table, properties=properties)
 
     @classmethod
     def use_sqlalchemy(cls, metadata: MetaData = metadata):
@@ -594,7 +596,7 @@ class Model(JSONSerializable):
     def __init_subclass__(
         cls,
         *,
-        name: str | None = None,
+        table: str | None = None,
         init: bool = True,
         repr: bool = True,
         eq: bool = True,
@@ -615,7 +617,7 @@ class Model(JSONSerializable):
             slots=False,
         )(cls)
 
-        table_name = name or cls.__name__.lower() + "s"
+        table_name = table or cls.__name__.lower() + "s"
         setattr(cls, __winter_model_collection_name__, table_name)
         setattr(cls, __winter_model_fields_set__, tuple(f.name for f in fields(cls)))
 
@@ -631,8 +633,9 @@ class Model(JSONSerializable):
         if mapped:
             ModelRegistry.register(cls)  # type: ignore
 
-    def id_name(self) -> tuple[str]:
-        pks: dict[str, Field] = getattr(self, __winter_model_primary_keys__)
+    @classmethod
+    def id_name(cls) -> tuple[str]:
+        pks: dict[str, Field] = getattr(cls, __winter_model_primary_keys__)
         return tuple(pks.keys())
 
     def ids(self):
@@ -640,7 +643,9 @@ class Model(JSONSerializable):
         return {name: getattr(self, name) for name in pks}
 
     @alias(asdict)
-    def to_dict(self, *, exclude: list[str] = list(), skip_defaults: bool = False):
+    def to_dict(
+        self, *, exclude: list[str] = list(), skip_defaults: bool = False
+    ) -> dict[str, Any]:
         ...
 
     @overload
