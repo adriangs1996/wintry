@@ -35,6 +35,12 @@ from wintry.utils.keys import (
     __winter_session_key__,
     __winter_track_target__,
     __winter_tracker__,
+    __wintry_model_instance_phantom_fk__,
+)
+from wintry.utils.virtual_db_schema import (
+    get_model_fields_names,
+    get_model_sql_table,
+    get_model_table_metadata,
 )
 
 
@@ -50,11 +56,59 @@ RuntimeParsedMethod = partial[Any], partial[Coroutine[Any, Any, Any]]
 Func = Callable[..., Any]
 
 
-class ProxyList(list[T]):
-    def set_tracking_info(self, tracker, instance):
+class ProxyList(list[Model]):
+    def set_tracking_info(self, tracker: Tracker, instance: Model):
         self.tracker = tracker
         self.instance = instance
         self.regs = False
+
+    def track_new_obj(self, obj: Model):
+        # Adding a new object to a list in a SQL ORM fashion
+        # carries two consequences:
+        # - First: The new obj should be tracked by Tracker
+        # - Second: Obj should get populated its phantom
+        #           foreign keys with the key name of the
+        #           relation or its present foreign key
+        #           with the current instance
+
+        # Need to do some work here because is necessary to tell
+        # if this relation is through a phantom fk or a concrete
+        # one
+        obj_table = get_model_table_metadata(type(obj))
+        model_fields = get_model_fields_names(type(obj))
+
+        for fk in obj_table.foreing_keys:
+            if fk.target == type(self.instance):
+                if fk.key_name not in model_fields:
+                    # it is a phantom fk
+                    instance_id_value = list(self.instance.ids().values())[0]
+                    phantom_fks = getattr(obj, __wintry_model_instance_phantom_fk__, {})
+                    phantom_fks[fk.key_name] = instance_id_value
+                    setattr(obj, __wintry_model_instance_phantom_fk__, phantom_fks)
+                else:
+                    # is a concrete fk
+                    setattr(obj, fk.key_name, self.instance)
+
+        setattr(obj, __winter_track_target__, obj)
+        self.tracker.new(obj)
+
+    def track_obj_removal(self, obj: Model):
+        obj_table = get_model_table_metadata(type(obj))
+        model_fields = get_model_fields_names(type(obj))
+
+        for fk in obj_table.foreing_keys:
+            if fk.target == type(self.instance):
+                if fk.key_name not in model_fields:
+                    # it is a phantom fk
+                    phantom_fks = getattr(obj, __wintry_model_instance_phantom_fk__, {})
+                    phantom_fks[fk.key_name] = None
+                    setattr(obj, __wintry_model_instance_phantom_fk__, phantom_fks)
+            else:
+                # is a concrete fk
+                setattr(obj, fk.key_name, None)
+
+        setattr(obj, __winter_track_target__, obj)
+        self.tracker.add(obj)
 
     def track(self):
         # Check for modified flag, so we ensure that this object is addded just once
@@ -64,20 +118,49 @@ class ProxyList(list[T]):
             self.regs = True
             setattr(self.instance, __winter_modified_entity_state__, True)
 
-    def append(self, __object: Any) -> None:
-        self.track()
+    def append(self, __object: Model) -> None:
+        if (
+            getattr(self.instance, "__wintry_engine_type_in_instance__", EngineType.NoEngine)
+            == EngineType.Sql
+        ):
+            self.track_new_obj(__object)
+        else:
+            self.track()
         return super().append(__object)
 
-    def remove(self, __value: Any) -> None:
-        self.track()
+    def remove(self, __value: Model) -> None:
+        if (
+            getattr(self.instance, "__wintry_engine_type_in_instance__", EngineType.NoEngine)
+            == EngineType.Sql
+        ):
+            self.track_obj_removal(__value)
+        else:
+            self.track()
         return super().remove(__value)
 
-    def extend(self, __iterable: Iterable[T]) -> None:
-        self.track()
+    def extend(self, __iterable: Iterable[Model]) -> None:
+        if (
+            getattr(self.instance, "__wintry_engine_type_in_instance__", EngineType.NoEngine)
+            == EngineType.Sql
+        ):
+            for obj in __iterable:
+                self.track_new_obj(obj)
+        else:
+            self.track()
         return super().extend(__iterable)
 
-    def pop(self, __index: SupportsIndex = ...) -> T:
-        return super().pop(__index)
+    def pop(self, __index: SupportsIndex = ...) -> Model:
+        obj = super().pop(__index)
+
+        if (
+            getattr(self.instance, "__wintry_engine_type_in_instance__", EngineType.NoEngine)
+            == EngineType.Sql
+        ):
+            self.track_obj_removal(obj)
+        else:
+            self.track()
+
+        return obj
 
 
 def proxyfied(result: Any | list[Any], tracker, origin: Any, engine_type: EngineType):
@@ -108,7 +191,10 @@ def proxyfied(result: Any | list[Any], tracker, origin: Any, engine_type: Engine
                         proxyfied(val, tracker, origin, engine_type) for val in v
                     )
                     # Set tracking information for the list
-                    proxy_list.set_tracking_info(tracker, origin)
+                    if engine_type == EngineType.NoSql:
+                        proxy_list.set_tracking_info(tracker, origin)
+                    else:
+                        proxy_list.set_tracking_info(tracker, result)
                     # Update value for k
                     setattr(result, k, proxy_list)
                 else:
@@ -121,6 +207,8 @@ def proxyfied(result: Any | list[Any], tracker, origin: Any, engine_type: Engine
             setattr(result, __winter_track_target__, origin)
         else:
             setattr(result, __winter_track_target__, result)
+
+        setattr(result, "__wintry_engine_type_in_instance__", engine_type)
 
         # Mark this instance as being tracked by a session
         setattr(result, __winter_in_session_flag__, True)

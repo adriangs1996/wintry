@@ -106,7 +106,7 @@ class SqlAlchemyDriver(QueryDriver):
             db_name = settings.connection_options.database_name
             connector = settings.connection_options.connector
             url = f"{connector}://{username}:{password}@{host}:{port}/{db_name}"
-            self._engine = create_async_engine(url=url, future=True)
+            self._engine = create_async_engine(url=url, future=True, echo=True)
 
         session = orm.sessionmaker(
             bind=self._engine,
@@ -116,8 +116,6 @@ class SqlAlchemyDriver(QueryDriver):
         )
 
         self._sessionmaker: orm.sessionmaker = session
-
-        self._session: Optional[AsyncSession] = None
 
         self._connection: AsyncConnection | None = None
 
@@ -129,20 +127,17 @@ class SqlAlchemyDriver(QueryDriver):
 
     async def get_started_session(self) -> AsyncConnection:
         connection: AsyncConnection = await self._engine.connect()
-        await connection.start()
+        connection.begin()
         return connection
 
     async def commit_transaction(self, session: AsyncConnection) -> None:
-        if session.in_transaction():
-            await session.commit()
+        await session.commit()
 
     async def abort_transaction(self, session: AsyncConnection) -> None:
-        if session.in_transaction():
-            await session.rollback()
+        await session.rollback()
 
     async def close_session(self, session: AsyncConnection) -> None:
-        if session.in_transaction():
-            await session.close()
+        await session.close()
 
     async def init_async(self, *args, **kwargs):  # type: ignore
         pass

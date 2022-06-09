@@ -35,7 +35,7 @@ from dataclasses import (
     fields,
     is_dataclass,
 )
-from wintry.generators import AutoIncrement
+from wintry.generators import AutoIncrement, Increment
 from wintry.utils.decorators import alias
 from wintry.utils.keys import (
     __winter_in_session_flag__,
@@ -535,13 +535,16 @@ def inspect_model(cls: type["Model"]):
 
 def Id(
     *,
-    default_factory: Callable[[], Any] = AutoIncrement,
+    default_factory: Callable[[], T] | None = None,
     repr: bool = True,
     compare: bool = True,
     hash: bool = True,
 ):
+    if default_factory is None:
+        default_factory = Increment() # type: ignore
+
     return field(
-        default_factory=default_factory,
+        default_factory=default_factory, # type: ignore
         repr=repr,
         compare=compare,
         hash=hash,

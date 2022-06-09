@@ -5,6 +5,7 @@ from wintry.models import Model
 from wintry.models import VirtualDatabaseSchema
 from wintry.models import TableMetadata
 from sqlalchemy import Table
+from wintry.utils.keys import __wintry_model_instance_phantom_fk__
 
 
 @cache
@@ -44,6 +45,10 @@ def normalize_data(
                 # I will ignore composite keys for now and assume it only have
                 # one pk
                 data[fk.key_name] = pk
+        else:
+            data[fk.key_name] = getattr(
+                model_instance, __wintry_model_instance_phantom_fk__, {}
+            ).get(fk.key_name, None)
 
     # Delete any many-to-one relation
     for relation in table.many_to_one_relations:

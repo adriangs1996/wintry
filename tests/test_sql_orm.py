@@ -4,6 +4,7 @@ from wintry.models import Array, Id, Model, metadata
 from wintry.repository import Repository
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.utils.model_binding import load_model
+from wintry.transactions.transactional import transactional
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy import text, delete
 import pytest
@@ -74,6 +75,7 @@ async def create_states(conn: AsyncConnection):
 async def clean() -> AsyncGenerator[None, None]:
     yield
     connection: AsyncConnection = await get_connection()
+    connection.begin()
     UserTable = get_model_sql_table(OrmUser)
     AddressTable = get_model_sql_table(OrmAddress)
     StateTable = get_model_sql_table(OrmState)
@@ -202,3 +204,62 @@ async def test_repository_can_delete_simple_model_by_id(engine, clean):
     async with engine.connect() as conn:
         rows = (await conn.execute(text("SELECT * FROM OrmState"))).fetchall()
         assert len(rows) == 0
+
+
+@pytest.mark.asyncio
+async def test_transactions_works_on_simple_model(engine, clean):
+    @transactional
+    async def create_state(repository: StateRepository):
+        state = await repository.create(entity=OrmState(name="NewState"))
+    
+    await create_state(StateRepository())
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT * FROM OrmState"))).fetchall()
+        assert len(rows) == 2
+
+
+@pytest.mark.asyncio
+async def test_transactions_rollbacks_on_error(engine, clean):
+    @transactional
+    async def create_state_with_error(repository: StateRepository):
+        state1 = await repository.create(entity=OrmState(name="NewState"))
+        state2 = await repository.create(entity=OrmState(name="BOOM"[10]))
+    
+    with pytest.raises(IndexError):
+        await create_state_with_error(StateRepository())
+    
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT * FROM OrmState"))).fetchall()
+        assert len(rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_transactions_commit_changes_on_property_update(engine, clean):
+    @transactional
+    async def update_state_property(repository: StateRepository):
+        state = await repository.get_by_id(id=1)
+        assert state is not None
+        state.name = "UpdatedState"
+    
+    await update_state_property(StateRepository())
+
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT * FROM OrmState"))).fetchall()
+        assert len(rows) == 1
+        assert rows[0].name == "UpdatedState"
+
+@pytest.mark.asyncio
+async def test_transactions_can_add_object_to_list(engine, clean):
+    @transactional
+    async def update_state_cities(repository: StateRepository):
+        state = await repository.get_by_id(id=1)
+        assert state is not None
+        state.cities.append(OrmCity(name="NewCity"))
+    
+    await update_state_cities(StateRepository())
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT * FROM OrmCity ORDER BY id"))).fetchall()
+        assert len(rows) == 2
+        # Assert that the FK was updated
+        assert rows[1].ormstate_id == 1
+    
