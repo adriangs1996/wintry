@@ -49,7 +49,7 @@ class QueryDriver(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_connection(self) -> Any:
+    async def get_connection(self) -> Any:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -75,9 +75,9 @@ class Backend:
     def __init__(self, driver: QueryDriver) -> None:
         self.driver = driver
 
-    def get_connection(self) -> Any:
+    async def get_connection(self) -> Any:
         assert self.driver is not None
-        return self.driver.get_connection()
+        return await self.driver.get_connection()
 
     def configure_for_driver(self, *args: Any, **kwargs: Any) -> None:
         assert self.driver is not None

@@ -1,6 +1,17 @@
 import abc
 import inspect
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, overload
+
+from wintry.orm.aql import (
+    Create,
+    Delete,
+    FilteredClause,
+    Find,
+    Get,
+    QueryAction,
+    Update,
+    execute,
+)
 from .base import TDecorated, raw_method, query, managed
 from wintry import get_connection
 from wintry.utils.keys import (
@@ -60,6 +71,32 @@ class Repository(abc.ABC, Generic[T, TypeId]):
             return session
 
         return get_connection(backend_name)
+
+    @overload
+    async def exec(self, statement: Update) -> None:
+        ...
+
+    @overload
+    async def exec(self, statement: Create) -> T:
+        ...
+
+    @overload
+    async def exec(self, statement: Find) -> list[T]:
+        ...
+
+    @overload
+    async def exec(self, statement: Get) -> T | None:
+        ...
+
+    @overload
+    async def exec(self, statement: Delete) -> None:
+        ...
+
+    async def exec(self, statement: FilteredClause | QueryAction) -> T | list[T] | None:
+        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+        session = getattr(self, __winter_session_key__, None)
+
+        return await execute(statement, backend_name, session)
 
     async def find(self) -> list[T]:
         ...

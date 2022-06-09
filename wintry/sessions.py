@@ -1,9 +1,12 @@
 from typing import Any
 from wintry.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
 from wintry.models import Model
+from wintry.orm.aql import execute, update
+from wintry.settings import EngineType
 from wintry.utils.keys import __winter_track_target__
 from wintry import BACKENDS
 from weakref import WeakValueDictionary
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 class TrackerError(Exception):
@@ -20,14 +23,14 @@ class Tracker:
     and updates then after command
     """
 
-    def __init__(self, owner: type, backend_name: str) -> None:
+    def __init__(self, owner: type[Model], backend_name: str) -> None:
         self.owner = owner
-        self._modified: set[tuple[Any,...]] = set()
+        self._modified: set[tuple[Any, ...]] = set()
         self._backend_name = backend_name
         self._identity_map: WeakValueDictionary[
             tuple[Any, ...], Model
         ] = WeakValueDictionary()
-    
+
     def track(self, instance: Model):
         key = get_instance_key(instance)
         self._identity_map[key] = instance
@@ -44,21 +47,20 @@ class Tracker:
         assert result is not None
         return result
 
-    async def flush(self, session: MongoSession):
-        backend = BACKENDS[self._backend_name]
-        assert isinstance(backend.driver, MongoDbDriver)
-
-        db = backend.get_connection()
-        collection = db[get_tablename(self.owner)]
-
+    @property
+    def dirty(self):
         for key in self._modified:
             modified_instance = self._identity_map.get(key)
             assert modified_instance is not None
+            yield modified_instance
+
+    async def flush(self, session):
+        for modified_instance in self.dirty:
             pks = modified_instance.ids()
             if not pks:
                 raise TrackerError(f"{modified_instance} has not defined an id property")
-            await collection.update_one(
-                pks, {"$set": modified_instance.to_dict()}, session=session
+            await execute(
+                update(entity=modified_instance), self._backend_name, session=session
             )
 
         self._modified.clear()
