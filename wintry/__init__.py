@@ -13,7 +13,7 @@ from fastapi.params import Depends as DependsParam
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
@@ -120,12 +120,12 @@ def init_backends(settings: WinterSettings = WinterSettings()) -> None:
         init_backend(backend)
 
 
-def get_connection(backend_name: str = "default") -> AsyncIOMotorDatabase | AsyncSession:
+async def get_connection(backend_name: str = "default") -> AsyncIOMotorDatabase | AsyncConnection:
     backend = BACKENDS.get(backend_name, None)
     if backend is None:
         raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
 
-    return backend.get_connection()
+    return await backend.get_connection()
 
 
 def _config_logger():

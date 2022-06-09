@@ -1,18 +1,15 @@
-from wintry.models import Array, Id, Model, VirtualDatabaseSchema
+from typing import Any, AsyncGenerator
+from wintry import BACKENDS, get_connection, init_backends
+from wintry.models import Array, Id, Model, metadata
+from wintry.repository import Repository
+from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 from wintry.utils.model_binding import load_model
-from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncConnection
-from sqlalchemy import Table
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import ForeignKey
-from sqlalchemy import String
-from sqlalchemy import MetaData
-from sqlalchemy import text
+from sqlalchemy import text, delete
 import pytest
 import pytest_asyncio
 
-metadata = MetaData()
+from wintry.utils.virtual_db_schema import get_model_sql_table
 
 
 class OrmCity(Model, table="OrmCity"):
@@ -36,6 +33,10 @@ class OrmAddress(Model, table="OrmAddress"):
     id: int = Id()
     dir: str
     user: OrmUser | None = None
+
+
+class StateRepository(Repository[OrmState, int], entity=OrmState):
+    ...
 
 
 async def create_users(conn: AsyncConnection):
@@ -69,44 +70,135 @@ async def create_states(conn: AsyncConnection):
     )
 
 
-@pytest_asyncio.fixture(scope="module")
-async def connection():
-    async_engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:", echo=True, future=True
+@pytest_asyncio.fixture
+async def clean() -> AsyncGenerator[None, None]:
+    yield
+    connection: AsyncConnection = await get_connection()
+    UserTable = get_model_sql_table(OrmUser)
+    AddressTable = get_model_sql_table(OrmAddress)
+    StateTable = get_model_sql_table(OrmState)
+    CityTable = get_model_sql_table(OrmCity)
+    await connection.execute(delete(UserTable))
+    await connection.execute(delete(AddressTable))
+    await connection.execute(delete(StateTable))
+    await connection.execute(delete(CityTable))
+
+    await create_addresses(connection)
+    await create_cities(connection)
+    await create_users(connection)
+    await create_states(connection)
+
+    await connection.commit()
+    await connection.close()
+
+
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def engine():
+    init_backends(
+        WinterSettings(
+            backends=[
+                BackendOptions(
+                    driver="wintry.drivers.pg",
+                    connection_options=ConnectionOptions(
+                        url="sqlite+aiosqlite:///:memory:"
+                    ),
+                )
+            ],
+        )
     )
-    VirtualDatabaseSchema.use_sqlalchemy(metadata)
+    async_engine = getattr(BACKENDS["default"].driver, "_engine")
+
     conn: AsyncConnection = await async_engine.connect()
     await conn.run_sync(metadata.create_all)
-
     await create_addresses(conn)
     await create_cities(conn)
     await create_users(conn)
     await create_states(conn)
-    yield conn
+    await conn.commit()
     await conn.close()
-    await async_engine.dispose()
+    return async_engine
 
 
 @pytest.mark.asyncio
-async def test_simple_model_binding(connection: AsyncConnection):
-    results = await load_model(OrmState, connection)
-    assert results == [OrmState(id=1, name="Miami")]
+async def test_simple_model_binding(engine: Any):
+    async with engine.connect() as conn:
+        results = await load_model(OrmState, conn)
+        assert results == [OrmState(id=1, name="Miami")]
 
 
 @pytest.mark.asyncio
-async def test_model_binding_whole_tree(connection: AsyncConnection):
-    results = await load_model(OrmAddress, connection)
-    assert results == [
-        OrmAddress(
-            id=1,
-            dir="Address 1",
-            user=OrmUser(
-                **{"id": 1, "name": "adrian", "city": OrmCity(id=1, name="Matanzas")}
+async def test_model_binding_whole_tree(engine: Any):
+    async with engine.connect() as conn:
+        results = await load_model(OrmAddress, conn)
+        assert results == [
+            OrmAddress(
+                id=1,
+                dir="Address 1",
+                user=OrmUser(
+                    **{"id": 1, "name": "adrian", "city": OrmCity(id=1, name="Matanzas")}
+                ),
             ),
-        ),
-        OrmAddress(
-            id=2,
-            dir="Address 2",
-            user=OrmUser(**{"id": 2, "name": "tom", "city": None}),
-        ),
-    ]
+            OrmAddress(
+                id=2,
+                dir="Address 2",
+                user=OrmUser(**{"id": 2, "name": "tom", "city": None}),
+            ),
+        ]
+
+
+@pytest.mark.asyncio
+async def test_repository_can_load_simple_model():
+    state_repository = StateRepository()
+    states = await state_repository.find()
+
+    assert states == [OrmState(id=1, name="Miami")]
+
+
+@pytest.mark.asyncio
+async def test_repository_can_get_by_id_simple():
+    state_repository = StateRepository()
+    state = await state_repository.get_by_id(id=1)
+
+    assert state is not None
+    assert state == OrmState(id=1, name="Miami")
+
+
+@pytest.mark.asyncio
+async def test_repository_get_by_id_return_none_if_no_found():
+    state_repository = StateRepository()
+    state = await state_repository.get_by_id(id=2)
+
+    assert state is None
+
+
+@pytest.mark.asyncio
+async def test_repository_can_create_simple_model(engine, clean):
+    state_repository = StateRepository()
+    state = await state_repository.create(entity=OrmState(name="NewState"))
+
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT * FROM OrmState"))).fetchall()
+        assert len(rows) == 2
+
+
+@pytest.mark.asyncio
+async def test_repository_can_update_simple_model(engine, clean):
+    state_repository = StateRepository()
+    await state_repository.update(entity=OrmState(id=1, name="NewState"))
+
+    async with engine.connect() as conn:
+        rows = (
+            await conn.execute(text("SELECT * FROM OrmState WHERE id = 1"))
+        ).fetchall()
+        assert len(rows) == 1
+        assert rows[0].name == "NewState"
+
+
+@pytest.mark.asyncio
+async def test_repository_can_delete_simple_model_by_id(engine, clean):
+    state_repository = StateRepository()
+    await state_repository.delete_by_id(id=1)
+
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT * FROM OrmState"))).fetchall()
+        assert len(rows) == 0

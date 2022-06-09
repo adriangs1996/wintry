@@ -104,7 +104,7 @@ async def setup():
 @pytest_asyncio.fixture
 async def clean() -> AsyncGenerator[None, None]:
     yield
-    session: AsyncSession = get_connection()
+    session = await get_connection()
     async with session.begin():
         await session.execute(delete(UserTable))
         await session.execute(delete(AddressTable))
