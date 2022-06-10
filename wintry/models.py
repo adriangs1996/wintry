@@ -66,6 +66,8 @@ from enum import Enum as std_enum
 from wintry.orm.mapping import metadata, mapper_registry
 from pydantic import BaseModel
 
+from wintry.utils.type_helpers import resolve_generic_type_or_die
+
 _mapper: dict[type, type] = {
     int: Integer,
     str: String,
@@ -150,48 +152,6 @@ def get_primary_key(_type: type) -> Field:
     raise ModelError(
         f"Model {_type} has not an id field or a field with metadata marked as an id"
     )
-
-
-def discard_nones(iterable: Iterable[type]) -> list[type]:
-    return list(filter(lambda x: x != NoneType, iterable))
-
-
-def resolve_generic_type_or_die(_type: type):
-    """
-    Get a simple or generic type and try to resolve it
-    to the canonical form.
-
-    Example:
-    =======
-
-    >>> resolve_generic_type_or_die(list[list[int | None]])
-    >>> int
-
-    Generic types can be nested, but this function aimed to resolve a table
-    reference, so it must be constrained to at most 1 Concrete type or None.
-    Like so, the following is an error:
-
-    >>> resolve_generic_type_or_die(list[int | str])
-    """
-
-    # Base case, get_args(int) = ()
-    concrete_types = get_args(_type)
-
-    if not concrete_types:
-        return _type
-
-    # Ok, we got nested generics, maybe A | None
-    # clean it up
-    cleaned_types = discard_nones(concrete_types)
-
-    # If we get a list with more than one element, then this was not
-    # a single Concrete type  generic, so panic
-    if len(cleaned_types) != 1:
-        raise ModelError(
-            f"Model cannot have a field configured for either {'or '.join(str(t) for t in cleaned_types)}"
-        )
-
-    return resolve_generic_type_or_die(cleaned_types[0])
 
 
 def is_iterable(model: type):
@@ -685,18 +645,14 @@ class Model(DataClassDictMixin):
 
     @overload
     @classmethod
-    def from_obj(cls, obj: list[Any]) -> list[Self]:
+    def from_orm(cls, obj: list[Any]) -> list[Self]:
         ...
 
     @overload
     @classmethod
-    def from_obj(cls, obj: Any) -> Self:
+    def from_orm(cls, obj: Any) -> Self:
         ...
 
     @classmethod
-    def from_obj(cls, obj: list[Any] | Any) -> list[Self] | Self:
-        if isinstance(obj, list):
-            dicts = [to_dict(cls, o) for o in obj]
-            return fromlist(cls, dicts)
-
-        return fromdict(cls, to_dict(cls, obj))
+    def from_orm(cls, obj: list[Any] | Any) -> list[Self] | Self:
+        ...
