@@ -67,6 +67,7 @@ from wintry.orm.mapping import metadata, mapper_registry
 from pydantic import BaseModel
 
 from wintry.utils.type_helpers import resolve_generic_type_or_die
+from wintry.generators import code_gen
 
 _mapper: dict[type, type] = {
     int: Integer,
@@ -136,6 +137,23 @@ class ModelRegistry:
     def register(cls, model_declaration: type["Model"]):
         model_name = model_declaration.__name__
         cls.models[model_name] = model_declaration
+
+    @classmethod
+    def configure(cls):
+        for model in cls.get_all_models():
+            # Configure generate this model from_orm method
+            try:
+                code_gen.model_from_orm(model, ModelRegistry.models)
+                code_gen.compile(ModelRegistry.models)
+            except NameError as e:
+                print(e)
+
+                @classmethod
+                def from_orm(cls, obj: Any):
+                    code_gen.model_from_orm(cls, ModelRegistry.models, locals())
+                    code_gen.compile(ModelRegistry.models)
+
+                setattr(cls, "from_orm", from_orm)
 
 
 def get_type_by_str(type_str: str):
@@ -362,51 +380,6 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
                     )
                 )
 
-        properties = {}
-
-        for rel in table_metadata.relations:
-            other_endpoint = None
-            endpoint_metadata = VirtualDatabaseSchema[rel.with_model]
-            assert endpoint_metadata is not None
-
-            for fk_rel in endpoint_metadata.relations:
-                if fk_rel.with_model == model:
-                    other_endpoint = fk_rel.field_name
-
-            if other_endpoint is None:
-                properties[rel.field_name] = relationship(rel.with_model, lazy="joined")
-            else:
-                if is_one_to_one(table_metadata.model, endpoint_metadata.model):
-                    # If one-to-one, we already supplied the foreign key
-                    properties[rel.field_name] = relationship(
-                        rel.with_model,
-                        backref=backref(other_endpoint, uselist=False, lazy="joined"),
-                        lazy="joined",
-                    )
-
-                    # one-to-one are special because the other endpoint will have a foreign
-                    # key with this model type, and also a relation, but we already
-                    # configured that with the backref. So now we need to remove that FK and
-                    # that relation from the other_endpoint
-                    endpoint_metadata.relations = list(
-                        filter(
-                            lambda r: r.with_model != model
-                            and r.with_model != (model | None),
-                            endpoint_metadata.relations,
-                        )
-                    )
-
-                    endpoint_metadata.foreing_keys = list(
-                        filter(
-                            lambda fk: fk.target != model and fk.target != (model | None),
-                            endpoint_metadata.foreing_keys,
-                        )
-                    )
-                else:
-                    properties[rel.field_name] = relationship(
-                        rel.with_model, lazy="joined", back_populates=other_endpoint
-                    )
-
         table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
         VirtualDatabaseSchema.sql_generated_tables[model] = table
 
@@ -425,19 +398,22 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
 
         """
         for model in ModelRegistry.get_all_models():
-            table = cls[model]
-            if table is None:
-                table = TableMetadata(
-                    metadata=metadata,
-                    table_name=getattr(model, __winter_model_collection_name__),
-                    model=model,
-                )
-                cls[model] = table
+            if getattr(model, "__class_is_mapped__"):
+                table = cls[model]
+                if table is None:
+                    table = TableMetadata(
+                        metadata=metadata,
+                        table_name=getattr(model, __winter_model_collection_name__),
+                        model=model,
+                    )
+                    cls[model] = table
 
-            table.autobegin()
+                table.autobegin()
 
         for model, table_metadata in cls.tables.items():
-            if not inspect(model, raiseerr=False):
+            if getattr(model, "__class_is_mapped__") and not inspect(
+                model, raiseerr=False
+            ):
                 # only create tables for models that are not already
                 # mapped. This is needed to ensure compatibility with
                 # the for_model function from orm module
@@ -472,6 +448,7 @@ def to_dict(cls: type, obj: Any):
 
 def fromobj(cls: type["Model"], obj: Any):
     ...
+
 
 def inspect_model(cls: type["Model"]):
     model_fields = fields(cls)
@@ -592,12 +569,11 @@ class Model(DataClassDictMixin):
 
         inspect_model(cls)
 
-        # allow JsonSerializable to init this cls
         super().__init_subclass__()
 
         # Register model if it is mapped
-        if mapped:
-            ModelRegistry.register(cls)  # type: ignore
+        setattr(cls, "__class_is_mapped__", mapped)
+        ModelRegistry.register(cls)  # type: ignore
 
     @classmethod
     def id_name(cls) -> tuple[str]:
@@ -637,11 +613,26 @@ class Model(DataClassDictMixin):
     def build(cls, _dict: list[dict[str, Any]]) -> list[Self]:
         ...
 
+    @overload
     @classmethod
-    def build(cls, _dict: dict[str, Any] | list[dict[str, Any]]) -> Self | list[Self]:
+    def build(cls, _dict: Any) -> Self:
+        ...
+
+    @overload
+    @classmethod
+    def build(cls, _dict: list[Any]) -> list[Self]:
+        ...
+
+    @classmethod
+    def build(
+        cls, _dict: dict[str, Any] | list[dict[str, Any]] | Any | list[Any]
+    ) -> Self | list[Self]:
         if isinstance(_dict, list):
-            return cls.from_list(_dict)
-        return cls.from_dict(_dict)
+            return [cls.build(d) for d in _dict]
+        if isinstance(_dict, dict):
+            return cls.from_dict(_dict)
+
+        return cls.from_orm(_dict)
 
     @overload
     @classmethod
