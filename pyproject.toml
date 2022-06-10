@@ -31,6 +31,7 @@ cookiecutter = "^1.7.3"
 uvicorn = {extras = ["standard"], version = "^0.17.6"}
 mongomock = "^4.0.0"
 aiosqlite = "^0.17.0"
+mashumaro = "^3.0.3"
 
 [tool.poetry.extras]
 redis = ["aioredis"]

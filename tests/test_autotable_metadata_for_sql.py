@@ -1,13 +1,14 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection, BACKENDS
 from wintry.generators import AutoString
-from wintry.models import Array, Id, VirtualDatabaseSchema, Model
+from wintry.models import Array, Id, metadata, Model
 from wintry.repository.base import query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
 from sqlalchemy import delete, select, insert, MetaData
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.engine.result import Result
 import pytest
 import pytest_asyncio
@@ -16,32 +17,30 @@ from wintry.transactions import UnitOfWork
 
 # Now import the repository
 from wintry.repository import Repository, RepositoryRegistry
+from wintry.utils.virtual_db_schema import get_model_sql_table
 
 
-metadata = MetaData()
-
-
-class UserAddress(Model):
+class UserAddress(Model, table="AutotableUsers"):
     id: int
     latitude: float
     longitude: float
     users: list["TestUser"] = Array()
 
 
-class TestUser(Model):
+class TestUser(Model, table="AutotableTestUsers"):
     id: int
     name: str
     age: int
     address: UserAddress | None = None
 
 
-class Foo(Model):
+class Foo(Model, table="AutotableFoo"):
     x: int
     id: str = Id(default_factory=AutoString)
     bar: Optional["Bar"] = None
 
 
-class Bar(Model):
+class Bar(Model, table="AutotableBar"):
     y: int
     id: str = Id(default_factory=AutoString)
     foo: Foo | None = None
@@ -70,8 +69,6 @@ class Uow(UnitOfWork):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup():
-    VirtualDatabaseSchema.use_sqlalchemy(metadata=metadata)
-    RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
         WinterSettings(
             backends=[
@@ -92,12 +89,16 @@ async def setup():
 @pytest_asyncio.fixture
 async def clean() -> AsyncGenerator[None, None]:
     yield
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    useraddress = get_model_sql_table(UserAddress)
+    foo = get_model_sql_table(Foo)
+    bar = get_model_sql_table(Bar)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(delete(TestUser))
-        await session.execute(delete(UserAddress))
-        await session.execute(delete(Foo))
-        await session.execute(delete(Bar))
+        await session.execute(delete(testuser))
+        await session.execute(delete(useraddress))
+        await session.execute(delete(foo))
+        await session.execute(delete(bar))
         await session.commit()
 
 
@@ -107,24 +108,26 @@ async def test_repository_can_insert(clean: Any) -> None:
     user = TestUser(id=2, name="test", age=10)
 
     await repo.create(entity=user)
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(TestUser))
-    assert len(results.unique().all()) == 1
+        results = (await session.execute(select(testuser))).fetchall()
+    assert len(results) == 1
 
 
 @pytest.mark.asyncio
 async def test_repository_can_delete(clean: Any) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
+        await session.execute(insert(testuser).values(id=1, name="test", age=26))
 
     await repo.delete()
 
     async with session.begin():
-        result: Result = await session.execute(select(TestUser))
-        rows = result.all()
+        result: Result = await session.execute(select(testuser))
+        rows = result.fetchall()
 
     assert rows == []
 
@@ -132,15 +135,16 @@ async def test_repository_can_delete(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_repository_can_delete_by_id(clean: Any) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
+        await session.execute(insert(testuser).values(id=1, name="test", age=26))
 
     await repo.delete_by_id(id=1)
 
     async with session.begin():
-        result: Result = await session.execute(select(TestUser))
-        rows = result.all()
+        result: Result = await session.execute(select(testuser))
+        rows = result.fetchall()
 
     assert rows == []
 
@@ -148,9 +152,10 @@ async def test_repository_can_delete_by_id(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_repository_can_get_by_id(clean: Any) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
+        await session.execute(insert(testuser).values(id=1, name="test", age=26))
 
     user = await repo.get_by_id(id=1)
 
@@ -161,12 +166,13 @@ async def test_repository_can_get_by_id(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_repository_can_list_all_users(clean: Any) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=26))
-        await session.execute(insert(TestUser).values(id=2, name="test1", age=26))
-        await session.execute(insert(TestUser).values(id=3, name="test2", age=26))
-        await session.execute(insert(TestUser).values(id=4, name="test3", age=26))
+        await session.execute(insert(testuser).values(id=1, name="test", age=26))
+        await session.execute(insert(testuser).values(id=2, name="test1", age=26))
+        await session.execute(insert(testuser).values(id=3, name="test2", age=26))
+        await session.execute(insert(testuser).values(id=4, name="test3", age=26))
 
     users = await repo.find()
 
@@ -177,13 +183,15 @@ async def test_repository_can_list_all_users(clean: Any) -> None:
 @pytest.mark.asyncio
 async def test_repository_can_get_object_with_related_data_loaded(clean: Any) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
+    address = get_model_sql_table(UserAddress)
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
         await session.execute(
-            insert(UserAddress).values(id=1, latitude=3.43, longitude=10.111)
+            insert(address).values(id=1, latitude=3.43, longitude=10.111)
         )
         await session.execute(
-            insert(TestUser).values(id=1, name="test", age=26, address_id=1)
+            insert(testuser).values(id=1, name="test", age=26, address=1)
         )
 
     user = await repo.get_by_id(id=1)
@@ -197,12 +205,13 @@ async def test_repository_can_get_object_with_related_data_loaded(clean: Any) ->
 @pytest.mark.asyncio
 async def test_repository_can_make_logical_queries(clean: Any) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
+    testuser = get_model_sql_table(TestUser)
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=20))
-        await session.execute(insert(TestUser).values(id=2, name="test1", age=21))
-        await session.execute(insert(TestUser).values(id=3, name="test2", age=22))
-        await session.execute(insert(TestUser).values(id=4, name="test3", age=23))
+        await session.execute(insert(testuser).values(id=1, name="test", age=20))
+        await session.execute(insert(testuser).values(id=2, name="test1", age=21))
+        await session.execute(insert(testuser).values(id=3, name="test2", age=22))
+        await session.execute(insert(testuser).values(id=4, name="test3", age=23))
 
     users = await repo.find_by_id_or_name_and_age_lowerThan(id=4, name="test2", age=23)
     assert len(users) == 2
@@ -213,6 +222,7 @@ async def test_repository_can_make_logical_queries(clean: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
+    testuser = get_model_sql_table(TestUser)
     repo = UserRepository()
     uow = Uow(repo, FooRepository())
 
@@ -220,15 +230,16 @@ async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
         user = TestUser(id=2, name="test", age=10)
         await uow.users.create(entity=user)
 
-    session: AsyncSession = get_connection()
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(TestUser))
+        results: Result = await session.execute(select(testuser))
 
-    assert results.all() == []
+    assert results.fetchall() == []
 
 
 @pytest.mark.asyncio
 async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
+    testuser = get_model_sql_table(TestUser)
     repo = UserRepository()
     uow = Uow(repo, FooRepository())
 
@@ -237,15 +248,16 @@ async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
         await uow.users.create(entity=user)
         await uow.commit()
 
-    session: AsyncSession = get_connection()
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(TestUser))
+        results: Result = await session.execute(select(testuser))
 
-    assert len(results.unique().all()) == 1
+    assert len(results.all()) == 1
 
 
 @pytest.mark.asyncio
 async def test_uow_rollbacks_on_error(clean: Any) -> None:
+    testuser = get_model_sql_table(TestUser)
     repo = UserRepository()
     uow = Uow(repo, FooRepository())
 
@@ -257,21 +269,23 @@ async def test_uow_rollbacks_on_error(clean: Any) -> None:
             await uow.users.create(entity=user2)
             await uow.commit()
 
-    session: AsyncSession = get_connection()
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        results: Result = await session.execute(select(TestUser))
+        results: Result = await session.execute(select(testuser))
 
     assert results.all() == []
 
 
 @pytest.mark.asyncio
 async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
+    testuser = get_model_sql_table(TestUser)
+    address = get_model_sql_table(UserAddress)
     user_repository = UserRepository()
     uow = Uow(user_repository, FooRepository())
 
-    session: AsyncSession = get_connection()
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=20))
+        await session.execute(insert(testuser).values(id=1, name="test", age=20))
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
@@ -281,19 +295,20 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
         await uow.commit()
 
     async with session.begin():
-        results: Result = await session.execute(select(UserAddress))
+        results: Result = await session.execute(select(address))
 
-    assert len(results.unique().all()) == 1
+    assert len(results.all()) == 1
 
 
 @pytest.mark.asyncio
 async def test_uow_automatically_updates_object(clean: Any) -> None:
+    testuser = get_model_sql_table(TestUser)
     user_repository = UserRepository()
     uow = Uow(user_repository, FooRepository())
 
-    session: AsyncSession = get_connection()
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        await session.execute(insert(TestUser).values(id=1, name="test", age=20))
+        await session.execute(insert(testuser).values(id=1, name="test", age=20))
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
@@ -304,23 +319,25 @@ async def test_uow_automatically_updates_object(clean: Any) -> None:
         await uow.commit()
 
     async with session.begin():
-        results: Result = await session.execute(select(TestUser))
+        results = await session.execute(select(testuser))
 
-    user = results.unique().scalars().all()[0]
+    user = results.fetchall()[0]
     assert user.age == 30 and user.name == "updated"
 
 
 @pytest.mark.asyncio
 async def test_one_to_one_relation(clean: Any):
+    footable = get_model_sql_table(Foo)
+    bartable = get_model_sql_table(Bar)
     repo = FooRepository()
     foo = Foo(x=10, bar=Bar(y=30))
 
     await repo.create(entity=foo)
 
-    session: AsyncSession = get_connection()
+    session: AsyncConnection = await get_connection()
     async with session.begin():
-        foo_results: Result = await session.execute(select(Foo))
-        bar_results: Result = await session.execute(select(Bar))
+        foo_results = await session.execute(select(footable))
+        bar_results = await session.execute(select(bartable))
 
     assert len(foo_results.unique().all()) == 1
     assert len(bar_results.unique().all()) == 1

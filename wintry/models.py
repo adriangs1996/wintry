@@ -1,4 +1,7 @@
 from datetime import date, datetime
+from mashumaro import DataClassDictMixin
+from mashumaro.dialect import Dialect
+from mashumaro import config
 from types import GenericAlias, NoneType
 from typing import (
     Any,
@@ -8,6 +11,7 @@ from typing import (
     Generator,
     Iterable,
     Literal,
+    Mapping,
     Sequence,
     Tuple,
     TypeVar,
@@ -18,18 +22,11 @@ from typing import (
 )
 from typing_extensions import Self
 from uuid import uuid4
-from dataclass_wizard import (
-    fromdict,
-    fromlist,
-    JSONSerializable,
-    asdict,
-    DumpMeta,
-    LoadMeta,
-)
 from dataclass_wizard.enums import LetterCase
 from dataclasses import (
     MISSING,
     Field,
+    asdict,
     dataclass,
     field,
     fields,
@@ -358,7 +355,7 @@ class VirtualDatabaseMeta(type):
 class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
     tables: dict[type["Model"], TableMetadata] = {}
     sql_generated_tables: dict[type["Model"], Table] = {}
-    
+
     @classmethod
     def get_table(cls, model: type["Model"]):
         return cls.sql_generated_tables.get(model)
@@ -452,7 +449,6 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
 
         table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
         VirtualDatabaseSchema.sql_generated_tables[model] = table
-        # mapper_registry.map_imperatively(model, table, properties=properties)
 
     @classmethod
     def use_sqlalchemy(cls, metadata: MetaData = metadata):
@@ -514,6 +510,9 @@ def to_dict(cls: type, obj: Any):
     return d
 
 
+def fromobj(cls: type["Model"], obj: Any):
+    ...
+
 def inspect_model(cls: type["Model"]):
     model_fields = fields(cls)
     primary_keys: dict[str, Field] = {}
@@ -541,10 +540,10 @@ def Id(
     hash: bool = True,
 ):
     if default_factory is None:
-        default_factory = Increment() # type: ignore
+        default_factory = Increment()  # type: ignore
 
     return field(
-        default_factory=default_factory, # type: ignore
+        default_factory=default_factory,  # type: ignore
         repr=repr,
         compare=compare,
         hash=hash,
@@ -572,7 +571,14 @@ def RequiredId(repr: bool = True, compare: bool = True, hash: bool = True):
 
 
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(field, Field))
-class Model(JSONSerializable):
+class Model(DataClassDictMixin):
+    class Config(config.BaseConfig):
+        code_generation_options = [
+            config.ADD_DIALECT_SUPPORT,
+            config.TO_DICT_ADD_BY_ALIAS_FLAG,
+            config.TO_DICT_ADD_OMIT_NONE_FLAG,
+        ]
+
     def __setattr__(self, __name: str, __value: Any) -> None:
         # Check for presence of some state flag
         # same as self.__winter_in_session_flag__
@@ -626,9 +632,6 @@ class Model(JSONSerializable):
 
         inspect_model(cls)
 
-        DumpMeta(key_transform=LetterCase.SNAKE, skip_defaults=False).bind_to(cls)
-        LoadMeta(key_transform=LetterCase.SNAKE).bind_to(cls)
-
         # allow JsonSerializable to init this cls
         super().__init_subclass__()
 
@@ -645,11 +648,24 @@ class Model(JSONSerializable):
         pks: dict[str, Field] = getattr(self, __winter_model_primary_keys__)
         return {name: getattr(self, name) for name in pks}
 
-    @alias(asdict)
-    def to_dict(
-        self, *, exclude: list[str] = list(), skip_defaults: bool = False
+    @overload
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:  # type: ignore
+        ...
+
+    @overload
+    def to_dict(  # type: ignore
+        self,
+        *,
+        omit_none: bool = False,
+        by_alias: bool = False,
+        dialect: Dialect | None = None,
     ) -> dict[str, Any]:
         ...
+
+    @classmethod
+    def from_list(cls, l: Sequence[Mapping[str, Any]]) -> list[Self]:
+        return list(map(cls.from_dict, l))
 
     @overload
     @classmethod
