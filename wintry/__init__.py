@@ -32,7 +32,7 @@ from wintry.errors import (
     invalid_request_exception_handler,
     not_found_exception_handler,
 )
-from wintry.models import VirtualDatabaseSchema
+from wintry.models import ModelRegistry, VirtualDatabaseSchema
 from wintry.settings import BackendOptions, EngineType, WinterSettings
 from wintry.transporters.service_container import ServiceContainer
 from wintry.utils.loaders import autodiscover_modules
@@ -146,6 +146,8 @@ def _config_logger():
 
     # add ch to logger
     logger.addHandler(ch)
+
+    return logger
 
 
 class App(FastAPI):
@@ -306,15 +308,26 @@ class App(FastAPI):
         settings = self.settings
 
         # Configure the builtin logger
-        _config_logger()
+        logger = _config_logger()
 
         # Load all the modules so DI and mappings works
         if settings.auto_discovery_enabled:
+            logger.info("Loading project modules.")
             autodiscover_modules(settings)
+            logger.info("Project modules loaded.")
 
         # Initialize the backends
         if settings.backends:
+            logger.info("Initializing backends.")
             init_backends(settings)
+            logger.info("Backends set succesfuly.")
+
+        # Configure the models
+        # This adds the code for methods like from_orm, SQL selectinload
+        # statement compilation, etc
+        logger.info("Configuring Models.")
+        ModelRegistry.configure()
+        logger.info("Models configured.")
 
     def on_startup(self, fn: Callable[..., Any]):
         return self.on_event("startup")(fn)
