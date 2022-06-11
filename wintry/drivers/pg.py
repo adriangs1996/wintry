@@ -1,3 +1,4 @@
+from dataclasses import fields
 from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
@@ -15,7 +16,7 @@ from sqlalchemy.sql import Select
 from sqlalchemy.sql import Update as UpdateStatement
 from sqlalchemy.sql.expression import TextClause, text
 from wintry.backend import QueryDriver
-from wintry.models import Model
+from wintry.models import Model, ModelRegistry
 from wintry.query.nodes import (
     AndNode,
     Create,
@@ -35,6 +36,7 @@ from wintry.query.nodes import (
 )
 from wintry.settings import BackendOptions, EngineType
 from wintry.utils.model_binding import SQLSelectQuery, load_model, tree_walk_dfs
+from wintry.utils.type_helpers import resolve_generic_type_or_die
 from wintry.utils.virtual_db_schema import (
     compute_model_insert_values,
     compute_model_related_data_for_insert,
@@ -74,22 +76,32 @@ def get_value_from_args(field_path: str | List[str], **kwargs: Any) -> Any:
 
 
 def _operate(
-    node: FilterNode, schema: Table, op: Operator, **kwargs: Any
+    node: FilterNode, schema: type[Model], op: Operator, **kwargs: Any
 ) -> Dict[str, Any]:
+    table = get_model_sql_table(schema)
     field_path = get_field_name(node.field)
     value = get_value_from_args(field_path, **kwargs)
 
     if isinstance(field_path, list):
         # This is a related field
-        schema_to_inspect = schema
+        schema_to_inspect = table
+        current_type = schema
         while field_path:
             field = field_path.pop(0)
             # is this the last one ??
             if field_path == []:
                 return {"where": op(getattr(schema_to_inspect.c, field), value)}  # type: ignore
+            for f in fields(current_type):
+                if f.name == field:
+                    if isinstance(f.type, str):
+                        current_type = eval(f.type, globals() | ModelRegistry.models.copy())
+                    else:
+                        current_type = f.type
+                    current_type = resolve_generic_type_or_die(current_type)
+                    schema_to_inspect = get_model_sql_table(current_type)
         raise ExecutionError("WTF This should not end here")
     else:
-        return {"where": op(getattr(schema.c, field_path), value)}
+        return {"where": op(getattr(table.c, field_path), value)}
 
 
 class SqlAlchemyDriver(QueryDriver):
@@ -411,29 +423,25 @@ class SqlAlchemyDriver(QueryDriver):
     async def _(
         self, node: EqualToNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
-        table = get_model_sql_table(schema)
-        return _operate(node, table, eq, **kwargs)
+        return _operate(node, schema, eq, **kwargs)
 
     @visit.register
     async def _(
         self, node: NotEqualNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
-        table = get_model_sql_table(schema)
-        return _operate(node, table, ne, **kwargs)
+        return _operate(node, schema, ne, **kwargs)
 
     @visit.register
     async def _(
         self, node: GreaterThanNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
-        table = get_model_sql_table(schema)
-        return _operate(node, table, gt, **kwargs)
+        return _operate(node, schema, gt, **kwargs)
 
     @visit.register
     async def _(
         self, node: LowerThanNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
-        table = get_model_sql_table(schema)
-        return _operate(node, table, lt, **kwargs)
+        return _operate(node, schema, lt, **kwargs)
 
 
 def factory(settings: BackendOptions) -> SqlAlchemyDriver:

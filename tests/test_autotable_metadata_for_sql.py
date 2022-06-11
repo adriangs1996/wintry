@@ -37,7 +37,7 @@ class TestUser(Model, table="AutotableTestUsers"):
 class Foo(Model, table="AutotableFoo"):
     x: int
     id: str = Id(default_factory=AutoString)
-    bar: Optional["Bar"] = None
+    bar: "Optional[Bar]" = None
 
 
 class Bar(Model, table="AutotableBar"):

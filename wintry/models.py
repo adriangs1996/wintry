@@ -5,6 +5,8 @@ from mashumaro import config
 from types import GenericAlias, NoneType
 from typing import (
     Any,
+    ClassVar,
+    Annotated,
     Callable,
     ClassVar,
     ForwardRef,
@@ -16,6 +18,12 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    Optional,
+    List,
+    Dict,
+    Set,
+    ItemsView,
+    Iterator,
     cast,
     get_args,
     overload,
@@ -143,23 +151,25 @@ class ModelRegistry:
         for model in cls.get_all_models():
             # Configure generate this model from_orm method
             try:
-                code_gen.model_from_orm(model, ModelRegistry.models.copy())
-                code_gen.compile(ModelRegistry.models.copy())
+                code_gen.model_from_orm(model, globals() | ModelRegistry.models.copy())
+                code_gen.compile(globals() | ModelRegistry.models.copy())
             except NameError as e:
                 print(e)
 
                 @classmethod
                 def from_orm(cls, obj: Any):
-                    code_gen.model_from_orm(cls, ModelRegistry.models.copy(), locals())
-                    code_gen.compile(ModelRegistry.models)
+                    code_gen.model_from_orm(cls, globals() | ModelRegistry.models.copy(), locals())
+                    code_gen.compile(globals() | ModelRegistry.models.copy())
 
                 setattr(cls, "from_orm", from_orm)
 
 
 def get_type_by_str(type_str: str):
-    return ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
+    new_ = ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
         type_str, None
     )
+    if new_ is None:
+        return eval(type_str, globals() | ModelRegistry.models.copy(), locals())
 
 
 def get_primary_key(_type: type) -> Field:
@@ -540,6 +550,16 @@ class Model(DataClassDictMixin):
             if not modified:
                 tracker.add(target)
                 setattr(target, __winter_modified_entity_state__, True)
+
+            # This distinction is needed for SQL, so new entities assigned
+            # to properties got tracked. IF they are new, then no big deal,
+            # add it to the new group in tracker, otherwise, just ignore it
+            if is_obj_marked(self):
+                if isinstance(__value, Model):
+                    if __value not in tracker:
+                        setattr(__value, __winter_track_target__, __value)
+                        setattr(__value, __winter_tracker__, tracker)
+                        tracker.new(__value)
 
         return super().__setattr__(__name, __value)  # type: ignore
 
