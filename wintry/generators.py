@@ -143,7 +143,11 @@ class CodeGenerator:
                             f"__{f.name} = {type_.__name__}.from_orm(getattr(obj, '{f.name}'))"
                         )
                 elif not f.type in builtin_types:
-                    self._add_line(f"__{f.name} = {f.type.__name__}.from_orm(getattr(obj, '{f.name}'))")
+                    type_ = resolve_generic_type_or_die(f.type)
+                    if isinstance(type_, ForwardRef):
+                        type_ = type_.__forward_arg__
+                        type_ = eval(type_, globs, locs)
+                    self._add_line(f"__{f.name} = {type_.__name__}.from_orm(getattr(obj, '{f.name}'))")
                 else:
                     self._add_line(f"__{f.name} = getattr(obj, '{f.name}')")
             self._add_line(f"return cls({','.join(f'{f.name}=__{f.name}' for f in fields(model))})")

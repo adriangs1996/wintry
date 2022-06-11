@@ -210,7 +210,7 @@ async def test_repository_can_delete_simple_model_by_id(engine, clean):
 async def test_transactions_works_on_simple_model(engine, clean):
     @transactional
     async def create_state(repository: StateRepository):
-        state = await repository.create(entity=OrmState(name="NewState"))
+        state = await repository.create(entity=OrmState(id=300,name="NewState"))
     
     await create_state(StateRepository())
     async with engine.connect() as conn:
@@ -222,8 +222,8 @@ async def test_transactions_works_on_simple_model(engine, clean):
 async def test_transactions_rollbacks_on_error(engine, clean):
     @transactional
     async def create_state_with_error(repository: StateRepository):
-        state1 = await repository.create(entity=OrmState(name="NewState"))
-        state2 = await repository.create(entity=OrmState(name="BOOM"[10]))
+        state1 = await repository.create(entity=OrmState(id=100, name="NewState"))
+        state2 = await repository.create(entity=OrmState(id=23, name="BOOM"[10]))
     
     with pytest.raises(IndexError):
         await create_state_with_error(StateRepository())
@@ -254,7 +254,7 @@ async def test_transactions_can_add_object_to_list(engine, clean):
     async def update_state_cities(repository: StateRepository):
         state = await repository.get_by_id(id=1)
         assert state is not None
-        state.cities.append(OrmCity(name="NewCity"))
+        state.cities.append(OrmCity(id=109, name="NewCity"))
     
     await update_state_cities(StateRepository())
     async with engine.connect() as conn:

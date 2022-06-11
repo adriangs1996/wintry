@@ -45,6 +45,7 @@ def normalize_data(
                 # I will ignore composite keys for now and assume it only have
                 # one pk
                 data[fk.key_name] = pk
+            yield related_model
         else:
             data[fk.key_name] = getattr(
                 model_instance, __wintry_model_instance_phantom_fk__, {}
@@ -59,7 +60,7 @@ def normalize_data(
 def compute_model_insert_values(model_instance: Model) -> dict[str, Any]:
     model_fields = get_model_fields_names(type(model_instance))
     table = get_model_table_metadata(type(model_instance))
-    data = model_instance.to_dict(skip_defaults=True)
+    data = model_instance.to_dict(omit_none=True)
 
     normalize_data(model_instance, model_fields, data, table)
 
@@ -70,7 +71,33 @@ def serialize_for_update(model_instance: Model) -> dict[str, Any]:
     model_fields = get_model_fields_names(type(model_instance))
     table = get_model_table_metadata(type(model_instance))
     pks = model_instance.id_name()
-    data = model_instance.to_dict(exclude=[*pks])
+    data = model_instance.to_dict()
 
-    normalize_data(model_instance, model_fields, data, table)
+    for pk in pks:
+        data.pop(pk, None)
+
+    for _ in normalize_data(model_instance, model_fields, data, table):
+        pass
+
     return data
+
+
+def mark_obj_used_by_sql(obj: Model):
+    setattr(obj, "__wintry_obj_is_used_by_sql__", True)
+
+
+def compute_model_related_data_for_insert(model_instance: Model) -> list[tuple[Table, dict[str, Any]]]:
+    if model_instance is None:
+        return []
+    model_fields = get_model_fields_names(type(model_instance))
+    table = get_model_table_metadata(type(model_instance))
+    data = model_instance.to_dict()
+    model_table = get_model_sql_table(type(model_instance))
+
+    result: list[tuple[Table, dict[str, Any]]] = []
+
+
+    for residual in normalize_data(model_instance, model_fields, data, table):
+        result += compute_model_related_data_for_insert(residual)
+    
+    return [(model_table, data)] + result

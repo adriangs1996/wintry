@@ -1,7 +1,7 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection, BACKENDS
 from wintry.generators import AutoString
-from wintry.models import Array, Id, metadata, Model
+from wintry.models import Array, Id, ModelRegistry, metadata, Model
 from wintry.repository.base import query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
@@ -24,7 +24,7 @@ class UserAddress(Model, table="AutotableUsers"):
     id: int
     latitude: float
     longitude: float
-    users: list["TestUser"] = Array()
+    users: "list[TestUser]" = Array()
 
 
 class TestUser(Model, table="AutotableTestUsers"):
@@ -69,21 +69,24 @@ class Uow(UnitOfWork):
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup():
+    ModelRegistry.configure()
     init_backends(
         WinterSettings(
             backends=[
                 BackendOptions(
                     driver="wintry.drivers.pg",
                     connection_options=ConnectionOptions(
-                        url="postgresql+asyncpg://postgres:secret@localhost/tests"
+                        url="sqlite+aiosqlite:///:memory:"
                     ),
                 )
             ],
         )
     )
     engine = getattr(BACKENDS["default"].driver, "_engine")
-    async with engine.begin() as conn:
-        await conn.run_sync(metadata.create_all)
+    conn = await engine.connect()
+    await conn.run_sync(metadata.create_all)
+    await conn.commit()
+    await conn.close()
 
 
 @pytest_asyncio.fixture
@@ -94,12 +97,13 @@ async def clean() -> AsyncGenerator[None, None]:
     foo = get_model_sql_table(Foo)
     bar = get_model_sql_table(Bar)
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        await session.execute(delete(testuser))
-        await session.execute(delete(useraddress))
-        await session.execute(delete(foo))
-        await session.execute(delete(bar))
-        await session.commit()
+    session.begin()
+    await session.execute(delete(testuser))
+    await session.execute(delete(useraddress))
+    await session.execute(delete(foo))
+    await session.execute(delete(bar))
+    await session.commit()
+    await session.close()
 
 
 @pytest.mark.asyncio
@@ -110,8 +114,8 @@ async def test_repository_can_insert(clean: Any) -> None:
     await repo.create(entity=user)
     testuser = get_model_sql_table(TestUser)
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        results = (await session.execute(select(testuser))).fetchall()
+    results = (await session.execute(select(testuser))).fetchall()
+    await session.close()
     assert len(results) == 1
 
 
@@ -231,9 +235,9 @@ async def test_uow_abort_transaction_by_default(clean: Any) -> Any:
         await uow.users.create(entity=user)
 
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        results: Result = await session.execute(select(testuser))
-
+    session.begin()
+    results: Result = await session.execute(select(testuser))
+    await session.close()
     assert results.fetchall() == []
 
 
@@ -249,8 +253,9 @@ async def test_uow_commits_transaction_with_explicit_commit(clean: Any) -> None:
         await uow.commit()
 
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        results: Result = await session.execute(select(testuser))
+    session.begin()
+    results: Result = await session.execute(select(testuser))
+    session.close()
 
     assert len(results.all()) == 1
 
@@ -270,8 +275,7 @@ async def test_uow_rollbacks_on_error(clean: Any) -> None:
             await uow.commit()
 
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        results: Result = await session.execute(select(testuser))
+    results: Result = await session.execute(select(testuser))
 
     assert results.all() == []
 
@@ -284,8 +288,10 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
     uow = Uow(user_repository, FooRepository())
 
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        await session.execute(insert(testuser).values(id=1, name="test", age=20))
+    session.begin()
+    await session.execute(insert(testuser).values(id=1, name="test", age=20))
+    await session.commit()
+    await session.close()
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
@@ -294,8 +300,9 @@ async def test_uow_automatically_synchronize_objects(clean: Any) -> None:
 
         await uow.commit()
 
-    async with session.begin():
-        results: Result = await session.execute(select(address))
+    session: AsyncConnection = await get_connection()
+    results: Result = await session.execute(select(address))
+    await session.close()
 
     assert len(results.all()) == 1
 
@@ -307,8 +314,10 @@ async def test_uow_automatically_updates_object(clean: Any) -> None:
     uow = Uow(user_repository, FooRepository())
 
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        await session.execute(insert(testuser).values(id=1, name="test", age=20))
+    session.begin()
+    await session.execute(insert(testuser).values(id=1, name="test", age=20))
+    await session.commit()
+    await session.close()
 
     async with uow:
         user = await uow.users.get_by_id(id=1)
@@ -318,8 +327,9 @@ async def test_uow_automatically_updates_object(clean: Any) -> None:
 
         await uow.commit()
 
-    async with session.begin():
-        results = await session.execute(select(testuser))
+    session: AsyncConnection = await get_connection()
+    results = await session.execute(select(testuser))
+    await session.close()
 
     user = results.fetchall()[0]
     assert user.age == 30 and user.name == "updated"
@@ -335,9 +345,11 @@ async def test_one_to_one_relation(clean: Any):
     await repo.create(entity=foo)
 
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        foo_results = await session.execute(select(footable))
-        bar_results = await session.execute(select(bartable))
+    session.begin()
+    foo_results = await session.execute(select(footable))
+    bar_results = await session.execute(select(bartable))
+    await session.commit()
+    await session.close()
 
     assert len(foo_results.unique().all()) == 1
     assert len(bar_results.unique().all()) == 1

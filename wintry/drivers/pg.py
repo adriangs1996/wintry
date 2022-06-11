@@ -37,7 +37,9 @@ from wintry.settings import BackendOptions, EngineType
 from wintry.utils.model_binding import SQLSelectQuery, load_model, tree_walk_dfs
 from wintry.utils.virtual_db_schema import (
     compute_model_insert_values,
+    compute_model_related_data_for_insert,
     get_model_sql_table,
+    mark_obj_used_by_sql,
     serialize_for_update,
 )
 
@@ -178,7 +180,7 @@ class SqlAlchemyDriver(QueryDriver):
         **kwargs: Any,
     ) -> str:
         sql = SQLSelectQuery()
-        tree_walk_dfs(schema, sql)
+        tree_walk_dfs(schema, sql, {})
         stmt = sql.render()
 
         if node.filters is not None:
@@ -198,7 +200,7 @@ class SqlAlchemyDriver(QueryDriver):
         **kwargs: Any,
     ) -> str:
         sql = SQLSelectQuery()
-        tree_walk_dfs(schema, sql)
+        tree_walk_dfs(schema, sql, {})
         stmt = sql.render()
 
         if node.filters is not None:
@@ -342,17 +344,17 @@ class SqlAlchemyDriver(QueryDriver):
         entity: Model,
         session: AsyncConnection | None = None,
     ):
-        table = get_model_sql_table(schema)
-        stmt: InsertStatement = insert(table)
-        data = compute_model_insert_values(entity)
-        stmt = stmt.values(**data)  # type: ignore
+        for t, data in compute_model_related_data_for_insert(entity):
+            stmt: InsertStatement = insert(t).values(**data)  # type: ignore
 
-        if session is not None:
-            await session.execute(stmt)
-        else:
-            async with self._engine.connect() as conn:
-                await conn.execute(stmt)
-                await conn.commit()
+            if session is not None:
+                await session.execute(stmt)
+            else:
+                async with self._engine.connect() as conn:
+                    await conn.execute(stmt)
+                    await conn.commit()
+
+        mark_obj_used_by_sql(entity)
         return entity
 
     @visit.register

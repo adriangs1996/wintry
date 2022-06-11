@@ -143,14 +143,14 @@ class ModelRegistry:
         for model in cls.get_all_models():
             # Configure generate this model from_orm method
             try:
-                code_gen.model_from_orm(model, ModelRegistry.models)
-                code_gen.compile(ModelRegistry.models)
+                code_gen.model_from_orm(model, ModelRegistry.models.copy())
+                code_gen.compile(ModelRegistry.models.copy())
             except NameError as e:
                 print(e)
 
                 @classmethod
                 def from_orm(cls, obj: Any):
-                    code_gen.model_from_orm(cls, ModelRegistry.models, locals())
+                    code_gen.model_from_orm(cls, ModelRegistry.models.copy(), locals())
                     code_gen.compile(ModelRegistry.models)
 
                 setattr(cls, "from_orm", from_orm)
@@ -254,27 +254,27 @@ class TableMetadata:
         foreign_key = ForeignKeyInfo(self.model, f"{self.model.__name__.lower()}_id")
 
         # Resolve the other endpoint table
-        target_virtual_table = VirtualDatabaseSchema[target_model]
+        target_virtual_table = VirtualDatabaseSchema[target_model]  # type: ignore
         if target_virtual_table is None:
             # Create the table but do not autobegin it
             target_virtual_table = TableMetadata(
                 metadata=self.metadata,
                 table_name=getattr(target_model, __winter_model_collection_name__),
-                model=target_model,
+                model=target_model,  # type: ignore
             )
         # Add the foreign key
         if foreign_key not in target_virtual_table.foreing_keys:
             target_virtual_table.foreing_keys.append(foreign_key)
 
         # Return the many to one relation
-        return Relation(target_model, field.name)
+        return Relation(target_model, field.name)  # type: ignore
 
     def dispatch_column_type_for_field(self, field: Field) -> None:
         if (ref := field.metadata.get("ref", None)) is not None:
             # This field is a ForeignKey to another model
             if isinstance(ref, str):
                 ref = get_type_by_str(ref)
-            fk = ForeignKeyInfo(ref, field.name)
+            fk = ForeignKeyInfo(ref, field.name)  # type: ignore
             if fk not in self.foreing_keys:
                 self.foreing_keys.append(fk)
             return
@@ -292,7 +292,7 @@ class TableMetadata:
             self.relations.append(self.many_to_one_relation(field))
             return
 
-        _type = resolve_generic_type_or_die(field.type)
+        _type = resolve_generic_type_or_die(field.type)  # type: ignore
 
         if isinstance(_type, str):
             _type = get_type_by_str(_type)
@@ -306,8 +306,8 @@ class TableMetadata:
 
         # At this point, this is a one_to relation, so we just add a foreing key and a
         # relation
-        foregin_key = ForeignKeyInfo(_type, field.name)
-        relationship = Relation(with_model=_type, field_name=field.name)
+        foregin_key = ForeignKeyInfo(_type, field.name)  # type: ignore
+        relationship = Relation(with_model=_type, field_name=field.name)  # type: ignore
 
         if foregin_key not in self.foreing_keys:
             self.foreing_keys.append(foregin_key)
@@ -505,6 +505,10 @@ def RequiredId(repr: bool = True, compare: bool = True, hash: bool = True):
     return field(
         repr=repr, compare=compare, hash=hash, kw_only=True, metadata={"id": True}
     )
+
+
+def is_obj_marked(obj: Any):
+    return isinstance(obj, Model) and getattr(obj, "__wintry_obj_is_used_by_sql__", False)
 
 
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(field, Field))

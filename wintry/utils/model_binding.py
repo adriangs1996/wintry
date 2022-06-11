@@ -17,7 +17,7 @@ from sqlalchemy.sql.operators import in_op
 
 
 from wintry.models import Model, TableMetadata
-from wintry.utils.virtual_db_schema import get_model_fields_names, get_model_sql_table
+from wintry.utils.virtual_db_schema import get_model_fields_names, get_model_sql_table, mark_obj_used_by_sql
 from wintry.utils.virtual_db_schema import get_model_table_metadata
 
 
@@ -116,29 +116,33 @@ def bind_row_to_model(row: LegacyRow, model: type[Model], single: bool = False) 
         if column.key not in fks_names:
             canonical_data[column.name] = row_dict[column]
 
-    return model.build(canonical_data)
+    m = model.build(canonical_data)
+    mark_obj_used_by_sql(m)
+    return m
 
 
-def tree_walk_dfs(model: type[Model], stmt: SQLSelectQuery):
+def tree_walk_dfs(model: type[Model], stmt: SQLSelectQuery, visited: dict[type[Model], bool]):
     root_table = get_model_sql_table(model)
     metadata = get_model_table_metadata(model)
     model_fields = get_model_fields_names(model)
+    visited[model] = True
 
     stmt.select.append(root_table)
 
     for fk in metadata.foreing_keys:
-        if fk.key_name in model_fields:
-            target_id = fk.target.id_name()[0]
-            next_model = fk.target
-            target_table = get_model_sql_table(next_model)
-            target_id_column = next(
-                filter(lambda col: col.key == target_id, target_table.c)
-            )
-            fk_col = next(filter(lambda col: col.key == fk.key_name, root_table.c))
-            stmt.joins.append(
-                SQLJoinClause(table=target_table, on=fk_col == target_id_column)
-            )
-            tree_walk_dfs(next_model, stmt)
+        if not visited.get(fk.target, False):
+            if fk.key_name in model_fields:
+                target_id = fk.target.id_name()[0]
+                next_model = fk.target
+                target_table = get_model_sql_table(next_model)
+                target_id_column = next(
+                    filter(lambda col: col.key == target_id, target_table.c)
+                )
+                fk_col = next(filter(lambda col: col.key == fk.key_name, root_table.c))
+                stmt.joins.append(
+                    SQLJoinClause(table=target_table, on=fk_col == target_id_column)
+                )
+                tree_walk_dfs(next_model, stmt, visited)
 
 
 def bind_query_result_to_model(
@@ -155,7 +159,7 @@ async def load_model(
     model: type[Model], connection: AsyncConnection, where: BinaryExpression | None = None
 ) -> list[Model]:
     query = SQLSelectQuery()
-    tree_walk_dfs(model, query)
+    tree_walk_dfs(model, query, {})
 
     stmt = query.render()
 
