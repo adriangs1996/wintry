@@ -30,7 +30,7 @@ class FilteredClause(ClauseProtocol):
     ) -> None:
         self.model = model
         self.condition = condition
-        assert type(action) in (Find, Delete, Update)
+        assert type(action) in (Find, Delete, Get)
         self.action = action
 
     @property
@@ -46,6 +46,15 @@ class FilteredClause(ClauseProtocol):
 
         return root_node
 
+class FilteredGet(FilteredClause):
+    pass
+
+class FilteredDelete(FilteredClause):
+    pass
+
+class FilteredFind(FilteredClause):
+    pass
+
 
 class QueryAction(ClauseProtocol):
     def __init__(self, model: type[Model], **kwargs: Any):
@@ -53,13 +62,7 @@ class QueryAction(ClauseProtocol):
         self.bindings = kwargs or {}
 
     def by(self, condition: Any) -> FilteredClause:
-        cond, bindings = condition
-        if isinstance(cond, BinaryNode):
-            return FilteredClause(self, self.model, (cond, self.bindings | bindings))
-        else:
-            return FilteredClause(
-                self, self.model, (cond & None, self.bindings | bindings)
-            )
+        return FilteredClause(self, self.model, (condition, self.bindings))
 
     def compile(self):
         return super().compile()
@@ -69,10 +72,16 @@ class Find(QueryAction):
     def compile(self):
         return FindNode()
 
+    def by(self, condition: Any) -> FilteredFind:
+        return FilteredFind(self, self.model, (condition, self.bindings))
+
 
 class Delete(QueryAction):
     def compile(self):
         return DeleteNode()
+
+    def by(self, condition: Any) -> FilteredDelete:
+        return FilteredDelete(self, self.model, (condition, self.bindings))
 
 
 class Update(QueryAction):
@@ -88,6 +97,9 @@ class Create(QueryAction):
 class Get(QueryAction):
     def compile(self):
         return GetNode()
+
+    def by(self, condition: Any) -> FilteredGet:
+        return FilteredGet(self, self.model, (condition, self.bindings))
 
 
 @alias(Get)

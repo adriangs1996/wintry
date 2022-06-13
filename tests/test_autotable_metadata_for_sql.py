@@ -211,17 +211,19 @@ async def test_repository_can_make_logical_queries(clean: Any) -> None:
     repo = UserRepository()
     testuser = get_model_sql_table(TestUser)
     session: AsyncConnection = await get_connection()
-    async with session.begin():
-        await session.execute(insert(testuser).values(id=1, name="test", age=20))
-        await session.execute(insert(testuser).values(id=2, name="test1", age=21))
-        await session.execute(insert(testuser).values(id=3, name="test2", age=22))
-        await session.execute(insert(testuser).values(id=4, name="test3", age=23))
+    session.begin()
+    await session.execute(insert(testuser).values(id=1, name="test", age=20))
+    await session.execute(insert(testuser).values(id=2, name="test1", age=21))
+    await session.execute(insert(testuser).values(id=3, name="test2", age=22))
+    await session.execute(insert(testuser).values(id=4, name="test3", age=23))
+    await session.commit()
+    await session.close()
 
     users = await repo.find_by_id_or_name_and_age_lowerThan(id=4, name="test2", age=23)
-    assert len(users) == 2
+    assert len(users) == 1
 
     ids = [u.id for u in users]
-    assert sorted(ids) == [3, 4]
+    assert sorted(ids) == [3]
 
 
 @pytest.mark.asyncio

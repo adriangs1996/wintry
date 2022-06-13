@@ -1,10 +1,11 @@
 from typing import Any, AsyncGenerator, List
 from wintry import init_backends, get_connection, BACKENDS
-from wintry.models import Model
+from wintry.models import Array, Model, ModelRegistry, metadata
 from wintry.orm.aql import get
 from wintry.repository.base import managed, query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
+from wintry.utils.virtual_db_schema import get_model_sql_table
 
 from wintry.orm.mapping import for_model
 from sqlalchemy import (
@@ -19,7 +20,7 @@ from sqlalchemy import (
     MetaData,
 )
 from sqlalchemy.orm import relation
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.engine.result import Result
 import pytest
 import pytest_asyncio
@@ -34,7 +35,7 @@ class Address(Model, table="TestPgDriverAddress"):
     id: int
     latitude: float
     longitude: float
-    users: "list[User]" = field(default_factory=list)
+    users: "list[User]" = Array()
 
 
 class User(Model, table="TestPgDriverUser"):
@@ -53,20 +54,19 @@ class UserRepository(Repository[User, int], entity=User):
 
     @managed
     async def get_user(self, id: int) -> User | None:
-        user = await self.exec(get(User).by(User.id == id))
-        assert not isinstance(user, list)
-        return user
+        return await self.exec(get(User).by(User.id == id))
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup():
+    ModelRegistry.configure()
     init_backends(
         WinterSettings(
             backends=[
                 BackendOptions(
                     driver="wintry.drivers.pg",
                     connection_options=ConnectionOptions(
-                        url="postgresql+asyncpg://postgres:secret@localhost/tests"
+                        url="sqlite+aiosqlite:///:memory:"
                     ),
                 )
             ],
@@ -77,66 +77,90 @@ async def setup():
         await conn.run_sync(metadata.create_all)
 
 
+@pytest.fixture(scope="module")
+def UserTable():
+    return get_model_sql_table(User)
+
+
+@pytest.fixture(scope="module")
+def AddressTable():
+    return get_model_sql_table(Address)
+
+
 @pytest_asyncio.fixture
-async def clean() -> AsyncGenerator[None, None]:
+async def clean(UserTable, AddressTable) -> AsyncGenerator[None, None]:
     yield
     session = await get_connection()
-    async with session.begin():
-        await session.execute(delete(UserTable))
-        await session.execute(delete(AddressTable))
-        await session.commit()
+    session.begin()
+    await session.execute(delete(UserTable))
+    await session.execute(delete(AddressTable))
+    await session.commit()
+    await session.close()
 
 
 @pytest.mark.asyncio
 async def test_repository_can_insert(clean: Any) -> None:
+    user_table = get_model_sql_table(User)
     repo = UserRepository()
     user = User(id=2, name="test", age=10)
 
     await repo.create(entity=user)
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        results: Result = await session.execute(select(UserTable))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    results: Result = await session.execute(select(user_table))
     assert len(results.all()) == 1
+    await session.close()
 
 
 @pytest.mark.asyncio
-async def test_repository_can_delete(clean: Any) -> None:
+async def test_repository_can_delete(clean: Any, UserTable) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    await session.commit()
+    await session.close()
 
     await repo.delete()
 
-    async with session.begin():
-        result: Result = await session.execute(select(UserTable))
-        rows = result.all()
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    result: Result = await session.execute(select(UserTable))
+    rows = result.all()
+    await session.commit()
+    await session.close()
 
     assert rows == []
 
 
 @pytest.mark.asyncio
-async def test_repository_can_delete_by_id(clean: Any) -> None:
+async def test_repository_can_delete_by_id(clean: Any, UserTable) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    await session.commit()
+    await session.close()
 
     await repo.delete_by_id(id=1)
 
-    async with session.begin():
-        result: Result = await session.execute(select(UserTable))
-        rows = result.all()
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    result: Result = await session.execute(select(UserTable))
+    rows = result.all()
+    await session.close()
 
     assert rows == []
 
 
 @pytest.mark.asyncio
-async def test_repository_can_get_by_id(clean: Any) -> None:
+async def test_repository_can_get_by_id(clean: Any, UserTable) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    await session.commit()
+    await session.close()
 
     user = await repo.get_by_id(id=1)
 
@@ -145,14 +169,16 @@ async def test_repository_can_get_by_id(clean: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_repository_can_list_all_users(clean: Any) -> None:
+async def test_repository_can_list_all_users(clean: Any, UserTable) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=26))
-        await session.execute(insert(UserTable).values(id=2, name="test1", age=26))
-        await session.execute(insert(UserTable).values(id=3, name="test2", age=26))
-        await session.execute(insert(UserTable).values(id=4, name="test3", age=26))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(insert(UserTable).values(id=1, name="test", age=26))
+    await session.execute(insert(UserTable).values(id=2, name="test1", age=26))
+    await session.execute(insert(UserTable).values(id=3, name="test2", age=26))
+    await session.execute(insert(UserTable).values(id=4, name="test3", age=26))
+    await session.commit()
+    await session.close()
 
     users = await repo.find()
 
@@ -161,16 +187,18 @@ async def test_repository_can_list_all_users(clean: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_repository_can_get_object_with_related_data_loaded(clean: Any) -> None:
+async def test_repository_can_get_object_with_related_data_loaded(
+    clean: Any, UserTable, AddressTable
+) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(
-            insert(AddressTable).values(id=1, latitude=3.43, longitude=10.111)
-        )
-        await session.execute(
-            insert(UserTable).values(id=1, name="test", age=26, address_id=1)
-        )
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(
+        insert(AddressTable).values(id=1, latitude=3.43, longitude=10.111)
+    )
+    await session.execute(insert(UserTable).values(id=1, name="test", age=26, address=1))
+    await session.commit()
+    await session.close()
 
     user = await repo.get_by_id(id=1)
 
@@ -181,28 +209,33 @@ async def test_repository_can_get_object_with_related_data_loaded(clean: Any) ->
 
 
 @pytest.mark.asyncio
-async def test_repository_can_make_logical_queries(clean: Any) -> None:
+async def test_repository_can_make_logical_queries(clean: Any, UserTable) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=20))
-        await session.execute(insert(UserTable).values(id=2, name="test1", age=21))
-        await session.execute(insert(UserTable).values(id=3, name="test2", age=22))
-        await session.execute(insert(UserTable).values(id=4, name="test3", age=23))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+    await session.execute(insert(UserTable).values(id=2, name="test1", age=21))
+    await session.execute(insert(UserTable).values(id=3, name="test2", age=22))
+    await session.execute(insert(UserTable).values(id=4, name="test3", age=23))
+    await session.commit()
+    await session.close()
 
+    # this should run : (id or name) and age < 23 -> User(id=3, name="Test2", age=22)
     users = await repo.find_by_id_or_name_and_age_lowerThan(id=4, name="test2", age=23)
-    assert len(users) == 2
+    assert len(users) == 1
 
     ids = [u.id for u in users]
-    assert sorted(ids) == [3, 4]
+    assert sorted(ids) == [3]
 
 
 @pytest.mark.asyncio
-async def test_repository_can_use_raw_method_entity(clean: Any) -> None:
+async def test_repository_can_use_raw_method_entity(clean: Any, UserTable) -> None:
     repo = UserRepository()
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(insert(UserTable).values(id=1, name="test", age=20))
+    await session.commit()
+    await session.close()
 
     user = await repo.get_user(1)
 

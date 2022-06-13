@@ -6,6 +6,9 @@ from wintry.orm.aql import (
     Create,
     Delete,
     FilteredClause,
+    FilteredDelete,
+    FilteredFind,
+    FilteredGet,
     Find,
     Get,
     QueryAction,
@@ -91,9 +94,17 @@ class Repository(abc.ABC, Generic[T, TypeId]):
     @overload
     async def exec(self, statement: Delete) -> None:
         ...
-    
+
     @overload
-    async def exec(self, statement: FilteredClause) -> T | list[T] | None:
+    async def exec(self, statement: FilteredGet) -> T | None:
+        ...
+
+    @overload
+    async def exec(self, statement: FilteredFind) -> list[T]:
+        ...
+
+    @overload
+    async def exec(self, statement: FilteredDelete) -> None:
         ...
 
     async def exec(self, statement: FilteredClause | QueryAction) -> T | list[T] | None:
