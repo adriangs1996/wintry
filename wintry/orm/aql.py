@@ -52,7 +52,7 @@ class QueryAction(ClauseProtocol):
         self.model = model
         self.bindings = kwargs or {}
 
-    def by(self, condition: Condition) -> FilteredClause:
+    def by(self, condition: Any) -> FilteredClause:
         cond, bindings = condition
         if isinstance(cond, BinaryNode):
             return FilteredClause(self, self.model, (cond, self.bindings | bindings))

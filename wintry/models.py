@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from functools import cache
 from mashumaro import DataClassDictMixin
 from mashumaro.dialect import Dialect
 from mashumaro import config
@@ -41,6 +42,7 @@ from dataclasses import (
     is_dataclass,
 )
 from wintry.generators import AutoIncrement, Increment
+from wintry.query.nodes import EqualToNode, GreaterThanNode, LowerThanNode
 from wintry.utils.decorators import alias
 from wintry.utils.keys import (
     __winter_in_session_flag__,
@@ -158,7 +160,9 @@ class ModelRegistry:
 
                 @classmethod
                 def from_orm(cls, obj: Any):
-                    code_gen.model_from_orm(cls, globals() | ModelRegistry.models.copy(), locals())
+                    code_gen.model_from_orm(
+                        cls, globals() | ModelRegistry.models.copy(), locals()
+                    )
                     code_gen.compile(globals() | ModelRegistry.models.copy())
 
                 setattr(cls, "from_orm", from_orm)
@@ -521,6 +525,34 @@ def is_obj_marked(obj: Any):
     return isinstance(obj, Model) and getattr(obj, "__wintry_obj_is_used_by_sql__", False)
 
 
+@cache
+def get_model_fields_names(model: type["Model"]) -> set[str]:
+    return set(f.name for f in fields(model))
+
+class Expression(tuple):
+    def __or__(self, other: "Expression"):
+        return Expression([self[0] | other[0], self[1] | other[1]])
+
+class FieldClassProxy(str):
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __getattr__(self, item):
+        return FieldClassProxy(f"{self}.{item}")
+    
+    def __getitem__(self, item):
+        return FieldClassProxy(f"{self}.{item}")
+    
+    def __gt__(self, other: Any):
+        return GreaterThanNode(self, other)
+
+    def __lt__(self, other: Any):
+        return LowerThanNode(self, other)
+
+    def __eq__(self, __o: object):
+        return EqualToNode(self, __o) 
+
+
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(field, Field))
 class Model(DataClassDictMixin):
     class Config(config.BaseConfig):
@@ -597,6 +629,10 @@ class Model(DataClassDictMixin):
 
         # Register model if it is mapped
         setattr(cls, "__class_is_mapped__", mapped)
+
+        for field in fields(cls):
+            setattr(cls, field.name, FieldClassProxy(field.name))
+
         ModelRegistry.register(cls)  # type: ignore
 
     @classmethod

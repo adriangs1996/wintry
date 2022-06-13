@@ -1,4 +1,4 @@
-from dataclasses import Field
+from dataclasses import Field, dataclass
 from typing import Any, Optional
 
 
@@ -6,18 +6,18 @@ class OpNode:
     pass
 
 
+@dataclass
 class RootNode(OpNode):
-    def __init__(self, filters: Optional["BinaryNode"] = None) -> None:
-        self.filters = filters
+    filters: "BinaryNode | None" = None
 
     def __eq__(self, __o: "RootNode") -> bool:
         return __o.filters == self.filters
 
 
+@dataclass
 class FilterNode(OpNode):
-    def __init__(self, field: str, value: Any = None) -> None:
-        self.field = field
-        self.value = value
+    field: str
+    value: Any | None = None
 
     def __eq__(self, __o: "FilterNode") -> bool:
         return __o.field == self.field and self.value == __o.value
@@ -29,13 +29,25 @@ class FilterNode(OpNode):
         return OrNode(self, node)
 
 
+@dataclass
 class BinaryNode(OpNode):
-    def __init__(self, left: FilterNode, right: Optional["BinaryNode"]) -> None:
-        self.left = left
-        self.right = right
+    left: FilterNode
+    right: "BinaryNode | None" = None
 
     def __eq__(self, __o: "BinaryNode") -> bool:
         return self.left == __o.left and self.right == __o.right
+
+    def __and__(self, o: "FilterNode"):
+        if self.right is None:
+            return AndNode(self.left, AndNode(o, None))
+        else:
+            return AndNode(self.left, self.right & o)
+    
+    def __or__(self, __t: FilterNode):
+        if self.right is None:
+            return OrNode(self.left, AndNode(__t, None))
+        else:
+            return OrNode(self.left, self.right | __t)
 
 
 class Create(RootNode):

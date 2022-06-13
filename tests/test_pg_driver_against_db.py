@@ -1,6 +1,7 @@
 from typing import Any, AsyncGenerator, List
 from wintry import init_backends, get_connection, BACKENDS
 from wintry.models import Model
+from wintry.orm.aql import get
 from wintry.repository.base import managed, query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
@@ -29,44 +30,18 @@ from dataclasses import field
 from wintry.repository import Repository, managed
 
 
-class Address(Model):
+class Address(Model, table="TestPgDriverAddress"):
     id: int
     latitude: float
     longitude: float
-    users: list["User"] = field(default_factory=list)
+    users: "list[User]" = field(default_factory=list)
 
 
-class User(Model):
+class User(Model, table="TestPgDriverUser"):
     id: int
     name: str
     age: int
     address: Address | None = None
-
-
-# Define the table schemas
-metadata = MetaData()
-
-
-AddressTable = for_model(
-    Address,
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("latitude", Float),
-    Column("longitude", Float),
-    table_name="Addresses",
-)
-
-
-UserTable = for_model(
-    User,
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("name", String),
-    Column("age", Integer),
-    Column("address_id", Integer, ForeignKey("Addresses.id")),
-    table_name="Users",
-    address=relation(Address, lazy="joined", backref="users"),
-)
 
 
 class UserRepository(Repository[User, int], entity=User):
@@ -78,8 +53,9 @@ class UserRepository(Repository[User, int], entity=User):
 
     @managed
     async def get_user(self, id: int) -> User | None:
-        session = self.connection()
-        return await session.get(User, id)
+        user = await self.exec(get(User).by(User.id == id))
+        assert not isinstance(user, list)
+        return user
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)

@@ -59,18 +59,18 @@ class Repository(abc.ABC, Generic[T, TypeId]):
     def __init__(self) -> None:
         ...
 
-    def connection(self) -> Any:
+    async def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
 
         if (session := getattr(self, __winter_session_key__, None)) is not None:
             if isinstance(session, AsyncIOMotorClientSession):
                 # This is an AsyncioMotorSession. Inside that session, we have
                 # a client property that maps to the
-                db_name = get_connection(backend_name).name  # type: ignore
+                db_name = await get_connection(backend_name).name  # type: ignore
                 return session.client[db_name]
             return session
 
-        return get_connection(backend_name)
+        return await get_connection(backend_name)
 
     @overload
     async def exec(self, statement: Update) -> None:
@@ -90,6 +90,10 @@ class Repository(abc.ABC, Generic[T, TypeId]):
 
     @overload
     async def exec(self, statement: Delete) -> None:
+        ...
+    
+    @overload
+    async def exec(self, statement: FilteredClause) -> T | list[T] | None:
         ...
 
     async def exec(self, statement: FilteredClause | QueryAction) -> T | list[T] | None:

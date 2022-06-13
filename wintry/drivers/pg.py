@@ -1,7 +1,23 @@
 from dataclasses import fields
 from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+    overload,
+    Sequence,
+    Iterable,
+    Iterator,
+    Generator,
+    Mapping,
+    Union,
+)
 
 import sqlalchemy.orm as orm
 from sqlalchemy import delete, insert, inspect, select, update, Table
@@ -80,7 +96,7 @@ def _operate(
 ) -> Dict[str, Any]:
     table = get_model_sql_table(schema)
     field_path = get_field_name(node.field)
-    value = get_value_from_args(field_path, **kwargs)
+    value = node.value or get_value_from_args(field_path, **kwargs)
 
     if isinstance(field_path, list):
         # This is a related field
@@ -94,7 +110,9 @@ def _operate(
             for f in fields(current_type):
                 if f.name == field:
                     if isinstance(f.type, str):
-                        current_type = eval(f.type, globals() | ModelRegistry.models.copy())
+                        current_type = eval(
+                            f.type, globals() | ModelRegistry.models.copy()
+                        )
                     else:
                         current_type = f.type
                     current_type = resolve_generic_type_or_die(current_type)
