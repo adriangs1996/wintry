@@ -8,7 +8,7 @@ class OpNode:
 
 @dataclass
 class RootNode(OpNode):
-    filters: "BinaryNode | None" = None
+    filters: "BinaryNode | FilterNode | None" = None
 
     def __eq__(self, __o: "RootNode") -> bool:
         return __o.filters == self.filters
@@ -22,32 +22,26 @@ class FilterNode(OpNode):
     def __eq__(self, __o: "FilterNode") -> bool:
         return __o.field == self.field and self.value == __o.value
 
-    def __and__(self, node: Optional["BinaryNode"]) -> "AndNode":
+    def __and__(self, node: "FilterNode") -> "AndNode":
         return AndNode(self, node)
 
-    def __or__(self, node: Optional["BinaryNode"]) -> "OrNode":
+    def __or__(self, node: "FilterNode") -> "OrNode":
         return OrNode(self, node)
 
 
 @dataclass
 class BinaryNode(OpNode):
-    left: FilterNode
-    right: "BinaryNode | None" = None
+    left: "BinaryNode | FilterNode"
+    right: "FilterNode | None" = None
 
     def __eq__(self, __o: "BinaryNode") -> bool:
         return self.left == __o.left and self.right == __o.right
 
-    def __and__(self, o: "FilterNode"):
-        if self.right is None:
-            return AndNode(self.left, AndNode(o, None))
-        else:
-            return AndNode(self.left, self.right & o)
-    
+    def __and__(self, o: FilterNode):
+        return AndNode(self, o)
+
     def __or__(self, __t: FilterNode):
-        if self.right is None:
-            return OrNode(self.left, AndNode(__t, None))
-        else:
-            return OrNode(self.left, self.right | __t)
+        return OrNode(self, __t)
 
 
 class Create(RootNode):
@@ -65,7 +59,7 @@ class Update(RootNode):
 
 class Find(RootNode):
     def __init__(
-        self, filters: Optional["BinaryNode"] = None, projection: list[str] = []
+        self, filters: BinaryNode | FilterNode | None = None, projection: list[str] = []
     ) -> None:
         super().__init__(filters)
         self.projection = projection
@@ -73,7 +67,7 @@ class Find(RootNode):
 
 class Get(RootNode):
     def __init__(
-        self, filters: Optional["BinaryNode"] = None, projection: list[Field] = []
+        self, filters: BinaryNode | FilterNode | None = None, projection: list[Field] = []
     ) -> None:
         super().__init__(filters)
         self.projection = projection

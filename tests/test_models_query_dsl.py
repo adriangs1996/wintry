@@ -45,30 +45,23 @@ def test_aql_handles_nested_fields_access():
 
 def test_aql_can_join_logical_queries():
     query: Any = (QueryDslEntity.field1 == "Hello") | (QueryDslEntity.field2 < 20)
-    assert query == OrNode(
-        EqualToNode("field1", "Hello"), AndNode(LowerThanNode("field2", 20), None)
-    )
+    assert query == OrNode(EqualToNode("field1", "Hello"), LowerThanNode("field2", 20))
 
 
 def test_aql_can_join_logical_queries_and():
     query: Any = (QueryDslEntity.field1 == "Hello") & (QueryDslEntity.field2 < 20)
-    assert query == AndNode(
-        EqualToNode("field1", "Hello"), AndNode(LowerThanNode("field2", 20), None)
-    )
+    assert query == AndNode(EqualToNode("field1", "Hello"), LowerThanNode("field2", 20))
 
 
 def test_aql_can_handle_multiple_logical_queries():
-    query: Any = (QueryDslEntity.field1 == "Hello") | (QueryDslEntity.field2 < 20) & (
+    query: Any = (QueryDslEntity.field1 == "Hello") & (QueryDslEntity.field2 < 20) | (
         QueryDslEntity.field2 > 5
     )
 
-    assert query == AndNode(
-        EqualToNode("field1", "Hello"),
-        OrNode(
+    assert query == OrNode(
+        AndNode(
+            EqualToNode("field1", "Hello"),
             LowerThanNode("field2", 20),
-            AndNode(
-                GreaterThanNode("field2", 5),
-                None,
-            ),
         ),
+        GreaterThanNode("field2", 5),
     )

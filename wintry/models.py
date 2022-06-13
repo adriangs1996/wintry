@@ -529,9 +529,6 @@ def is_obj_marked(obj: Any):
 def get_model_fields_names(model: type["Model"]) -> set[str]:
     return set(f.name for f in fields(model))
 
-class Expression(tuple):
-    def __or__(self, other: "Expression"):
-        return Expression([self[0] | other[0], self[1] | other[1]])
 
 class FieldClassProxy(str):
     def __hash__(self) -> int:

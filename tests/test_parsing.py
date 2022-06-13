@@ -106,6 +106,7 @@ def test_tokenizer_recognizes_nested_fields_access():
         TokenType.end_token,
     ]
 
+
 def test_tokenizer_recognizes_deeply_nested_fields():
     query = "find_by_user__address__location__latitude_and_age_or_user__name"
     tokens = QueryTokenizer.tokenize(query)
@@ -122,6 +123,7 @@ def test_tokenizer_recognizes_deeply_nested_fields():
         TokenType.end_token,
     ]
 
+
 def test_tokenizer_correctly_handles_long_words_with_keywords_inside():
     # orderid has "or" at the begining, but it is a long word, so
     # we must try to match the whole word, instead just the first part
@@ -133,7 +135,7 @@ def test_tokenizer_correctly_handles_long_words_with_keywords_inside():
         TokenType.query_target,
         TokenType.by,
         TokenType.fieldName,
-        TokenType.end_token
+        TokenType.end_token,
     ]
 
 
@@ -142,7 +144,7 @@ def test_parser_handles_find_queries():
     parser = QueryParser()
     ast1 = parser.parse(query)
 
-    assert ast1 == Find(AndNode(EqualToNode("id"), None))
+    assert ast1 == Find(EqualToNode("id"))
 
 
 def test_parser_handles_single_find():
@@ -174,34 +176,33 @@ def test_parser_handles_find_queries_with_logical_operators_and_filters():
     parser = QueryParser()
     ast = parser.parse(query)
 
+    assert ast == Find(EqualToNode("id") & LowerThanNode("age") | EqualToNode("username"))
     assert ast == Find(
-        AndNode(
-            EqualToNode("id"),
-            OrNode(
+        OrNode(
+            AndNode(
+                EqualToNode("id"),
                 LowerThanNode("age"),
-                AndNode(
-                    EqualToNode("username"),
-                    None,
-                ),
             ),
+            EqualToNode("username"),
         )
     )
 
 
-def test_parser_gets_dot_separaed_nested_fields():
+def test_parser_gets_dot_separated_nested_fields():
     query = "find_by_id_and_user__age_lowerThan_or_user__username"
     parser = QueryParser()
     ast = parser.parse(query)
 
     assert ast == Find(
-        AndNode(
-            EqualToNode("id"),
-            OrNode(
+        OrNode(
+            AndNode(
+                EqualToNode("id"),
                 LowerThanNode("user.age"),
-                AndNode(
-                    EqualToNode("user.username"),
-                    None,
-                ),
             ),
+            EqualToNode("user.username"),
         )
+    )
+
+    assert ast == Find(
+        EqualToNode("id") & LowerThanNode("user.age") | EqualToNode("user.username")
     )

@@ -147,23 +147,21 @@ class QueryParser:
 
         raise ParsingError()
 
-    def parse_filters_list(self) -> BinaryNode:
+    def parse_filters_list(self) -> BinaryNode | FilterNode | None:
         left = self.parse_criteria()
+        return self.X(left)
 
-        if not (self.lookahead() is None or self.lookahead() == TokenType.end_token):
-            join_operator = self.consume(TokenType.logical_operator)
-            right = self.parse_filters_list()
+    def X(self, left: BinaryNode | FilterNode):
+        if self.lookahead() != TokenType.logical_operator:
+            return left
+        join_operator = self.consume(TokenType.logical_operator)
+        right = self.parse_criteria()
 
-            match join_operator.lexema.lower():
-                case "and":
-                    return AndNode(left, right)
-                case "or":
-                    return OrNode(left, right)
-
-            raise ParsingError()
-
-        else:
-            return AndNode(left, None)
+        match join_operator.lexema.lower():
+            case "and":
+                return self.X(left & right)
+            case "or":
+                return self.X(left | right)
 
     def parse_criteria(self) -> FilterNode:
         if self.lookahead() == TokenType.fieldName:
