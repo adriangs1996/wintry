@@ -1,6 +1,20 @@
 import abc
 import inspect
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, overload
+
+from wintry.orm.aql import (
+    Create,
+    Delete,
+    FilteredClause,
+    FilteredDelete,
+    FilteredFind,
+    FilteredGet,
+    Find,
+    Get,
+    QueryAction,
+    Update,
+    execute,
+)
 from .base import TDecorated, raw_method, query, managed
 from wintry import get_connection
 from wintry.utils.keys import (
@@ -48,18 +62,56 @@ class Repository(abc.ABC, Generic[T, TypeId]):
     def __init__(self) -> None:
         ...
 
-    def connection(self) -> Any:
+    async def connection(self) -> Any:
         backend_name = getattr(self, __winter_backend_identifier_key__, "default")
 
         if (session := getattr(self, __winter_session_key__, None)) is not None:
             if isinstance(session, AsyncIOMotorClientSession):
                 # This is an AsyncioMotorSession. Inside that session, we have
                 # a client property that maps to the
-                db_name = get_connection(backend_name).name  # type: ignore
+                db_name = (await get_connection(backend_name)).name  # type: ignore
                 return session.client[db_name]
             return session
 
-        return get_connection(backend_name)
+        return await get_connection(backend_name)
+
+    @overload
+    async def exec(self, statement: Update) -> None:
+        ...
+
+    @overload
+    async def exec(self, statement: Create) -> T:
+        ...
+
+    @overload
+    async def exec(self, statement: Find) -> list[T]:
+        ...
+
+    @overload
+    async def exec(self, statement: Get) -> T | None:
+        ...
+
+    @overload
+    async def exec(self, statement: Delete) -> None:
+        ...
+
+    @overload
+    async def exec(self, statement: FilteredGet) -> T | None:
+        ...
+
+    @overload
+    async def exec(self, statement: FilteredFind) -> list[T]:
+        ...
+
+    @overload
+    async def exec(self, statement: FilteredDelete) -> None:
+        ...
+
+    async def exec(self, statement: FilteredClause | QueryAction) -> T | list[T] | None:
+        backend_name = getattr(self, __winter_backend_identifier_key__, "default")
+        session = getattr(self, __winter_session_key__, None)
+
+        return await execute(statement, backend_name, session)
 
     async def find(self) -> list[T]:
         ...

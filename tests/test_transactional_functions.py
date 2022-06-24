@@ -18,20 +18,20 @@ from wintry.mqs import MessageQueue
 container = IGlooContainer()
 
 
-class Address(Model):
+class Address(Model, table="addresses"):
     latitude: float
     longitude: float
 
 
-class User(Model):
+class User(Model, table="users"):
     id: int
     name: str
     age: int
     address: Address | None = None
-    heroes: list["Hero"] = Array()
+    heroes: "list[Hero]" = Array()
 
 
-class Hero(Model):
+class Hero(Model, table="heroes"):
     name: str
     id: str = Id(default_factory=AutoString)
 
@@ -39,7 +39,7 @@ class Hero(Model):
 class UserRepository(Repository[User, int], entity=User):
     @managed
     async def get_user_by_name(self, name: str):
-        db = self.connection()
+        db = await self.connection()
         row = await db.users.find_one({"name": name})
 
         if row is not None:
@@ -48,7 +48,7 @@ class UserRepository(Repository[User, int], entity=User):
             return None
 
 
-class HeroRepository(Repository[Hero, str], entity=Hero, table_name="heroes"):
+class HeroRepository(Repository[Hero, str], entity=Hero):
     @query
     async def get_by_name(self, *, name: str) -> Hero | None:
         ...
@@ -59,22 +59,22 @@ class UserRepositoryInjected(Repository[User, int], entity=User):
     ...
 
 
-@pytest.fixture(scope="module", autouse=True)
-def db() -> Any:
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def db() -> Any:
     RepositoryRegistry.configure_for_nosql()
     init_backends(
         WinterSettings(
             backends=[
                 BackendOptions(
                     connection_options=ConnectionOptions(
-                        url="mongodb://localhost:27017/?replicaSet=dbrs"
+                        url="mongodb://localhost:27017/tests"
                     ),
                 )
             ]
         )
     )
 
-    return get_connection()
+    return await get_connection()
 
 
 @pytest_asyncio.fixture()

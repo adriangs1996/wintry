@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from wintry.models import Model
+from wintry.models import Model, ModelRegistry
 from pydantic import BaseModel
 
 
@@ -46,6 +46,9 @@ class NestedModel(Model, mapped=False):
 class DataclassFoo:
     x: int
     y: float
+
+
+ModelRegistry.configure()
 
 
 def test_deserialize_simple_object():
@@ -116,21 +119,21 @@ def test_serialize_nested_object():
 
 def test_build_from_obj():
     pydantic_foo = PydanticFoo(x=10, y=3.3)
-    foo = Foo.from_obj(pydantic_foo)
+    foo = Foo.from_orm(pydantic_foo)
 
     assert foo == Foo(x=10, y=3.3)
 
 
 def test_build_from_dataclass():
     dataclass_foo = DataclassFoo(x=10, y=3.3)
-    foo = Foo.from_obj(dataclass_foo)
+    foo = Foo.from_orm(dataclass_foo)
 
     assert foo == Foo(x=10, y=3.3)
 
 
 def test_build_from_list_of_obj():
     objs = [PydanticFoo(x=11, y=4.3), PydanticFoo(x=12, y=5.3), PydanticFoo(x=10, y=3.3)]
-    foos = Foo.from_obj(objs)
+    foos = Foo.from_orm(objs)
 
     assert foos == [Foo(x=11, y=4.3), Foo(x=12, y=5.3), Foo(x=10, y=3.3)]
 
@@ -141,14 +144,14 @@ def test_build_from_dataclass_list():
         DataclassFoo(x=12, y=5.3),
         DataclassFoo(x=10, y=3.3),
     ]
-    foos = Foo.from_obj(objs)
+    foos = Foo.from_orm(objs)
 
     assert foos == [Foo(x=11, y=4.3), Foo(x=12, y=5.3), Foo(x=10, y=3.3)]
 
 
 def test_build_from_augmented_model():
     obj = AugmentedPydanticModel(x=10, y=3.3, other="Hello", another=False)
-    foo = Foo.from_obj(obj)
+    foo = Foo.from_orm(obj)
 
     assert foo == Foo(x=10, y=3.3)
 
@@ -157,6 +160,6 @@ def test_nested_model():
     obj = PydanticNestedModel(
         foo=PydanticFoo(x=1, y=2), bar=PydanticBar(foo=PydanticFoo(x=1, y=2)), x=20
     )
-    nested = NestedModel.from_obj(obj)
+    nested = NestedModel.from_orm(obj)
 
     assert nested == NestedModel(foo=Foo(x=1, y=2), bar=Bar(foo=Foo(x=1, y=2)), x=20)

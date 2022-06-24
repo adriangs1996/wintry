@@ -89,9 +89,8 @@ class UnitOfWork:
         for repo in self.repositories.values():
             backend_name = getattr(repo, __winter_backend_identifier_key__)
             session = getattr(repo, __winter_session_key__)
-            if getattr(repo, __RepositoryType__, None) == NO_SQL:
-                tracker: Tracker = getattr(repo, __winter_tracker__)
-                await tracker.flush(session)
+            tracker: Tracker = getattr(repo, __winter_tracker__)
+            await tracker.flush(session)
             await commit(session, backend_name)
 
     async def rollback(self) -> None:
@@ -132,9 +131,8 @@ class UnitOfWork:
             session = getattr(repository, __winter_session_key__)
             await close_session(session, backend_name)
             setattr(repository, __winter_session_key__, None)
-            if getattr(repository, __RepositoryType__, None) == NO_SQL:
-                tracker: Tracker = getattr(repository, __winter_tracker__)
-                tracker.clean()
+            tracker: Tracker = getattr(repository, __winter_tracker__)
+            tracker.clean()
 
     def __getattribute__(self, __name: str) -> Any:
         """

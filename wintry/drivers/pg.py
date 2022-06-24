@@ -1,11 +1,24 @@
+from dataclasses import fields
 from functools import singledispatchmethod
 from operator import eq, gt, lt, ne
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, overload
-from wintry.backend import QueryDriver
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.engine.result import Result
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Type,
+    TypeVar,
+)
 import sqlalchemy.orm as orm
-from wintry.models import Model
+from sqlalchemy import delete, insert, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio.engine import AsyncConnection
+from sqlalchemy.ext.asyncio.engine import create_async_engine
+from sqlalchemy.sql import Delete as DeleteStatement
+from sqlalchemy.sql import Insert as InsertStatement
+from sqlalchemy.sql import Update as UpdateStatement
+from wintry.backend import QueryDriver
+from wintry.models import Model, ModelRegistry
 from wintry.query.nodes import (
     AndNode,
     Create,
@@ -17,67 +30,29 @@ from wintry.query.nodes import (
     GreaterThanNode,
     LowerThanNode,
     NotEqualNode,
-    NotGreaterThanNode,
     OpNode,
     OrNode,
     RootNode,
     Update,
 )
 from wintry.settings import BackendOptions, EngineType
-from sqlalchemy import select, update, delete, inspect, insert
-from sqlalchemy.sql import (
-    Select,
-    Update as UpdateStatement,
-    Delete as DeleteStatement,
-    Insert as InsertStatement,
+from wintry.utils.model_binding import SQLSelectQuery, load_model, tree_walk_dfs
+from wintry.utils.type_helpers import resolve_generic_type_or_die
+from wintry.utils.virtual_db_schema import (
+    compute_model_insert_values,
+    compute_model_related_data_for_insert,
+    get_model_sql_table,
+    mark_obj_used_by_sql,
+    serialize_for_update,
 )
-from sqlalchemy.orm import Mapper, RelationshipProperty
-from dataclass_wizard import asdict
-from dataclasses import is_dataclass
-from sqlalchemy.sql.expression import text, TextClause
 
 
 class ExecutionError(Exception):
     pass
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=Model)
 Operator = Callable[[Any, Any], Any]
-
-
-@overload
-def _apply(stmt: Select, state: Dict[str, Any]) -> Select:
-    ...
-
-
-@overload
-def _apply(stmt: DeleteStatement, state: Dict[str, Any]) -> DeleteStatement:  # type: ignore
-    ...
-
-
-def _apply(
-    stmt: Select | DeleteStatement, state: Dict[str, Any]
-) -> Select | DeleteStatement:
-    new_stmt = stmt
-    if (conditions := state.get("where", None)) is not None:
-        new_stmt = new_stmt.where(conditions)
-
-    if (joins := state.get("joins", None)) is not None and isinstance(new_stmt, Select):
-        for table in joins:
-            new_stmt = new_stmt.join(table)
-
-    assert new_stmt is not None
-    return new_stmt
-
-
-def _resolve_joins(schema_to_inspect: Type[Any], field: str, joins: List[Any]) -> Any:
-    mapper: Mapper = inspect(schema_to_inspect)
-    relationships: List[RelationshipProperty] = list(mapper.relationships)
-    schema_to_inspect = next(
-        filter(lambda p: p.key == field, relationships)
-    ).entity.mapped_table
-    joins.append(schema_to_inspect)
-    return schema_to_inspect
 
 
 def get_field_name(field_name: str) -> str | List[str]:
@@ -102,25 +77,34 @@ def get_value_from_args(field_path: str | List[str], **kwargs: Any) -> Any:
 
 
 def _operate(
-    node: FilterNode, schema: Type[Any], op: Operator, **kwargs: Any
+    node: FilterNode, schema: type[Model], op: Operator, **kwargs: Any
 ) -> Dict[str, Any]:
+    table = get_model_sql_table(schema)
     field_path = get_field_name(node.field)
-    value = get_value_from_args(field_path, **kwargs)
-    joins: List[Any] = []
+    value = node.value or get_value_from_args(field_path, **kwargs)
 
     if isinstance(field_path, list):
         # This is a related field
-        schema_to_inspect = schema
+        schema_to_inspect = table
+        current_type = schema
         while field_path:
             field = field_path.pop(0)
             # is this the last one ??
             if field_path == []:
-                return {"where": op(getattr(schema_to_inspect.c, field), value), "joins": joins}  # type: ignore
-            else:
-                schema_to_inspect = _resolve_joins(schema_to_inspect, field, joins)
+                return {"where": op(getattr(schema_to_inspect.c, field), value)}  # type: ignore
+            for f in fields(current_type):
+                if f.name == field:
+                    if isinstance(f.type, str):
+                        current_type = eval(
+                            f.type, globals() | ModelRegistry.models.copy()
+                        )
+                    else:
+                        current_type = f.type
+                    current_type = resolve_generic_type_or_die(current_type)
+                    schema_to_inspect = get_model_sql_table(current_type)
         raise ExecutionError("WTF This should not end here")
     else:
-        return {"where": op(getattr(schema, field_path), value), "joins": joins}
+        return {"where": op(getattr(table.c, field_path), value)}
 
 
 class SqlAlchemyDriver(QueryDriver):
@@ -139,7 +123,7 @@ class SqlAlchemyDriver(QueryDriver):
             db_name = settings.connection_options.database_name
             connector = settings.connection_options.connector
             url = f"{connector}://{username}:{password}@{host}:{port}/{db_name}"
-            self._engine = create_async_engine(url=url, future=True)
+            self._engine = create_async_engine(url=url, future=True, echo=True)
 
         session = orm.sessionmaker(
             bind=self._engine,
@@ -150,30 +134,27 @@ class SqlAlchemyDriver(QueryDriver):
 
         self._sessionmaker: orm.sessionmaker = session
 
-        self._session: Optional[AsyncSession] = None
+        self._connection: AsyncConnection | None = None
 
-    def get_connection(self) -> Any:
-        if self._session is not None:
-            return self._session
+    async def get_connection(self) -> AsyncConnection:
+        if self._connection is not None:
+            return self._connection
         else:
-            return self._sessionmaker()
+            return await self._engine.connect()
 
-    async def get_started_session(self) -> AsyncSession:
-        session: AsyncSession = self._sessionmaker()
-        session.begin()
-        return session
+    async def get_started_session(self) -> AsyncConnection:
+        connection: AsyncConnection = await self._engine.connect()
+        connection.begin()
+        return connection
 
-    async def commit_transaction(self, session: AsyncSession) -> None:
-        if session.in_transaction():
-            await session.commit()
+    async def commit_transaction(self, session: AsyncConnection) -> None:
+        await session.commit()
 
-    async def abort_transaction(self, session: AsyncSession) -> None:
-        if session.in_transaction():
-            await session.rollback()
+    async def abort_transaction(self, session: AsyncConnection) -> None:
+        await session.rollback()
 
-    async def close_session(self, session: AsyncSession) -> None:
-        if session.in_transaction():
-            await session.close()
+    async def close_session(self, session: AsyncConnection) -> None:
+        await session.close()
 
     async def init_async(self, *args, **kwargs):  # type: ignore
         pass
@@ -184,239 +165,284 @@ class SqlAlchemyDriver(QueryDriver):
     async def run_async(
         self,
         query_expression: RootNode,
-        table_name: str | Type[Any],
-        session: Any = None,
+        table_name: str | Type[Model],
+        session: AsyncConnection | None = None,
         **kwargs: Any,
     ) -> Any:
         return await self.visit(query_expression, table_name, session=session, **kwargs)
 
     async def get_query_repr(
-        self, query_expression: RootNode, table_name: str | Type[Any], **kwargs: Any
+        self, query_expression: RootNode, table_name: str | Type[Model], **kwargs: Any
     ) -> str:
         return await self.query(query_expression, table_name, **kwargs)
 
     @singledispatchmethod
     async def query(
-        self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: OpNode,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
         raise NotImplementedError
 
     @query.register
     async def _(
-        self, node: Find, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Find,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
-        stmt: Select = select(schema)
+        sql = SQLSelectQuery()
+        tree_walk_dfs(schema, sql, {})
+        stmt = sql.render()
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
-            stmt = _apply(stmt, state)
+            filters = state.get("where", None)
+            if filters is not None:
+                stmt = stmt.where(filters)
 
         return str(stmt)
 
     @query.register
     async def _(
-        self, node: Get, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Get,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
-        stmt: Select = select(schema)
+        sql = SQLSelectQuery()
+        tree_walk_dfs(schema, sql, {})
+        stmt = sql.render()
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
-            stmt = _apply(stmt, state)
+            filters = state.get("where", None)
+            if filters is not None:
+                stmt = stmt.where(filters)
 
         return str(stmt)
 
     @query.register
     async def _(
-        self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Delete,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> str:
-        stmt: DeleteStatement = delete(schema)
-        stmt = stmt.execution_options(synchronize_session=False)
+        table = get_model_sql_table(schema)
+        stmt: DeleteStatement = delete(table)
 
         if node.filters is not None:
-            state = await self.visit(node, schema, **kwargs)
-            stmt = _apply(stmt, state)
+            state = await self.visit(node.filters, schema, **kwargs)
+            filters = state.get("where", None)
+            if filters is not None:
+                stmt = stmt.where(filters)  # type: ignore
 
         return str(stmt)
 
     @query.register
     async def _(
-        self, node: Update, schema: Type[Any], *, entity: Model, session: Any = None
+        self,
+        node: Update,
+        schema: Type[Model],
+        *,
+        entity: Model,
+        session: AsyncConnection | None = None,
     ) -> str:
+        table = get_model_sql_table(schema)
         pks = entity.ids()
-        pks_names = entity.id_name()
         if not pks:
             raise ExecutionError("Entity must have an id field")
+        data = serialize_for_update(entity)
 
-        stmt: UpdateStatement = update(schema)
-        stmt = (
-            stmt.filter_by(**pks)
-            .values(**entity.to_dict(exclude=[*pks_names]))
-            .execution_options(synchronize_session=False)
-        )
+        stmt: UpdateStatement = update(table)
+        stmt = stmt.filter_by(**pks).values(data)
         return str(stmt)
 
     @query.register
     async def _(
-        self, node: Create, schema: Type[Any], *, entity: Model, session: Any = None
+        self,
+        node: Create,
+        schema: Type[Model],
+        *,
+        entity: Model,
+        session: AsyncConnection | None = None,
     ) -> str:
-        stmt: InsertStatement = insert(schema)
-        stmt = stmt.values(entity.to_dict())  # type: ignore
+        table = get_model_sql_table(schema)
+        stmt: InsertStatement = insert(table)
+        data = compute_model_insert_values(entity)
+        stmt = stmt.values(**data)  # type: ignore
 
         return str(stmt)
 
     @singledispatchmethod
-    async def visit(self, node: OpNode, schema: Type[Any], session: Any = None, **kwargs: Any):  # type: ignore
+    async def visit(self, node: OpNode, schema: Type[Model], session: AsyncConnection | None = None, **kwargs: Any):  # type: ignore
         raise NotImplementedError
 
     @visit.register
     async def _(
-        self, node: Find, schema: Type[T], session: Any = None, **kwargs: Any
-    ) -> List[T]:
-        stmt: Select = select(schema)
+        self, node: Find, schema: Type[Model], session: Any = None, **kwargs: Any
+    ) -> List[Model]:
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
-            stmt = _apply(stmt, state)
+            filters = state.get("where", None)
+        else:
+            filters = None
 
         if session is not None:
-            result: Result = await session.execute(stmt)
-            return result.scalars().unique().all()
+            return await load_model(schema, session, filters)
         else:
-            async with self._sessionmaker() as session:
-                _session: AsyncSession = session
-                async with _session.begin():
-                    fresh_result: Result = await _session.execute(stmt)
-                    return fresh_result.scalars().unique().all()
+            async with self._engine.connect() as conn:
+                return await load_model(schema, conn, filters)
 
     @visit.register
     async def _(
-        self, node: Get, schema: Type[T], session: Any = None, **kwargs: Any
-    ) -> T | None:
-        stmt: Select = select(schema)
+        self,
+        node: Get,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
+    ) -> Model | None:
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
-            stmt = _apply(stmt, state)
+            filters = state.get("where", None)
+        else:
+            filters = None
 
         if session is not None:
-            result: Result = await session.execute(stmt)
-            return result.unique().scalar_one_or_none()
+            results = await load_model(schema, session, filters)
+            return results[0] if results else None
         else:
-            async with self._sessionmaker() as session:
-                _session: AsyncSession = session
-                async with _session.begin():
-                    fresh_result: Result = await _session.execute(stmt)
-                    return fresh_result.unique().scalar_one_or_none()
+            async with self._engine.connect() as conn:
+                results = await load_model(schema, conn, filters)
+                return results[0] if results else None
 
     @visit.register
     async def _(
-        self, node: Update, schema: Type[Any], *, entity: Model, session: Any = None
+        self,
+        node: Update,
+        schema: Type[Model],
+        *,
+        entity: Model,
+        session: AsyncConnection | None = None,
     ) -> None:
+        table = get_model_sql_table(schema)
         pks = entity.ids()
-        pks_names = entity.id_name()
         if not pks:
             raise ExecutionError("Entity must have id field")
 
-        stmt: UpdateStatement = update(schema)
-        stmt = (
-            stmt.filter_by(**pks)
-            .values(**entity.to_dict(exclude=[*pks_names], skip_defaults=True))
-            .execution_options(synchronize_session=False)
-        )
+        data = serialize_for_update(entity)
+
+        stmt: UpdateStatement = update(table)
+        stmt = stmt.filter_by(**pks).values(data)
 
         if session is not None:
             await session.execute(stmt)
         else:
-            async with self._sessionmaker() as session:
-                _session: AsyncSession = session
-                async with _session.begin():
-                    await _session.execute(stmt)
+            async with self._engine.connect() as conn:
+                await conn.execute(stmt)
+                await conn.commit()
 
     @visit.register
     async def _(
         self,
         node: Create,
-        schema: Type[Any],
+        schema: Type[Model],
         *,
         entity: Model,
-        session: AsyncSession | None = None,
+        session: AsyncConnection | None = None,
     ):
-        if session is not None:
-            session.add(entity)
-        else:
-            async with self._sessionmaker() as __session:
-                _session: AsyncSession = __session
-                async with _session.begin():
-                    _session.add(entity)
+        for t, data in compute_model_related_data_for_insert(entity):
+            stmt: InsertStatement = insert(t).values(**data)  # type: ignore
 
+            if session is not None:
+                await session.execute(stmt)
+            else:
+                async with self._engine.connect() as conn:
+                    await conn.execute(stmt)
+                    await conn.commit()
+
+        mark_obj_used_by_sql(entity)
         return entity
 
     @visit.register
     async def _(
-        self, node: Delete, schema: Type[Any], session: Any = None, **kwargs: Any
+        self,
+        node: Delete,
+        schema: Type[Model],
+        session: AsyncConnection | None = None,
+        **kwargs: Any,
     ) -> None:
-        stmt: DeleteStatement = delete(schema)
-        stmt = stmt.execution_options(synchronize_session=False)
+        table = get_model_sql_table(schema)
+        stmt: DeleteStatement = delete(table)
 
         if node.filters is not None:
             state = await self.visit(node.filters, schema, **kwargs)
-            stmt = _apply(stmt, state)
+            filters = state.get("where", None)
+            if filters is not None:
+                stmt = stmt.where(filters)  # type: ignore
 
         if session is not None:
             await session.execute(stmt)
         else:
-            async with self._sessionmaker() as session:
-                _session: AsyncSession = session
-                async with _session.begin():
-                    await _session.execute(stmt)
+            async with self._engine.connect() as conn:
+                await conn.execute(stmt)
+                await conn.commit()
 
     @visit.register
-    async def _(self, node: AndNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+    async def _(
+        self, node: AndNode, schema: Type[Model], **kwargs: Any
+    ) -> Dict[str, Any]:
         state = {}
         left = await self.visit(node.left, schema, **kwargs)
 
         if node.right is not None:
             right = await self.visit(node.right, schema, **kwargs)
             state["where"] = left["where"] & right["where"]
-            state["joins"] = left["joins"] + right["joins"]
             return state
         else:
             return left
 
     @visit.register
-    async def _(self, node: OrNode, schema: Type[Any], **kwargs: Any) -> Dict[str, Any]:
+    async def _(self, node: OrNode, schema: Type[Model], **kwargs: Any) -> Dict[str, Any]:
         state = {}
         left = await self.visit(node.left, schema, **kwargs)
 
         if node.right is not None:
             right = await self.visit(node.right, schema, **kwargs)
             state["where"] = left["where"] | right["where"]
-            state["joins"] = left["joins"] + right["joins"]
             return state
         else:
             return left
 
     @visit.register
     async def _(
-        self, node: EqualToNode, schema: Type[Any], **kwargs: Any
+        self, node: EqualToNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
         return _operate(node, schema, eq, **kwargs)
 
     @visit.register
     async def _(
-        self, node: NotEqualNode, schema: Type[Any], **kwargs: Any
+        self, node: NotEqualNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
         return _operate(node, schema, ne, **kwargs)
 
     @visit.register
     async def _(
-        self, node: GreaterThanNode, schema: Type[Any], **kwargs: Any
+        self, node: GreaterThanNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
         return _operate(node, schema, gt, **kwargs)
 
     @visit.register
     async def _(
-        self, node: LowerThanNode, schema: Type[Any], **kwargs: Any
+        self, node: LowerThanNode, schema: Type[Model], **kwargs: Any
     ) -> Dict[str, Any]:
         return _operate(node, schema, lt, **kwargs)
 

@@ -19,8 +19,7 @@ class User(Model):
 
 
 class UserRepository(Repository[User, int], entity=User, dry=True):
-    def __init__(self) -> None:
-        pass
+    ...
 
 
 @pytest.mark.asyncio
@@ -59,7 +58,7 @@ async def test_repository_can_find_by_id() -> None:
     repo = UserRepository()
     str_query = await repo.get_by_id(id=10)
 
-    assert str_query == "db.users.find_one({'$and': [{'id': {'$eq': 10}}]})"
+    assert str_query == "db.users.find_one({'id': {'$eq': 10}})"
 
 
 @pytest.mark.asyncio
@@ -67,7 +66,7 @@ async def test_repository_can_delete() -> None:
     repo = UserRepository()
     str_query = await repo.delete_by_id(id=10)
 
-    assert str_query == "db.users.delete_many({'$and': [{'id': {'$eq': 10}}]})"
+    assert str_query == "db.users.delete_many({'id': {'$eq': 10}})"
 
 
 @pytest.mark.asyncio

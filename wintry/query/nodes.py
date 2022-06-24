@@ -1,4 +1,4 @@
-from dataclasses import Field
+from dataclasses import Field, dataclass
 from typing import Any, Optional
 
 
@@ -6,36 +6,42 @@ class OpNode:
     pass
 
 
+@dataclass
 class RootNode(OpNode):
-    def __init__(self, filters: Optional["BinaryNode"] = None) -> None:
-        self.filters = filters
+    filters: "BinaryNode | FilterNode | None" = None
 
     def __eq__(self, __o: "RootNode") -> bool:
         return __o.filters == self.filters
 
 
+@dataclass
 class FilterNode(OpNode):
-    def __init__(self, field: str, value: Any = None) -> None:
-        self.field = field
-        self.value = value
+    field: str
+    value: Any | None = None
 
     def __eq__(self, __o: "FilterNode") -> bool:
         return __o.field == self.field and self.value == __o.value
 
-    def __and__(self, node: Optional["BinaryNode"]) -> "AndNode":
+    def __and__(self, node: "FilterNode") -> "AndNode":
         return AndNode(self, node)
 
-    def __or__(self, node: Optional["BinaryNode"]) -> "OrNode":
+    def __or__(self, node: "FilterNode") -> "OrNode":
         return OrNode(self, node)
 
 
+@dataclass
 class BinaryNode(OpNode):
-    def __init__(self, left: FilterNode, right: Optional["BinaryNode"]) -> None:
-        self.left = left
-        self.right = right
+    left: "BinaryNode | FilterNode"
+    right: "FilterNode | None" = None
 
     def __eq__(self, __o: "BinaryNode") -> bool:
         return self.left == __o.left and self.right == __o.right
+
+    def __and__(self, o: FilterNode):
+        return AndNode(self, o)
+
+    def __or__(self, __t: FilterNode):
+        return OrNode(self, __t)
 
 
 class Create(RootNode):
@@ -53,7 +59,7 @@ class Update(RootNode):
 
 class Find(RootNode):
     def __init__(
-        self, filters: Optional["BinaryNode"] = None, projection: list[str] = []
+        self, filters: BinaryNode | FilterNode | None = None, projection: list[str] = []
     ) -> None:
         super().__init__(filters)
         self.projection = projection
@@ -61,7 +67,7 @@ class Find(RootNode):
 
 class Get(RootNode):
     def __init__(
-        self, filters: Optional["BinaryNode"] = None, projection: list[Field] = []
+        self, filters: BinaryNode | FilterNode | None = None, projection: list[Field] = []
     ) -> None:
         super().__init__(filters)
         self.projection = projection

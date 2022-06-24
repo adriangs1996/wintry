@@ -343,6 +343,21 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "mashumaro"
+version = "3.0.3"
+description = "Fast serialization framework on top of dataclasses"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+typing-extensions = "*"
+
+[package.extras]
+msgpack = ["msgpack (>=0.5.6)"]
+yaml = ["pyyaml (>=3.13)"]
+
+[[package]]
 name = "mongomock"
 version = "4.0.0"
 description = "Fake pymongo stub for testing simple MongoDB-dependent code"
@@ -804,7 +819,7 @@ redis = ["aioredis"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "1602c6cc5d6a18a1adc06b605c48a526982ec9d939f3657639868bb5f27e0377"
+content-hash = "5c78152db69a696f0f327c471f970e4f96df94f966deb53f7f828153ed0418d2"
 
 [metadata.files]
 aio-pika = [
@@ -1089,6 +1104,10 @@ markupsafe = [
     {file = "MarkupSafe-2.1.1-cp39-cp39-win32.whl", hash = "sha256:d4306c36ca495956b6d568d276ac11fdd9c30a36f1b6eb928070dc5360b22e1c"},
     {file = "MarkupSafe-2.1.1-cp39-cp39-win_amd64.whl", hash = "sha256:46d00d6cfecdde84d40e572d63735ef81423ad31184100411e6e3388d405e247"},
     {file = "MarkupSafe-2.1.1.tar.gz", hash = "sha256:7f91197cc9e48f989d12e4e6fbc46495c446636dfc81b9ccf50bb0ec74b91d4b"},
+]
+mashumaro = [
+    {file = "mashumaro-3.0.3-py3-none-any.whl", hash = "sha256:f58034e9bddcd8a836efe18a2842c3bdcbdde43164a4e91f6db97bd04e86ed49"},
+    {file = "mashumaro-3.0.3.tar.gz", hash = "sha256:663c6ba9360890e5b28df214008ae5be8330d239dca0f393862695e76bf11895"},
 ]
 mongomock = [
     {file = "mongomock-4.0.0-py2.py3-none-any.whl", hash = "sha256:cac9c68dd7715b4ab6ae510c20b4676e5ce751f0a5434d5ad8236d974e2a2b69"},

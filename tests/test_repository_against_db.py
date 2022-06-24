@@ -1,25 +1,24 @@
 from typing import Any, AsyncGenerator, List, Optional
 from wintry import init_backends, get_connection
-from wintry.models import Model
+from wintry.models import Model, ModelRegistry
 from wintry.repository import managed
 from wintry.repository import Repository, RepositoryRegistry
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from dataclasses import field
-from dataclass_wizard import fromdict
 from bson import ObjectId
 
 from wintry.repository.base import query
 
 
-class HardFields(Model):
+class HardFields(Model, table="hf"):
     id: int
     this_is_a_complex_field: str
     easy_field: int
 
 
-class HardcoreFields(Model):
+class HardcoreFields(Model, table="hrd"):
     id: int
     hard_fields: HardFields
 
@@ -41,21 +40,22 @@ class City(Model):
     id: str = field(default_factory=lambda: str(ObjectId()))
 
 
-class Hero(Model, unsafe_hash=True):
+class Hero(Model, unsafe_hash=True, table="heroes"):
     id: int
     name: str
     cities: list[City] = field(default_factory=list)
 
 
-@pytest.fixture(scope="module", autouse=True)
-def db() -> AsyncIOMotorDatabase:
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def db() -> AsyncIOMotorDatabase:
+    ModelRegistry.configure()
     RepositoryRegistry.configure_for_nosql()
     init_backends()
-    return get_connection()  # type: ignore
+    return await get_connection()  # type: ignore
 
 
 class HardFieldsRepository(
-    Repository[HardFields, int], entity=HardFields, table_name="hf"
+    Repository[HardFields, int], entity=HardFields
 ):
     @query
     async def get_by_easyfield(self, *, easy_field: int) -> HardFields:
@@ -69,7 +69,7 @@ class HardFieldsRepository(
 
 
 class HardcoreRepository(
-    Repository[HardcoreFields, int], entity=HardcoreFields, table_name="hrd"
+    Repository[HardcoreFields, int], entity=HardcoreFields
 ):
     @query
     async def get_by_hardfields__easyfield(
@@ -81,7 +81,7 @@ class HardcoreRepository(
 class UserRepository(Repository[User, int], entity=User):
     @managed
     async def get_user_by_name(self, name: str, session: Any = None) -> User | None:
-        db = self.connection()
+        db = await self.connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
             return User.build(row)
@@ -101,7 +101,7 @@ class UserRepository(Repository[User, int], entity=User):
         ...
 
 
-class HeroRepository(Repository[Hero, int], entity=Hero, table_name="heroes"):
+class HeroRepository(Repository[Hero, int], entity=Hero):
     pass
 
 

@@ -21,7 +21,7 @@ def to_package_format(path: Path) -> str:
     return module
 
 
-def discover(path: Path, settings: WinterSettings, logger: logging.Logger):
+def discover(path: Path, settings: WinterSettings):
     dirs: list[Path] = [path]
     while dirs:
         module = dirs.pop(0)
@@ -33,7 +33,6 @@ def discover(path: Path, settings: WinterSettings, logger: logging.Logger):
                     try:
                         mod = to_package_format(sub_module)
                         if mod not in settings.app_path:
-                            logger.info(f"Loading module {mod}")
                             importlib.import_module(mod)
                     except ModuleNotFoundError as e:
                         raise LoaderError(str(e))
@@ -52,7 +51,6 @@ def autodiscover_modules(settings: WinterSettings = WinterSettings()):
         None
 
     """
-    logger = logging.getLogger("logger")
 
     for module in settings.modules:
         app_root = Path(module)
@@ -61,5 +59,3 @@ def autodiscover_modules(settings: WinterSettings = WinterSettings()):
             raise LoaderError(
                 f"{app_root.resolve()} is not a dir. Autodiscovery must be called on a dir."
             )
-
-        discover(app_root, settings, logger)

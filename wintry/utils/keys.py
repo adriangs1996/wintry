@@ -26,6 +26,7 @@ __winter_microservice_event__ = "__winter_microservice_event__"
 __winter_model_primary_keys__ = "__winter_model_primary_keys__"
 __winter_model_instance_state__ = "__model_instance_state__"
 __winter_model_fields_set__ = "__winter_model_fields_set__"
+__wintry_model_instance_phantom_fk__ = "__wintry_model_instance_phantom_fk__"
 
 NO_SQL = "NO_SQL"
 SQL = "SQL"

@@ -1,41 +1,48 @@
 from datetime import date, datetime
+from functools import cache
+from mashumaro import DataClassDictMixin
+from mashumaro.dialect import Dialect
+from mashumaro import config
 from types import GenericAlias, NoneType
 from typing import (
     Any,
+    ClassVar,
+    Annotated,
     Callable,
     ClassVar,
     ForwardRef,
     Generator,
     Iterable,
     Literal,
+    Mapping,
     Sequence,
     Tuple,
     TypeVar,
     Union,
+    Optional,
+    List,
+    Dict,
+    Set,
+    ItemsView,
+    Iterator,
     cast,
     get_args,
     overload,
 )
 from typing_extensions import Self
 from uuid import uuid4
-from dataclass_wizard import (
-    fromdict,
-    fromlist,
-    JSONSerializable,
-    asdict,
-    DumpMeta,
-    LoadMeta,
-)
 from dataclass_wizard.enums import LetterCase
 from dataclasses import (
     MISSING,
     Field,
+    asdict,
     dataclass,
     field,
     fields,
     is_dataclass,
 )
-from wintry.generators import AutoIncrement
+from wintry.generators import AutoIncrement, Increment
+from wintry.query.nodes import EqualToNode, GreaterThanNode, LowerThanNode
 from wintry.utils.decorators import alias
 from wintry.utils.keys import (
     __winter_in_session_flag__,
@@ -68,6 +75,9 @@ from sqlalchemy.orm import relationship, backref
 from enum import Enum as std_enum
 from wintry.orm.mapping import metadata, mapper_registry
 from pydantic import BaseModel
+
+from wintry.utils.type_helpers import resolve_generic_type_or_die
+from wintry.generators import code_gen
 
 _mapper: dict[type, type] = {
     int: Integer,
@@ -138,11 +148,32 @@ class ModelRegistry:
         model_name = model_declaration.__name__
         cls.models[model_name] = model_declaration
 
+    @classmethod
+    def configure(cls):
+        for model in cls.get_all_models():
+            # Configure generate this model from_orm method
+            try:
+                code_gen.model_from_orm(model, globals() | ModelRegistry.models.copy())
+                code_gen.compile(globals() | ModelRegistry.models.copy())
+            except NameError as e:
+                print(e)
+
+                @classmethod
+                def from_orm(cls, obj: Any):
+                    code_gen.model_from_orm(
+                        cls, globals() | ModelRegistry.models.copy(), locals()
+                    )
+                    code_gen.compile(globals() | ModelRegistry.models.copy())
+
+                setattr(cls, "from_orm", from_orm)
+
 
 def get_type_by_str(type_str: str):
-    return ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
+    new_ = ModelRegistry.get_model_by_str(type_str) or _builtin_str_mapper.get(
         type_str, None
     )
+    if new_ is None:
+        return eval(type_str, globals() | ModelRegistry.models.copy(), locals())
 
 
 def get_primary_key(_type: type) -> Field:
@@ -153,48 +184,6 @@ def get_primary_key(_type: type) -> Field:
     raise ModelError(
         f"Model {_type} has not an id field or a field with metadata marked as an id"
     )
-
-
-def discard_nones(iterable: Iterable[type]) -> list[type]:
-    return list(filter(lambda x: x != NoneType, iterable))
-
-
-def resolve_generic_type_or_die(_type: type):
-    """
-    Get a simple or generic type and try to resolve it
-    to the canonical form.
-
-    Example:
-    =======
-
-    >>> resolve_generic_type_or_die(list[list[int | None]])
-    >>> int
-
-    Generic types can be nested, but this function aimed to resolve a table
-    reference, so it must be constrained to at most 1 Concrete type or None.
-    Like so, the following is an error:
-
-    >>> resolve_generic_type_or_die(list[int | str])
-    """
-
-    # Base case, get_args(int) = ()
-    concrete_types = get_args(_type)
-
-    if not concrete_types:
-        return _type
-
-    # Ok, we got nested generics, maybe A | None
-    # clean it up
-    cleaned_types = discard_nones(concrete_types)
-
-    # If we get a list with more than one element, then this was not
-    # a single Concrete type  generic, so panic
-    if len(cleaned_types) != 1:
-        raise ModelError(
-            f"Model cannot have a field configured for either {'or '.join(str(t) for t in cleaned_types)}"
-        )
-
-    return resolve_generic_type_or_die(cleaned_types[0])
 
 
 def is_iterable(model: type):
@@ -259,6 +248,7 @@ class TableMetadata:
     foreing_keys: list[ForeignKeyInfo] = field(default_factory=list)
     relations: list[Relation] = field(default_factory=list)
     columns: list[Field] = field(default_factory=list)
+    many_to_one_relations: list[Relation] = field(default_factory=list)
 
     def many_to_one_relation(self, field: Field) -> Relation:
         # Here we have a many_to relation, the other endpoint must define either
@@ -278,27 +268,27 @@ class TableMetadata:
         foreign_key = ForeignKeyInfo(self.model, f"{self.model.__name__.lower()}_id")
 
         # Resolve the other endpoint table
-        target_virtual_table = VirtualDatabaseSchema[target_model]
+        target_virtual_table = VirtualDatabaseSchema[target_model]  # type: ignore
         if target_virtual_table is None:
             # Create the table but do not autobegin it
             target_virtual_table = TableMetadata(
                 metadata=self.metadata,
                 table_name=getattr(target_model, __winter_model_collection_name__),
-                model=target_model,
+                model=target_model,  # type: ignore
             )
         # Add the foreign key
         if foreign_key not in target_virtual_table.foreing_keys:
             target_virtual_table.foreing_keys.append(foreign_key)
 
         # Return the many to one relation
-        return Relation(target_model, field.name)
+        return Relation(target_model, field.name)  # type: ignore
 
     def dispatch_column_type_for_field(self, field: Field) -> None:
         if (ref := field.metadata.get("ref", None)) is not None:
             # This field is a ForeignKey to another model
             if isinstance(ref, str):
                 ref = get_type_by_str(ref)
-            fk = ForeignKeyInfo(ref, field.name)
+            fk = ForeignKeyInfo(ref, field.name)  # type: ignore
             if fk not in self.foreing_keys:
                 self.foreing_keys.append(fk)
             return
@@ -312,10 +302,11 @@ class TableMetadata:
             return
 
         if isinstance(field.type, GenericAlias) and field.type.__origin__ in sequences:
+            self.many_to_one_relations.append(self.many_to_one_relation(field))
             self.relations.append(self.many_to_one_relation(field))
             return
 
-        _type = resolve_generic_type_or_die(field.type)
+        _type = resolve_generic_type_or_die(field.type)  # type: ignore
 
         if isinstance(_type, str):
             _type = get_type_by_str(_type)
@@ -329,8 +320,8 @@ class TableMetadata:
 
         # At this point, this is a one_to relation, so we just add a foreing key and a
         # relation
-        foregin_key = ForeignKeyInfo(_type, f"{field.name}_id")
-        relationship = Relation(with_model=_type, field_name=field.name)
+        foregin_key = ForeignKeyInfo(_type, field.name)  # type: ignore
+        relationship = Relation(with_model=_type, field_name=field.name)  # type: ignore
 
         if foregin_key not in self.foreing_keys:
             self.foreing_keys.append(foregin_key)
@@ -356,101 +347,56 @@ class VirtualDatabaseMeta(type):
 class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
     tables: dict[type["Model"], TableMetadata] = {}
     sql_generated_tables: dict[type["Model"], Table] = {}
-    
+
     @classmethod
     def get_table(cls, model: type["Model"]):
         return cls.sql_generated_tables.get(model)
 
     @staticmethod
     def create_table_for_model(model: type["Model"], table_metadata: TableMetadata):
-        columns: list[Column] = []
+        if model not in VirtualDatabaseSchema.sql_generated_tables:
+            columns: list[Column] = []
 
-        for c in table_metadata.columns:
-            column_type = _mapper[c.type]
-            if c.name.lower() == "id" or c.metadata.get("id", False):
-                columns.append(Column(c.name, column_type, primary_key=True))
-            else:
-                columns.append(Column(c.name, column_type))
-
-        try:
-            get_primary_key(model)
-        except ModelError:
-            columns.append(Column("id", Integer, primary_key=True, autoincrement=True))
-
-        for fk in table_metadata.foreing_keys:
-            try:
-                foreign_key = get_primary_key(fk.target)
-                foreign_key_type = _mapper.get(foreign_key.type)
-                columns.append(
-                    Column(
-                        fk.key_name,
-                        foreign_key_type,
-                        ForeignKey(
-                            f"{getattr(fk.target, __winter_model_collection_name__)}.{foreign_key.name}"
-                        ),
-                        nullable=True,
-                    )
-                )
-            except ModelError:
-                columns.append(
-                    Column(
-                        fk.key_name,
-                        Integer,
-                        ForeignKey(
-                            f"{getattr(fk.target, __winter_model_collection_name__)}.id"
-                        ),
-                        nullable=True,
-                    )
-                )
-
-        properties = {}
-
-        for rel in table_metadata.relations:
-            other_endpoint = None
-            endpoint_metadata = VirtualDatabaseSchema[rel.with_model]
-            assert endpoint_metadata is not None
-
-            for fk_rel in endpoint_metadata.relations:
-                if fk_rel.with_model == model:
-                    other_endpoint = fk_rel.field_name
-
-            if other_endpoint is None:
-                properties[rel.field_name] = relationship(rel.with_model, lazy="joined")
-            else:
-                if is_one_to_one(table_metadata.model, endpoint_metadata.model):
-                    # If one-to-one, we already supplied the foreign key
-                    properties[rel.field_name] = relationship(
-                        rel.with_model,
-                        backref=backref(other_endpoint, uselist=False, lazy="joined"),
-                        lazy="joined",
-                    )
-
-                    # one-to-one are special because the other endpoint will have a foreign
-                    # key with this model type, and also a relation, but we already
-                    # configured that with the backref. So now we need to remove that FK and
-                    # that relation from the other_endpoint
-                    endpoint_metadata.relations = list(
-                        filter(
-                            lambda r: r.with_model != model
-                            and r.with_model != (model | None),
-                            endpoint_metadata.relations,
-                        )
-                    )
-
-                    endpoint_metadata.foreing_keys = list(
-                        filter(
-                            lambda fk: fk.target != model and fk.target != (model | None),
-                            endpoint_metadata.foreing_keys,
-                        )
-                    )
+            for c in table_metadata.columns:
+                column_type = _mapper[c.type]
+                if c.name.lower() == "id" or c.metadata.get("id", False):
+                    columns.append(Column(c.name, column_type, primary_key=True))
                 else:
-                    properties[rel.field_name] = relationship(
-                        rel.with_model, lazy="joined", back_populates=other_endpoint
+                    columns.append(Column(c.name, column_type))
+
+            try:
+                get_primary_key(model)
+            except ModelError:
+                columns.append(Column("id", Integer, primary_key=True, autoincrement=True))
+
+            for fk in table_metadata.foreing_keys:
+                try:
+                    foreign_key = get_primary_key(fk.target)
+                    foreign_key_type = _mapper.get(foreign_key.type)
+                    columns.append(
+                        Column(
+                            fk.key_name,
+                            foreign_key_type,
+                            ForeignKey(
+                                f"{getattr(fk.target, __winter_model_collection_name__)}.{foreign_key.name}"
+                            ),
+                            nullable=True,
+                        )
+                    )
+                except ModelError:
+                    columns.append(
+                        Column(
+                            fk.key_name,
+                            Integer,
+                            ForeignKey(
+                                f"{getattr(fk.target, __winter_model_collection_name__)}.id"
+                            ),
+                            nullable=True,
+                        )
                     )
 
-        table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
-        VirtualDatabaseSchema.sql_generated_tables[model] = table
-        mapper_registry.map_imperatively(model, table, properties=properties)
+            table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
+            VirtualDatabaseSchema.sql_generated_tables[model] = table
 
     @classmethod
     def use_sqlalchemy(cls, metadata: MetaData = metadata):
@@ -467,19 +413,22 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
 
         """
         for model in ModelRegistry.get_all_models():
-            table = cls[model]
-            if table is None:
-                table = TableMetadata(
-                    metadata=metadata,
-                    table_name=getattr(model, __winter_model_collection_name__),
-                    model=model,
-                )
-                cls[model] = table
+            if getattr(model, "__class_is_mapped__"):
+                table = cls[model]
+                if table is None:
+                    table = TableMetadata(
+                        metadata=metadata,
+                        table_name=getattr(model, __winter_model_collection_name__),
+                        model=model,
+                    )
+                    cls[model] = table
 
-            table.autobegin()
+                table.autobegin()
 
         for model, table_metadata in cls.tables.items():
-            if not inspect(model, raiseerr=False):
+            if getattr(model, "__class_is_mapped__") and not inspect(
+                model, raiseerr=False
+            ):
                 # only create tables for models that are not already
                 # mapped. This is needed to ensure compatibility with
                 # the for_model function from orm module
@@ -512,6 +461,10 @@ def to_dict(cls: type, obj: Any):
     return d
 
 
+def fromobj(cls: type["Model"], obj: Any):
+    ...
+
+
 def inspect_model(cls: type["Model"]):
     model_fields = fields(cls)
     primary_keys: dict[str, Field] = {}
@@ -533,13 +486,16 @@ def inspect_model(cls: type["Model"]):
 
 def Id(
     *,
-    default_factory: Callable[[], Any] = AutoIncrement,
+    default_factory: Callable[[], T] | None = None,
     repr: bool = True,
     compare: bool = True,
     hash: bool = True,
 ):
+    if default_factory is None:
+        default_factory = Increment()  # type: ignore
+
     return field(
-        default_factory=default_factory,
+        default_factory=default_factory,  # type: ignore
         repr=repr,
         compare=compare,
         hash=hash,
@@ -566,8 +522,44 @@ def RequiredId(repr: bool = True, compare: bool = True, hash: bool = True):
     )
 
 
+def is_obj_marked(obj: Any):
+    return isinstance(obj, Model) and getattr(obj, "__wintry_obj_is_used_by_sql__", False)
+
+
+@cache
+def get_model_fields_names(model: type["Model"]) -> set[str]:
+    return set(f.name for f in fields(model))
+
+
+class FieldClassProxy(str):
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __getattr__(self, item):
+        return FieldClassProxy(f"{self}.{item}")
+    
+    def __getitem__(self, item):
+        return FieldClassProxy(f"{self}.{item}")
+    
+    def __gt__(self, other: Any):
+        return GreaterThanNode(self, other)
+
+    def __lt__(self, other: Any):
+        return LowerThanNode(self, other)
+
+    def __eq__(self, __o: object):
+        return EqualToNode(self, __o) 
+
+
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(field, Field))
-class Model(JSONSerializable):
+class Model(DataClassDictMixin):
+    class Config(config.BaseConfig):
+        code_generation_options = [
+            config.ADD_DIALECT_SUPPORT,
+            config.TO_DICT_ADD_BY_ALIAS_FLAG,
+            config.TO_DICT_ADD_OMIT_NONE_FLAG,
+        ]
+
     def __setattr__(self, __name: str, __value: Any) -> None:
         # Check for presence of some state flag
         # same as self.__winter_in_session_flag__
@@ -589,12 +581,22 @@ class Model(JSONSerializable):
                 tracker.add(target)
                 setattr(target, __winter_modified_entity_state__, True)
 
+            # This distinction is needed for SQL, so new entities assigned
+            # to properties got tracked. IF they are new, then no big deal,
+            # add it to the new group in tracker, otherwise, just ignore it
+            if is_obj_marked(self):
+                if isinstance(__value, Model):
+                    if __value not in tracker:
+                        setattr(__value, __winter_track_target__, __value)
+                        setattr(__value, __winter_tracker__, tracker)
+                        tracker.new(__value)
+
         return super().__setattr__(__name, __value)  # type: ignore
 
     def __init_subclass__(
         cls,
         *,
-        name: str | None = None,
+        table: str | None = None,
         init: bool = True,
         repr: bool = True,
         eq: bool = True,
@@ -615,33 +617,49 @@ class Model(JSONSerializable):
             slots=False,
         )(cls)
 
-        table_name = name or cls.__name__.lower() + "s"
+        table_name = table or cls.__name__.lower() + "s"
         setattr(cls, __winter_model_collection_name__, table_name)
         setattr(cls, __winter_model_fields_set__, tuple(f.name for f in fields(cls)))
 
         inspect_model(cls)
 
-        DumpMeta(key_transform=LetterCase.SNAKE, skip_defaults=False).bind_to(cls)
-        LoadMeta(key_transform=LetterCase.SNAKE).bind_to(cls)
-
-        # allow JsonSerializable to init this cls
         super().__init_subclass__()
 
         # Register model if it is mapped
-        if mapped:
-            ModelRegistry.register(cls)  # type: ignore
+        setattr(cls, "__class_is_mapped__", mapped)
 
-    def id_name(self) -> tuple[str]:
-        pks: dict[str, Field] = getattr(self, __winter_model_primary_keys__)
+        for field in fields(cls):
+            setattr(cls, field.name, FieldClassProxy(field.name))
+
+        ModelRegistry.register(cls)  # type: ignore
+
+    @classmethod
+    def id_name(cls) -> tuple[str]:
+        pks: dict[str, Field] = getattr(cls, __winter_model_primary_keys__)
         return tuple(pks.keys())
 
     def ids(self):
         pks: dict[str, Field] = getattr(self, __winter_model_primary_keys__)
         return {name: getattr(self, name) for name in pks}
 
-    @alias(asdict)
-    def to_dict(self, *, exclude: list[str] = list(), skip_defaults: bool = False):
+    @overload
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> Self:  # type: ignore
         ...
+
+    @overload
+    def to_dict(  # type: ignore
+        self,
+        *,
+        omit_none: bool = False,
+        by_alias: bool = False,
+        dialect: Dialect | None = None,
+    ) -> dict[str, Any]:
+        ...
+
+    @classmethod
+    def from_list(cls, l: Sequence[Mapping[str, Any]]) -> list[Self]:
+        return list(map(cls.from_dict, l))
 
     @overload
     @classmethod
@@ -653,26 +671,37 @@ class Model(JSONSerializable):
     def build(cls, _dict: list[dict[str, Any]]) -> list[Self]:
         ...
 
+    @overload
     @classmethod
-    def build(cls, _dict: dict[str, Any] | list[dict[str, Any]]) -> Self | list[Self]:
+    def build(cls, _dict: Any) -> Self:
+        ...
+
+    @overload
+    @classmethod
+    def build(cls, _dict: list[Any]) -> list[Self]:
+        ...
+
+    @classmethod
+    def build(
+        cls, _dict: dict[str, Any] | list[dict[str, Any]] | Any | list[Any]
+    ) -> Self | list[Self]:
         if isinstance(_dict, list):
-            return cls.from_list(_dict)
-        return cls.from_dict(_dict)
+            return [cls.build(d) for d in _dict]
+        if isinstance(_dict, dict):
+            return cls.from_dict(_dict)
+
+        return cls.from_orm(_dict)
 
     @overload
     @classmethod
-    def from_obj(cls, obj: list[Any]) -> list[Self]:
+    def from_orm(cls, obj: list[Any]) -> list[Self]:
         ...
 
     @overload
     @classmethod
-    def from_obj(cls, obj: Any) -> Self:
+    def from_orm(cls, obj: Any) -> Self:
         ...
 
     @classmethod
-    def from_obj(cls, obj: list[Any] | Any) -> list[Self] | Self:
-        if isinstance(obj, list):
-            dicts = [to_dict(cls, o) for o in obj]
-            return fromlist(cls, dicts)
-
-        return fromdict(cls, to_dict(cls, obj))
+    def from_orm(cls, obj: list[Any] | Any) -> list[Self] | Self:
+        ...
