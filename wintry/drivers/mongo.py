@@ -25,8 +25,8 @@ from wintry.query.nodes import (
 import motor.motor_asyncio
 from motor.core import AgnosticClientSession, AgnosticClient
 from wintry.settings import BackendOptions, EngineType
-from dataclasses import is_dataclass
-from dataclass_wizard import fromdict, asdict
+from dataclass_wizard import fromdict
+from wintry.utils.keys import __winter_model_collection_name__
 
 
 class MongoSession(AgnosticClientSession):
@@ -159,14 +159,14 @@ class DriverMappingError(Exception):
 
 
 def get_tablename(cls: type) -> str:
-    return getattr(cls, "__tablename__", cls.__name__.lower() + "s")
+    return getattr(cls, __winter_model_collection_name__, cls.__name__.lower() + "s")
 
 
 def map_to_table(cls: type[Model], instance: dict):
     if instance is None:
         return None
 
-    return fromdict(cls, instance)
+    return cls.build(instance)
 
 
 class ExecutionError(Exception):
@@ -176,7 +176,7 @@ class ExecutionError(Exception):
 class MongoDbDriver(QueryDriver):
     driver_class: EngineType = EngineType.NoSql
 
-    def get_connection(self) -> Any:
+    async def get_connection(self) -> Any:
         return self.db
 
     async def get_started_session(self) -> MongoSession:

@@ -58,12 +58,12 @@ def get_payload_type_for(method: MethodType):
 
 
 def bind_payload_to(payload: dict[str, Any], _type: type):
-    if is_dataclass(_type):
-        return fromdict(_type, payload)
+    if issubclass(_type, Model):
+        return _type.build(payload)
     elif issubclass(_type, BaseModel):
         return _type(**payload)
     else:
-        raise Exception(f"{_type} is not instance of dataclass or pydantic.BaseModel")
+        raise Exception(f"{_type} is not instance of Model or pydantic.BaseModel")
 
 
 @cache

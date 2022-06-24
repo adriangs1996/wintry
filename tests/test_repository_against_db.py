@@ -7,7 +7,6 @@ import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from dataclasses import field
-from dataclass_wizard import fromdict
 from bson import ObjectId
 
 from wintry.repository.base import query
@@ -47,11 +46,11 @@ class Hero(Model, unsafe_hash=True):
     cities: list[City] = field(default_factory=list)
 
 
-@pytest.fixture(scope="module", autouse=True)
-def db() -> AsyncIOMotorDatabase:
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def db() -> AsyncIOMotorDatabase:
     RepositoryRegistry.configure_for_nosql()
     init_backends()
-    return get_connection()  # type: ignore
+    return await get_connection()  # type: ignore
 
 
 class HardFieldsRepository(
@@ -81,7 +80,7 @@ class HardcoreRepository(
 class UserRepository(Repository[User, int], entity=User):
     @managed
     async def get_user_by_name(self, name: str, session: Any = None) -> User | None:
-        db = self.connection()
+        db = await self.connection()
         row = await db.users.find_one({"name": name})
         if row is not None:
             return User.build(row)

@@ -384,6 +384,7 @@ class Query:
             try:
                 result = await self.__func_application__(*args, session=session, **kwargs)  # type: ignore
             except Exception as e:
+                print(e)
                 handle_error(e)
             if __no_sql_session_manged__:
                 tracker = getattr(obj, __winter_tracker__)
