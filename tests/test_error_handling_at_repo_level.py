@@ -1,19 +1,19 @@
 from typing import AsyncGenerator
 import wintry.errors.definitions as errors
-from wintry.models import Model, VirtualDatabaseSchema
+from wintry.models import Model, VirtualDatabaseSchema, ModelRegistry, metadata
 from wintry import get_connection, init_backends, BACKENDS
 from wintry.repository import Repository, RepositoryRegistry
 from wintry.repository.base import managed
 from wintry.settings import WinterSettings, BackendOptions, ConnectionOptions
-from sqlalchemy import MetaData, delete
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncConnection
 import pytest
 import pytest_asyncio
 
-metadata = MetaData()
+from wintry.utils.virtual_db_schema import get_model_sql_table
 
 
-class ErrorHandlingUser(Model):
+class ErrorHandlingUser(Model, table="ErrorUser"):
     id: int
     name: str
 
@@ -27,14 +27,17 @@ class UserRepository(Repository[ErrorHandlingUser, int], entity=ErrorHandlingUse
 @pytest_asyncio.fixture
 async def clean() -> AsyncGenerator[None, None]:
     yield
-    session: AsyncSession = get_connection()
-    async with session.begin():
-        await session.execute(delete(ErrorHandlingUser))
-        await session.commit()
+    table = get_model_sql_table(ErrorHandlingUser)
+    session: AsyncConnection = await get_connection()
+    session.begin()
+    await session.execute(delete(table))
+    await session.commit()
+    await session.close()
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
 async def setup():
+    ModelRegistry.configure()
     VirtualDatabaseSchema.use_sqlalchemy(metadata=metadata)
     RepositoryRegistry.configure_for_sqlalchemy()
     init_backends(
@@ -43,15 +46,17 @@ async def setup():
                 BackendOptions(
                     driver="wintry.drivers.pg",
                     connection_options=ConnectionOptions(
-                        url="postgresql+asyncpg://postgres:secret@localhost/tests"
+                        url="sqlite+aiosqlite:///:memory:"
                     ),
                 )
             ],
         )
     )
     engine = getattr(BACKENDS["default"].driver, "_engine")
-    async with engine.begin() as conn:
-        await conn.run_sync(metadata.create_all)
+    conn = await engine.connect()
+    await conn.run_sync(metadata.create_all)
+    await conn.commit()
+    await conn.close()
 
 
 @pytest.mark.asyncio

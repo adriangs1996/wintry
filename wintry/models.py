@@ -354,48 +354,49 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
 
     @staticmethod
     def create_table_for_model(model: type["Model"], table_metadata: TableMetadata):
-        columns: list[Column] = []
+        if model not in VirtualDatabaseSchema.sql_generated_tables:
+            columns: list[Column] = []
 
-        for c in table_metadata.columns:
-            column_type = _mapper[c.type]
-            if c.name.lower() == "id" or c.metadata.get("id", False):
-                columns.append(Column(c.name, column_type, primary_key=True))
-            else:
-                columns.append(Column(c.name, column_type))
+            for c in table_metadata.columns:
+                column_type = _mapper[c.type]
+                if c.name.lower() == "id" or c.metadata.get("id", False):
+                    columns.append(Column(c.name, column_type, primary_key=True))
+                else:
+                    columns.append(Column(c.name, column_type))
 
-        try:
-            get_primary_key(model)
-        except ModelError:
-            columns.append(Column("id", Integer, primary_key=True, autoincrement=True))
-
-        for fk in table_metadata.foreing_keys:
             try:
-                foreign_key = get_primary_key(fk.target)
-                foreign_key_type = _mapper.get(foreign_key.type)
-                columns.append(
-                    Column(
-                        fk.key_name,
-                        foreign_key_type,
-                        ForeignKey(
-                            f"{getattr(fk.target, __winter_model_collection_name__)}.{foreign_key.name}"
-                        ),
-                        nullable=True,
-                    )
-                )
+                get_primary_key(model)
             except ModelError:
-                columns.append(
-                    Column(
-                        fk.key_name,
-                        Integer,
-                        ForeignKey(
-                            f"{getattr(fk.target, __winter_model_collection_name__)}.id"
-                        ),
-                        nullable=True,
-                    )
-                )
+                columns.append(Column("id", Integer, primary_key=True, autoincrement=True))
 
-        table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
-        VirtualDatabaseSchema.sql_generated_tables[model] = table
+            for fk in table_metadata.foreing_keys:
+                try:
+                    foreign_key = get_primary_key(fk.target)
+                    foreign_key_type = _mapper.get(foreign_key.type)
+                    columns.append(
+                        Column(
+                            fk.key_name,
+                            foreign_key_type,
+                            ForeignKey(
+                                f"{getattr(fk.target, __winter_model_collection_name__)}.{foreign_key.name}"
+                            ),
+                            nullable=True,
+                        )
+                    )
+                except ModelError:
+                    columns.append(
+                        Column(
+                            fk.key_name,
+                            Integer,
+                            ForeignKey(
+                                f"{getattr(fk.target, __winter_model_collection_name__)}.id"
+                            ),
+                            nullable=True,
+                        )
+                    )
+
+            table = Table(table_metadata.table_name, table_metadata.metadata, *columns)
+            VirtualDatabaseSchema.sql_generated_tables[model] = table
 
     @classmethod
     def use_sqlalchemy(cls, metadata: MetaData = metadata):

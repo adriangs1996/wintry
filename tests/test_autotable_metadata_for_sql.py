@@ -6,8 +6,7 @@ from wintry.repository.base import query
 
 from wintry.settings import BackendOptions, ConnectionOptions, WinterSettings
 
-from sqlalchemy import delete, select, insert, MetaData
-from sqlalchemy.engine import CursorResult
+from sqlalchemy import delete, select, insert
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.engine.result import Result
 import pytest
@@ -16,7 +15,7 @@ from wintry.transactions import UnitOfWork
 
 
 # Now import the repository
-from wintry.repository import Repository, RepositoryRegistry
+from wintry.repository import Repository
 from wintry.utils.virtual_db_schema import get_model_sql_table
 
 
@@ -53,10 +52,12 @@ class UserRepository(Repository[TestUser, int], entity=TestUser):
     ) -> List[TestUser]:
         ...
 
+
 class FooRepository(Repository[Foo, str], entity=Foo):
     @query
     async def find_by_bar__y_lowerThan(self, *, bar__y: int) -> list[Foo]:
         ...
+
 
 # define a custom uow so we got intellisense, this is for type-checkers only
 class Uow(UnitOfWork):
@@ -356,6 +357,7 @@ async def test_one_to_one_relation(clean: Any):
     assert len(foo_results.unique().all()) == 1
     assert len(bar_results.unique().all()) == 1
 
+
 @pytest.mark.asyncio
 async def test_one_to_one_relation_retrieve_related(clean: Any):
     repo = FooRepository()
@@ -366,7 +368,8 @@ async def test_one_to_one_relation_retrieve_related(clean: Any):
     new_foo = await repo.get_by_id(id=foo.id)
 
     assert new_foo is not None
-    assert new_foo.bar is not None 
+    assert new_foo.bar is not None
+
 
 @pytest.mark.asyncio
 async def test_foo_repo_can_ask_for_related_field(clean: Any):
