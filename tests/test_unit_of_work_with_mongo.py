@@ -22,13 +22,13 @@ class User(Model):
     name: str
     age: int
     address: Address | None = None
-    heroes: list["Hero"] = field(default_factory=list)
+    heroes: "list[Hero]" = field(default_factory=list)
 
 
 class UserRepository(Repository[User, int], entity=User):
     @managed
     async def get_user_by_name(self, name: str):
-        db = self.connection()
+        db = await self.connection()
         row = await db.users.find_one({"name": name})
 
         if row is not None:
@@ -47,6 +47,7 @@ class HeroRepository(Repository[Hero, str], entity=Hero, table_name="heroes"):
     async def get_by_name(self, *, name: str) -> Hero | None:
         ...
 
+
 class HeroUow(UnitOfWork):
     heroes: HeroRepository
 
@@ -61,22 +62,22 @@ class Uow(UnitOfWork):
         super().__init__(users=users)
 
 
-@pytest.fixture(scope="module", autouse=True)
-def db() -> Any:
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def db() -> Any:
     RepositoryRegistry.configure_for_nosql()
     init_backends(
         WinterSettings(
             backends=[
                 BackendOptions(
                     connection_options=ConnectionOptions(
-                        url="mongodb://localhost:27017/?replicaSet=dbrs"
+                        url="mongodb://localhost:27017/tests"
                     ),
                 )
             ]
         )
     )
 
-    return get_connection()
+    return await get_connection()
 
 
 @pytest_asyncio.fixture()
@@ -188,29 +189,6 @@ async def test_unit_of_work_can_track_objects_in_lists(clean: Any, db: Any) -> N
 
     user_row = await db.users.find_one({"name": "Luke"})
     assert user_row is not None
-
-
-@pytest.mark.asyncio
-async def test_unit_of_work_respects_ignore_synchronization_flag(
-    clean: Any, db: Any
-) -> None:
-    hero_repository = HeroRepository()
-    uow = HeroUow(hero_repository)
-
-    await db.heroes.insert_one({"id": str(ObjectId()), "name": "Batman"})
-
-    async with uow:
-        hero = await uow.heroes.get_by_name(name="Batman")
-        assert hero is not None
-        hero.name = "Superman"
-        await uow.commit()
-
-    row = await db.heroes.find_one({"name": "Batman"})
-    assert row is None
-
-    rows = await db.heroes.find({}).to_list(None)
-    assert len(rows) == 1
-
 
 @pytest.mark.asyncio
 async def test_unit_of_work_synchronize_nested_objects(clean: Any, db: Any) -> None:

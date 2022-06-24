@@ -6,31 +6,17 @@ from typing import (
     Callable,
     Dict,
     List,
-    Optional,
-    Set,
     Type,
     TypeVar,
-    overload,
-    Sequence,
-    Iterable,
-    Iterator,
-    Generator,
-    Mapping,
-    Union,
 )
-
 import sqlalchemy.orm as orm
-from sqlalchemy import delete, insert, inspect, select, update, Table
-from sqlalchemy.engine.result import Result
+from sqlalchemy import delete, insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio.engine import create_async_engine
 from sqlalchemy.ext.asyncio.engine import AsyncConnection
-from sqlalchemy.orm import Mapper, RelationshipProperty
+from sqlalchemy.ext.asyncio.engine import create_async_engine
 from sqlalchemy.sql import Delete as DeleteStatement
 from sqlalchemy.sql import Insert as InsertStatement
-from sqlalchemy.sql import Select
 from sqlalchemy.sql import Update as UpdateStatement
-from sqlalchemy.sql.expression import TextClause, text
 from wintry.backend import QueryDriver
 from wintry.models import Model, ModelRegistry
 from wintry.query.nodes import (
@@ -44,7 +30,6 @@ from wintry.query.nodes import (
     GreaterThanNode,
     LowerThanNode,
     NotEqualNode,
-    NotGreaterThanNode,
     OpNode,
     OrNode,
     RootNode,

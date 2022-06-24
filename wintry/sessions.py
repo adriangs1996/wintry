@@ -1,12 +1,8 @@
 from typing import Any
-from wintry.drivers.mongo import MongoDbDriver, MongoSession, get_tablename
+from weakref import WeakValueDictionary
 from wintry.models import Model
 from wintry.orm.aql import create, execute, update
-from wintry.settings import EngineType
 from wintry.utils.keys import __winter_track_target__
-from wintry import BACKENDS
-from weakref import WeakSet, WeakValueDictionary
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 class TrackerError(Exception):
@@ -70,14 +66,14 @@ class Tracker:
             yield modified_instance
 
     async def flush(self, session):
-        for modified_instance in self.dirty:
-            await execute(
-                update(entity=modified_instance), self._backend_name, session=session
-            )
-
         for transient_instance in self.transients:
             await execute(
                 create(entity=transient_instance), self._backend_name, session=session
+            )
+
+        for modified_instance in self.dirty:
+            await execute(
+                update(entity=modified_instance), self._backend_name, session=session
             )
         self._modified.clear()
         self._transient.clear()

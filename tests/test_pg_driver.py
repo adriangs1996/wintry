@@ -1,40 +1,25 @@
 import pytest
-from wintry.drivers.pg import ExecutionError, SqlAlchemyDriver
-from wintry.models import Model
-from wintry.orm.mapping import for_model
-from sqlalchemy.orm import relation
-from sqlalchemy import Integer, String, Column, ForeignKey, MetaData
+from wintry.drivers.pg import SqlAlchemyDriver
+from wintry.models import Model, ModelRegistry, VirtualDatabaseSchema
 from sqlalchemy.exc import CompileError
-from dataclass_wizard import asdict
 
 from wintry.query.nodes import AndNode, Create, EqualToNode, Find, Get, OrNode, Update
 
-metadata = MetaData()
 
-
-class User(Model):
+class User(Model, table="Users"):
     id: int
     username: str
 
 
-class Address(Model):
+class Address(Model, table="Addresses"):
     id: int
     user: User
 
 
-UserTable = for_model(
-    User, metadata, Column("id", Integer, primary_key=True), Column("username", String)
-)
-
-
-AddressTable = for_model(
-    Address,
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey(User.id)),
-    table_name="Addresses",
-    user=relation(User),
-)
+@pytest.fixture(scope="module", autouse=True)
+def setup():
+    ModelRegistry.configure()
+    VirtualDatabaseSchema.use_sqlalchemy()
 
 
 @pytest.mark.asyncio
@@ -47,18 +32,6 @@ async def test_pg_driver_handles_single_create_command() -> None:
     query_repr = await driver.get_query_repr(query, User, entity=user)
 
     assert query_repr == 'INSERT INTO "Users" (id, username) VALUES (:id, :username)'
-
-
-@pytest.mark.asyncio
-async def test_pg_driver_fails_to_create_command_with_entity_with_relations() -> None:
-    driver = SqlAlchemyDriver()
-    address = Address(id=1, user=User(id=2, username="test"))
-
-    query = Create()
-
-    with pytest.raises(CompileError):
-        query_repr = await driver.get_query_repr(query, Address, entity=address)
-
 
 @pytest.mark.asyncio
 async def test_pg_driver_can_update_entity() -> None:
@@ -168,5 +141,9 @@ async def test_pg_driver_get_by_user__id() -> None:
 
     assert (
         query_expr
-        == 'SELECT "Addresses".id, "Addresses".user_id FROM "Addresses" JOIN "Users" ON "Users".id = "Addresses".user_id WHERE "Users".id = :id_1'
+        == (
+        'SELECT "Addresses".id, "Addresses"."user", "Users".id AS id_1, "Users".username '
+        'FROM "Addresses" LEFT OUTER JOIN "Users" ON "Addresses"."user" = "Users".id '
+        'WHERE "Users".id = :id_2'
+        )
     )

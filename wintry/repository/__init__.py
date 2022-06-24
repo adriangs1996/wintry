@@ -69,7 +69,7 @@ class Repository(abc.ABC, Generic[T, TypeId]):
             if isinstance(session, AsyncIOMotorClientSession):
                 # This is an AsyncioMotorSession. Inside that session, we have
                 # a client property that maps to the
-                db_name = await get_connection(backend_name).name  # type: ignore
+                db_name = (await get_connection(backend_name)).name  # type: ignore
                 return session.client[db_name]
             return session
 
