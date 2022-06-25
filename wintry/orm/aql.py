@@ -46,11 +46,14 @@ class FilteredClause(ClauseProtocol):
 
         return root_node
 
+
 class FilteredGet(FilteredClause):
     pass
 
+
 class FilteredDelete(FilteredClause):
     pass
+
 
 class FilteredFind(FilteredClause):
     pass

@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorClientSession
 from wintry.models import Model
 from wintry.sessions import Tracker
-
+from ..utils.virtual_db_schema import get_model_sql_table
 
 T = TypeVar("T", bound=Model)
 TypeId = TypeVar("TypeId")
@@ -112,6 +112,10 @@ class Repository(abc.ABC, Generic[T, TypeId]):
         session = getattr(self, __winter_session_key__, None)
 
         return await execute(statement, backend_name, session)
+
+    @property
+    def vtable(self):
+        return get_model_sql_table(getattr(self, "__winter_entity__"))
 
     async def find(self) -> list[T]:
         ...
