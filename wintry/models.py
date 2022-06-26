@@ -705,3 +705,6 @@ class Model(DataClassDictMixin):
     @classmethod
     def from_orm(cls, obj: list[Any] | Any) -> list[Self] | Self:
         ...
+
+    def map(self, _dict: dict[str, Any]) -> None:
+        ...

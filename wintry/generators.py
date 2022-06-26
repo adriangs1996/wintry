@@ -153,5 +153,9 @@ class CodeGenerator:
             self._add_line(f"return cls({','.join(f'{f.name}=__{f.name}' for f in fields(model))})")
         self._add_line(f"setattr({model.__name__}, 'from_orm', from_orm)")
 
+    def map_to(self, type_: type, globs, locs):
+        self.reset()
+        self.method("map", "_dict")
+
 
 code_gen = CodeGenerator()

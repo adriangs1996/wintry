@@ -241,7 +241,7 @@ def wintry_jsonable_encoder(
     )
 
 
-def serialize_response(
+async def serialize_response(
     *,
     field: Optional[ModelField] = None,
     response_content: Any,
@@ -509,7 +509,9 @@ class ApiController(APIRouter):
             return add_nontrailing_slash_path(func)
 
         return (
-            add_trailing_slash_path if given_path == "/" else add_path_and_trailing_slash
+            add_trailing_slash_path
+            if given_path == "/"
+            else add_path_and_trailing_slash
         )
 
 
@@ -971,11 +973,14 @@ def _controller(
     # Get the __init__ signature and the original parameters
     old_init: Callable[..., Any] = cls.__init__
     old_signature = inspect.signature(old_init)
-    old_parameters = list(old_signature.parameters.values())[1:]  # drop `self` parameter
+    old_parameters = list(old_signature.parameters.values())[
+        1:
+    ]  # drop `self` parameter
     new_parameters = [
         x
         for x in old_parameters
-        if x.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        if x.kind
+        not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
     ]
     dependency_names: List[str] = []
     for name, hint in get_type_hints(cls).items():
