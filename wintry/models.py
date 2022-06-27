@@ -28,7 +28,10 @@ from typing import (
     cast,
     get_args,
     overload,
+    NewType
 )
+
+from pydantic.fields import Undefined
 from typing_extensions import Self
 from uuid import uuid4
 from dataclass_wizard.enums import LetterCase
@@ -166,6 +169,20 @@ class ModelRegistry:
                     code_gen.compile(globals() | ModelRegistry.models.copy())
 
                 setattr(cls, "from_orm", from_orm)
+
+            # Compile the map method
+            try:
+                code_gen.map_to(model, globals() | ModelRegistry.models.copy(), locals())
+                text = code_gen.compile(globals() | ModelRegistry.models.copy(), return_=True)
+                print(text)
+            except NameError as e:
+                print(e)
+
+                def map_(self, _dict: dict[str, Any]):
+                    code_gen.map_to(model, globals() | ModelRegistry.models.copy(), locals())
+                    code_gen.compile(globals() | ModelRegistry.models.copy())
+
+                setattr(model, "map", map_)
 
 
 def get_type_by_str(type_str: str):

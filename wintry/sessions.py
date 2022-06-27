@@ -28,6 +28,9 @@ class Tracker:
             tuple[Any, ...], Model
         ] = WeakValueDictionary()
 
+    def __str__(self):
+        return f"\nDirty: {list(self.dirty)}\nNew: {list(self.transients)}"
+
     def track(self, instance: Model):
         key = get_instance_key(instance)
         self._identity_map[key] = instance
@@ -37,13 +40,14 @@ class Tracker:
             key = get_instance_key(target)
             if key not in self._modified:
                 self._modified.add(key)
+                self._identity_map[key] = instance
 
     def new(self, instance: Model):
         if (target := getattr(instance, __winter_track_target__, None)) is not None:
             key = get_instance_key(target)
             if key not in self._transient:
                 self._transient.add(key)
-            self._identity_map[key] = instance
+                self._identity_map[key] = instance
 
     def get_tracked_instance(self, instance: Model) -> Model:
         key = get_instance_key(instance)
@@ -55,17 +59,18 @@ class Tracker:
     def dirty(self):
         for key in self._modified:
             modified_instance = self._identity_map.get(key)
-            assert modified_instance is not None
-            yield modified_instance
+            if modified_instance is not None:
+                yield modified_instance
 
     @property
     def transients(self):
         for key in self._transient:
             modified_instance = self._identity_map.get(key)
-            assert modified_instance is not None
-            yield modified_instance
+            if modified_instance is not None:
+                yield modified_instance
 
     async def flush(self, session):
+        print(self)
         for transient_instance in self.transients:
             await execute(
                 create(entity=transient_instance), self._backend_name, session=session

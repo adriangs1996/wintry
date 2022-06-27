@@ -1,10 +1,15 @@
 from functools import update_wrapper, wraps
-from inspect import iscoroutinefunction
+from inspect import iscoroutinefunction, signature
 from typing import Any, Callable, TypeVar, overload
 
 from wintry.repository import Repository
 from wintry.sessions import Tracker
-from wintry.transactions.unit_of_work import close_session, commit, get_session, rollback
+from wintry.transactions.unit_of_work import (
+    close_session,
+    commit,
+    get_session,
+    rollback,
+)
 from wintry.utils.keys import (
     NO_SQL,
     __RepositoryType__,
@@ -96,6 +101,8 @@ def transactional(func: Callable[..., Any]) -> Callable[..., Any]:
         result = await run_transaction(func, repositories, args, kwargs)
         return result
 
+    sig = signature(func)
+    setattr(transaction, "__signature__", sig)
     return transaction
 
 
@@ -106,7 +113,9 @@ class transaction_method:
     def __get__(self, obj: Any, type_: type | None = None):
         async def transactional_function(*args, **kwargs):
             repositories = collect_repositories_from_self(obj)
-            result = await run_transaction(self.fget, repositories, (obj,) + args, kwargs)
+            result = await run_transaction(
+                self.fget, repositories, (obj,) + args, kwargs
+            )
             return result
 
         return transactional_function
@@ -120,3 +129,15 @@ def transaction(func: T) -> T:  # type: ignore
 def transaction(func: Callable):  # type: ignore
     new_func = transaction_method(func)
     return update_wrapper(new_func, func)
+
+
+def _transaction(fn: Callable):
+    @wraps(fn)
+    async def transactional_function(self, *args, **kwargs):
+        repositories = collect_repositories_from_self(self)
+        result = await run_transaction(fn, repositories, (self, ) + args, kwargs)
+        return result
+
+    sig = signature(fn)
+    setattr(transactional_function, "__signature__", sig)
+    return transactional_function
