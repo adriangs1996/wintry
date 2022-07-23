@@ -28,7 +28,7 @@ from typing import (
     cast,
     get_args,
     overload,
-    NewType
+    NewType,
 )
 
 from pydantic.fields import Undefined
@@ -135,7 +135,7 @@ def _is_private_attr(attr: str):
     return attr.startswith("_")
 
 
-class ModelRegistry:
+class ModelRegistry(object):
     models: ClassVar[dict[str, type["Model"]]] = {}
 
     @classmethod
@@ -173,13 +173,17 @@ class ModelRegistry:
             # Compile the map method
             try:
                 code_gen.map_to(model, globals() | ModelRegistry.models.copy(), locals())
-                text = code_gen.compile(globals() | ModelRegistry.models.copy(), return_=True)
+                text = code_gen.compile(
+                    globals() | ModelRegistry.models.copy(), return_=True
+                )
                 print(text)
             except NameError as e:
                 print(e)
 
                 def map_(self, _dict: dict[str, Any]):
-                    code_gen.map_to(model, globals() | ModelRegistry.models.copy(), locals())
+                    code_gen.map_to(
+                        model, globals() | ModelRegistry.models.copy(), locals()
+                    )
                     code_gen.compile(globals() | ModelRegistry.models.copy())
 
                 setattr(model, "map", map_)
@@ -384,7 +388,9 @@ class VirtualDatabaseSchema(metaclass=VirtualDatabaseMeta):
             try:
                 get_primary_key(model)
             except ModelError:
-                columns.append(Column("id", Integer, primary_key=True, autoincrement=True))
+                columns.append(
+                    Column("id", Integer, primary_key=True, autoincrement=True)
+                )
 
             for fk in table_metadata.foreing_keys:
                 try:
@@ -554,10 +560,10 @@ class FieldClassProxy(str):
 
     def __getattr__(self, item):
         return FieldClassProxy(f"{self}.{item}")
-    
+
     def __getitem__(self, item):
         return FieldClassProxy(f"{self}.{item}")
-    
+
     def __gt__(self, other: Any):
         return GreaterThanNode(self, other)
 
@@ -565,7 +571,7 @@ class FieldClassProxy(str):
         return LowerThanNode(self, other)
 
     def __eq__(self, __o: object):
-        return EqualToNode(self, __o) 
+        return EqualToNode(self, __o)
 
 
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(field, Field))
@@ -591,7 +597,7 @@ class Model(DataClassDictMixin):
             tracker = getattr(self, __winter_tracker__)
             target = getattr(self, __winter_track_target__)
 
-            # Check for modified flag, so we ensure that this object is addded just once
+            # Check for modified flag, so we ensure that this object is added just once
             modified = getattr(target, __winter_modified_entity_state__, False)
 
             if not modified:
@@ -601,12 +607,10 @@ class Model(DataClassDictMixin):
             # This distinction is needed for SQL, so new entities assigned
             # to properties got tracked. IF they are new, then no big deal,
             # add it to the new group in tracker, otherwise, just ignore it
-            if is_obj_marked(self):
-                if isinstance(__value, Model):
-                    if __value not in tracker:
-                        setattr(__value, __winter_track_target__, __value)
-                        setattr(__value, __winter_tracker__, tracker)
-                        tracker.new(__value)
+            if is_obj_marked(self) and isinstance(__value, Model) and __value not in tracker:
+                setattr(__value, __winter_track_target__, __value)
+                setattr(__value, __winter_tracker__, tracker)
+                tracker.new(__value)
 
         return super().__setattr__(__name, __value)  # type: ignore
 

@@ -96,7 +96,7 @@ class BackendOptions(pdc.BaseModel):
 
 class WinterSettings(pdc.BaseSettings):
 
-    backends: list[BackendOptions] = [BackendOptions()]
+    backends: list[BackendOptions] = []
     """
     List of configurations for the different drivers the app can use.
     Defaults to a MongoEngine on localhost, port 27017 under name 'default'.

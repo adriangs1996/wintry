@@ -1,5 +1,5 @@
 # Configure te mongo driver
-from wintry import init_backends
+from wintry import init_backends, WinterSettings, BackendOptions
 from wintry.models import Model
 
 from wintry.repository import Repository, RepositoryRegistry
@@ -9,7 +9,7 @@ import pytest
 @pytest.fixture(scope="module", autouse=True)
 def setup() -> None:
     RepositoryRegistry.configure_for_nosql()
-    init_backends()
+    init_backends(WinterSettings(backends=[BackendOptions()]))
 
 
 class User(Model):
@@ -26,7 +26,9 @@ class UserRepository(Repository[User, int], entity=User, dry=True):
 async def test_repository_can_create_user() -> None:
     repo = UserRepository()
 
-    str_query = await repo.create(entity=User(id=10, username="test", password="secret"))
+    str_query = await repo.create(
+        entity=User(id=10, username="test", password="secret")
+    )
 
     assert (
         str_query
@@ -37,7 +39,9 @@ async def test_repository_can_create_user() -> None:
 @pytest.mark.asyncio
 async def test_repository_can_update_user() -> None:
     repo = UserRepository()
-    str_query = await repo.update(entity=User(id=10, username="test", password="secret"))
+    str_query = await repo.update(
+        entity=User(id=10, username="test", password="secret")
+    )
 
     assert (
         str_query

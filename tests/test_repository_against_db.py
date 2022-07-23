@@ -1,5 +1,5 @@
 from typing import Any, AsyncGenerator, List, Optional
-from wintry import init_backends, get_connection
+from wintry import init_backends, get_connection, WinterSettings, BackendOptions
 from wintry.models import Model, ModelRegistry
 from wintry.repository import managed
 from wintry.repository import Repository, RepositoryRegistry
@@ -50,13 +50,11 @@ class Hero(Model, unsafe_hash=True, table="heroes"):
 async def db() -> AsyncIOMotorDatabase:
     ModelRegistry.configure()
     RepositoryRegistry.configure_for_nosql()
-    init_backends()
+    init_backends(WinterSettings(backends=[BackendOptions()]))
     return await get_connection()  # type: ignore
 
 
-class HardFieldsRepository(
-    Repository[HardFields, int], entity=HardFields
-):
+class HardFieldsRepository(Repository[HardFields, int], entity=HardFields):
     @query
     async def get_by_easyfield(self, *, easy_field: int) -> HardFields:
         ...
@@ -68,9 +66,7 @@ class HardFieldsRepository(
         ...
 
 
-class HardcoreRepository(
-    Repository[HardcoreFields, int], entity=HardcoreFields
-):
+class HardcoreRepository(Repository[HardcoreFields, int], entity=HardcoreFields):
     @query
     async def get_by_hardfields__easyfield(
         self, *, hard_fields__easy_field: int
@@ -97,7 +93,9 @@ class UserRepository(Repository[User, int], entity=User):
         ...
 
     @query
-    async def find_by_address__latitude(self, *, address__latitude: float) -> List[User]:
+    async def find_by_address__latitude(
+        self, *, address__latitude: float
+    ) -> List[User]:
         ...
 
 
@@ -337,5 +335,6 @@ async def test_field_snake_case_nested(clean: Any, db: Any):
     repo = HardcoreRepository()
     hrd = await repo.get_by_hardfields__easyfield(hard_fields__easy_field=10)
     assert hrd == HardcoreFields(
-        id=1, hard_fields=HardFields(id=1, this_is_a_complex_field="HUMM", easy_field=10)
+        id=1,
+        hard_fields=HardFields(id=1, this_is_a_complex_field="HUMM", easy_field=10),
     )

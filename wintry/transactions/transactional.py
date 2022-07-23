@@ -94,31 +94,21 @@ async def run_transaction(func, repositories, args, kwargs):
         await close_repositories_sessions(repositories)
 
 
-def transactional(func: Callable[..., Any]) -> Callable[..., Any]:
+@overload
+def transactional(func: T) -> T:
+    ...
+
+
+def transactional(func: Callable[..., Any]):
     @wraps(func)
-    async def transaction(*args, **kwargs):
+    async def _transaction(*args, **kwargs):
         repositories = collect_repositories_from_args(args, kwargs)
         result = await run_transaction(func, repositories, args, kwargs)
         return result
 
     sig = signature(func)
-    setattr(transaction, "__signature__", sig)
-    return transaction
-
-
-class transaction_method:
-    def __init__(self, fget: Callable):
-        self.fget = fget
-
-    def __get__(self, obj: Any, type_: type | None = None):
-        async def transactional_function(*args, **kwargs):
-            repositories = collect_repositories_from_self(obj)
-            result = await run_transaction(
-                self.fget, repositories, (obj,) + args, kwargs
-            )
-            return result
-
-        return transactional_function
+    setattr(_transaction, "__signature__", sig)
+    return _transaction
 
 
 @overload
@@ -126,16 +116,11 @@ def transaction(func: T) -> T:  # type: ignore
     ...
 
 
-def transaction(func: Callable):  # type: ignore
-    new_func = transaction_method(func)
-    return update_wrapper(new_func, func)
-
-
-def _transaction(fn: Callable):
+def transaction(fn: Callable):
     @wraps(fn)
     async def transactional_function(self, *args, **kwargs):
         repositories = collect_repositories_from_self(self)
-        result = await run_transaction(fn, repositories, (self, ) + args, kwargs)
+        result = await run_transaction(fn, repositories, (self,) + args, kwargs)
         return result
 
     sig = signature(fn)
