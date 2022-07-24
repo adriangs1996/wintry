@@ -132,9 +132,9 @@ def query_handler(qry: type[IQuery]):
 
 class Mediator(object):
     """
-    A mediator is an object that routes and dispatch your messages.
+    A mediator is an object that routes and dispatches your messages.
     The Mediator API is async friendly, but you can register non-async
-    handlers and it will now what to do (essentially, it will run your
+    handlers and it will know what to do (essentially, it will run your
     code in a thread-pool)
     """
 

@@ -2,14 +2,14 @@
 
 # ❄️🐧A modern python web framework🐧❄️
 
-
-
-
 ![](https://img.shields.io/static/v1?label=code&message=python&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 ![](https://img.shields.io/static/v1?label=web&message=framework&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 ![](https://img.shields.io/static/v1?label=Tests&message=Passing&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 ![](https://img.shields.io/static/v1?label=pypi%20package&message=v0.1.0&color=<blue>&style=plastic&logo=github&logoColor=4ec9b0)
 
+!!! Note
+ FRAMEWORK'S API IS CONSTANTLY EVOLVING. I PLAN TO GIVE A STABLE VERSION WITH THE 1.0.0
+ RELEASE. BUT GIVE IT A TRY, IT MIGHT BECOME A GOOD FRIEND OF YOURS :)
 
 Hello, friend, welcome to 🐧**Wintry**🐧. You may have stumble with this project searching
 for a python web framework, well, you got what you want.

@@ -69,7 +69,7 @@ class QueryDriver(abc.ABC):
         raise NotImplementedError
 
 
-class Backend:
+class Backend(object):
     driver: QueryDriver | None = None
 
     def __init__(self, driver: QueryDriver) -> None:
