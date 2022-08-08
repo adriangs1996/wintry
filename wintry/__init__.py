@@ -1,6 +1,6 @@
 import importlib
 import logging
-from typing import Any, Callable, Coroutine, Sequence, Union
+from typing import Any, Callable, Coroutine, Sequence, Union, Type, TypeVar
 
 import uvicorn
 
@@ -120,7 +120,9 @@ def init_backends(settings: WinterSettings = WinterSettings()) -> None:
         init_backend(backend)
 
 
-async def get_connection(backend_name: str = "default") -> AsyncIOMotorDatabase | AsyncConnection:
+async def get_connection(
+    backend_name: str = "default",
+) -> AsyncIOMotorDatabase | AsyncConnection:
     backend = BACKENDS.get(backend_name, None)
     if backend is None:
         raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
@@ -334,3 +336,14 @@ class App(FastAPI):
 
     def on_shutdown(self, fn: Callable[..., Any]):
         return self.on_event("shutdown")(fn)
+
+
+T = TypeVar("T")
+P = TypeVar("P")
+
+
+class AppBuilder(object):
+    @staticmethod
+    def add_service(interface: Type[T], provider: Type[P]) -> "Type[AppBuilder]":
+
+        return AppBuilder

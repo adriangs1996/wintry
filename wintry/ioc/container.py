@@ -8,7 +8,7 @@ class DependencyInjectionError(Exception):
     pass
 
 
-class SnowFactory:
+class SnowFactory(object):
     """This is just a way of differentiating Factories from singleton objects.
     This is a proxy object which forward the obj instantiation."""
 
@@ -20,7 +20,7 @@ class SnowFactory:
         return self.cls(**self.fastapi_dependencies)
 
 
-class IGlooContainer:
+class IGlooContainer(object):
     # An igloo is a container for wintry objects, so
     # bear with me on the name. This is a Dependency Injection
     # solution for the Wintry Framework. Users should not need
@@ -57,7 +57,7 @@ class IGlooContainer:
 
         if key in self.singletons:
             # if there exists in singletons but not in cache
-            # then this isntance has never been called. Construct
+            # then this instance has never been called. Construct
             # it and cache it. It will not be instantiated again
             type_ = self.singletons[key]
             instance = type_()

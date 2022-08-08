@@ -77,8 +77,8 @@ class Middleware(pdc.BaseModel):
 class BackendOptions(pdc.BaseModel):
     name: str = "default"
     """
-    Name that under which the driver is going to be registerd. This has to
-    be unique among drivers. 
+    Name that under which the driver is going to be registered. This has to
+    be unique among drivers.
     """
 
     driver: str = "wintry.drivers.mongo"

@@ -29,7 +29,7 @@ class ProtocolInit(Protocol):
 
 
 @dataclass
-class ParameterInfo:
+class ParameterInfo(object):
     name: str
     type: Any
     default: Any = Undefined
