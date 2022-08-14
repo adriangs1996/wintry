@@ -265,3 +265,38 @@ def provider(
 
     else:
         return decorator(cls)
+
+
+def scoped(
+    cls: Any | None = None,
+    /,
+    *,
+    of: type | None = None,
+    container: IGlooContainer = igloo,
+):
+    def decorator(_cls: type[T]) -> type[T]:
+        if isclass(_cls):
+            _cls = dataclass(
+                eq=False,
+                order=False,
+                frozen=False,
+                match_args=False,
+                init=True,
+                kw_only=False,
+                repr=False,
+                unsafe_hash=False,
+            )(_cls)
+        _cls = inject(container=container)(_cls)
+
+        if of is not None:
+            container.add_scoped(of, _cls)
+        else:
+            container.add_scoped(_cls, _cls)
+
+        return _cls
+
+    if cls is None:
+        return decorator
+
+    else:
+        return decorator(cls)

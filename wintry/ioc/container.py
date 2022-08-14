@@ -77,6 +77,10 @@ class IGlooContainer(object):
             _context_bounded_dependencies.reset(token_context)
             _in_scope.reset(token_flag)
 
+    def add_scoped(self, interface: type, implementer: Any):
+        factory = SnowFactory(implementer)
+        self.request_dependencies[interface] = factory
+
     def __setitem__(self, key: type, value: Any):
         if isinstance(value, SnowFactory):
             self.factories[key] = value
