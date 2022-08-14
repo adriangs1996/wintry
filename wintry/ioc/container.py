@@ -1,7 +1,17 @@
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
 from typing import Any, Callable, TypeVar
 from fastapi.params import Depends
 
 T = TypeVar("T")
+
+# This would be used to define scoped dependencies. Scoped dependencies are
+# singletons for an event lifecycle (like a web request) so the container
+# is in charge of initializing and disposing it
+_context_bounded_dependencies: ContextVar[dict[type, Any]] = ContextVar(
+    "scoped_dependencies", default={}
+)
+_in_scope: ContextVar[bool] = ContextVar("igloo_in_scope", default=False)
 
 
 class DependencyInjectionError(Exception):
@@ -41,6 +51,32 @@ class IGlooContainer(object):
         # a caching mechanism here
         self.cache: dict[type, Any] = dict()
 
+        # This are request Scoped dependencies. These is needed to
+        # provide a way of handling the dependency lifecycle beyond
+        # the call moment. We define the lifecycle of these dependencies
+        # inside a context manager, and allows implementations to
+        # bound the dependencies to a particular event (for example,
+        # when a web server start handling a request).
+        # We maintain request dependencies inside a separate dict
+        # so we can inject them inside the singleton part while inside
+        # the context manager and remove them when the context manager
+        # exits
+        self.request_dependencies: dict[type, Any] = dict()
+
+    @contextmanager
+    def scoped(self):
+        # Prepare the scoped context for dependency injection
+        # It is important that this method gets called once for
+        # each async context, so it might be a good candidate
+        # for a middleware
+        token_context = _context_bounded_dependencies.set({})
+        token_flag = _in_scope.set(True)
+        try:
+            yield
+        finally:
+            _context_bounded_dependencies.reset(token_context)
+            _in_scope.reset(token_flag)
+
     def __setitem__(self, key: type, value: Any):
         if isinstance(value, SnowFactory):
             self.factories[key] = value
@@ -63,6 +99,20 @@ class IGlooContainer(object):
             instance = type_()
             self.cache[key] = instance
             return instance
+
+        # If container is running inside a scoped context, then
+        # scoped dependencies are prioritized over transient ones
+        if _in_scope.get():
+            context = _context_bounded_dependencies.get()
+            # treat context as a scoped cache
+            if key in context:
+                return context[key]
+
+            if key in self.request_dependencies:
+                constructor = self.request_dependencies[key]
+                instance = constructor()
+                context[key] = instance
+                return instance
 
         if key in self.factories:
             return self.factories[key]()
