@@ -32,6 +32,7 @@ from wintry.errors import (
     invalid_request_exception_handler,
     not_found_exception_handler,
 )
+from wintry.middlewares import IoCContainerMiddleware
 from wintry.models import ModelRegistry, VirtualDatabaseSchema
 from wintry.settings import BackendOptions, EngineType, WinterSettings
 from wintry.transporters.service_container import ServiceContainer
@@ -249,6 +250,8 @@ class App(FastAPI):
                 middleware_factory = getattr(module, mid.name)
                 # register the middleware
                 self.add_middleware(middleware_factory, **mid.args)
+
+        self.add_middleware(IoCContainerMiddleware)
 
         for controller in __controllers__:
             self.include_router(controller, prefix=settings.server_prefix)

@@ -14,11 +14,12 @@ def get_logger():
     return logging.getLogger("logger")
 
 
-@provider(of=DatabaseConnection) #type: ignore
+@provider(of=DatabaseConnection)  # type: ignore
 def get_database_connection():
     from wintry import get_connection
 
     return get_connection()
+
 
 @provider(of=WinterSettings)
 def settings():
