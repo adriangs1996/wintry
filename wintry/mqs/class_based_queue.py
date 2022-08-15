@@ -21,9 +21,10 @@ exception will interrupt the main flow. In order to provide asynchronous process
 I will provide integrations with other technologies as Celery or maybe with FastAPI
 background tasks.
 """
+import abc
 from dataclasses import dataclass
 from inspect import iscoroutinefunction
-from typing import TypeVar
+from typing import TypeVar, Generic
 
 from pydantic import BaseModel
 from pydantic.generics import GenericModel
@@ -49,38 +50,44 @@ class IEvent(BaseModel):
         orm_mode = True
 
 
-class IQuery(GenericModel):
+class IQuery(BaseModel):
     class Config(object):
         orm_mode = True
 
 
-class ICommandHandler(object):
+TQuery = TypeVar("TQuery", bound=IQuery)
+
+
+class ICommandHandler(abc.ABC):
     def __init_subclass__(cls, container=igloo):
         cls = dataclass(cls)
         cls = inject(container=container)(cls)
         return cls
 
+    @abc.abstractmethod
     async def handle(self, command: ICommand) -> None:
         ...
 
 
-class IEventHandler(object):
+class IEventHandler(abc.ABC):
     def __init_subclass__(cls, container=igloo):
         cls = dataclass(cls)
         cls = inject(container=container)(cls)
         return cls
 
-    async def handle(self, command: IEvent) -> None:
+    @abc.abstractmethod
+    async def handle(self, event: IEvent) -> None:
         ...
 
 
-class IQueryHandler(object):
+class IQueryHandler(abc.ABC, Generic[TQuery, T]):
     def __init_subclass__(cls, container=igloo):
         cls = dataclass(cls)
         cls = inject(container=container)(cls)
         return cls
 
-    async def handle(self, command: IQuery[T]) -> T:
+    @abc.abstractmethod
+    async def handle(self, query: TQuery) -> T:
         ...
 
 
@@ -152,9 +159,9 @@ class Mediator(object):
         if handler_type is not None:
             handler = handler_type()
             if iscoroutinefunction(handler.handle):
-                await handler.handle(command)
+                return await handler.handle(command)
             else:
-                await run_in_threadpool(handler.handle, command)
+                return await run_in_threadpool(handler.handle, command)
 
         raise HandlerNotFoundException("No handler registered for this command")
 
@@ -178,7 +185,7 @@ class Mediator(object):
                 await run_in_threadpool(handler.handle, event)
 
     @staticmethod
-    async def query(qry: IQuery[T]) -> T:
+    async def query(qry: IQuery) -> T:
         """
         Dispatch a command to its Handler and returns the result
 
