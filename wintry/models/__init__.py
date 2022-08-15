@@ -1,1 +1,1 @@
-from old_model import *
+from .old_model import *

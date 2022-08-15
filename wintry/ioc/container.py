@@ -129,7 +129,11 @@ class IGlooContainer(object):
         self.factories.clear()
 
     def __contains__(self, key: type):
-        return key in self.factories or key in self.singletons
+        return (
+            key in self.factories
+            or key in self.singletons
+            or key in self.request_dependencies
+        )
 
 
 # Global Container for the entire application
