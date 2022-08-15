@@ -10,7 +10,7 @@ from typing import (
     Literal,
 )
 
-from sqlalchemy.engine import Result, ScalarResult
+from sqlmodel.engine.result import Result, ScalarResult
 from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession, create_async_engine
 from sqlalchemy import util
 from sqlalchemy.sql import Select

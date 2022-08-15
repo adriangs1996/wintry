@@ -15,7 +15,8 @@ from typing import (
 from sqlalchemy.exc import IntegrityError
 from wintry import BACKENDS
 from wintry.errors.definitions import InternalServerError, InvalidRequestError
-from wintry.models import Model, _is_private_attr
+from wintry.models import Model
+from wintry.models.old_model import _is_private_attr
 from wintry.orm.mapping import __SQL_ENABLED_FLAG__, __WINTER_MAPPED_CLASS__
 from wintry.sessions import Tracker
 from wintry.settings import EngineType
