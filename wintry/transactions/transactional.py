@@ -1,8 +1,12 @@
 from functools import update_wrapper, wraps
 from inspect import iscoroutinefunction, signature
-from typing import Any, Callable, TypeVar, overload
+from typing import Any, Callable, TypeVar, overload, Type
 
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from wintry.ioc.container import IGlooContainer, igloo
 from wintry.repository import Repository
+from wintry.repository.dbcontext import DbContext
 from wintry.sessions import Tracker
 from wintry.transactions.unit_of_work import (
     close_session,
@@ -126,3 +130,27 @@ def transaction(fn: Callable):
     sig = signature(fn)
     setattr(transactional_function, "__signature__", sig)
     return transactional_function
+
+
+def atomic(
+    *, with_context: Type[DbContext] = AsyncSession, container: IGlooContainer = igloo
+):
+    def decorator(fn: Callable):
+        @wraps(fn)
+        async def transactional_function(*args, **kwargs):
+            # get the DbContext from the container
+            context: DbContext = container[with_context]
+            context.begin()
+            try:
+                return await fn(*args, **kwargs)
+            except Exception as e:
+                await context.rollback()
+                raise e
+            finally:
+                await context.commit()
+
+        sig = signature(fn)
+        setattr(transactional_function, "__signature__", sig)
+        return transactional_function
+
+    return decorator

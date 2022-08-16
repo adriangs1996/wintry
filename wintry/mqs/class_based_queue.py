@@ -27,7 +27,6 @@ from inspect import iscoroutinefunction
 from typing import TypeVar, Generic
 
 from pydantic import BaseModel
-from pydantic.generics import GenericModel
 from starlette.concurrency import run_in_threadpool
 
 from wintry import inject

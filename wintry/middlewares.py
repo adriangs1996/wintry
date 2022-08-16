@@ -1,9 +1,12 @@
+from inspect import iscoroutinefunction
+
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from wintry.ioc.container import igloo
+from wintry.ioc.container import igloo, _context_bounded_dependencies
 
 
 class IoCContainerMiddleware(BaseHTTPMiddleware):
@@ -13,6 +16,6 @@ class IoCContainerMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        with igloo.scoped():
+        async with igloo.scoped():
             response = await call_next(request)
             return response

@@ -1,27 +1,35 @@
 import abc
 from enum import Enum
-from typing import TypeVar, Any, Type, Generic, Dict, List
+from typing import TypeVar, Any, Type, Generic, Dict, List, Protocol
 
 from pydantic import BaseModel
-from sqlalchemy.orm import joinedload, Load as SQLLoad, selectinload
+from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, select
-from sqlmodel.engine.result import ScalarResult
-
-from wintry.db_contexts import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 T = TypeVar("T", bound=BaseModel)
 TId = TypeVar("TId")
 
+
 # This has to serve as an abstraction over the concept of a session
 # that many ORM handles, so we can provide a UoW and Repository unified
 # experience
-class DbContext(abc.ABC):
-    @abc.abstractmethod
+class DbContext(Protocol):
     async def commit(self) -> None:
+        """
+        Flushes current state to DB
+
+        Returns:
+
+        """
         pass
 
-    @abc.abstractmethod
-    async def exec(self, query: Any) -> Any:
+    async def rollback(self) -> None:
+        """Rollback current state"""
+        pass
+
+    def begin(self) -> None:
+        """Start a new transaction"""
         pass
 
 
@@ -70,27 +78,32 @@ class SQLRepository(AbstractRepository, Generic[TSQLModel, TId]):
         self.model = model
 
     async def get_by_id(
-        self, id_: TId, load_spec: List[SQLLoad] | None = None
+        self, id_: TId, load_spec: List[Any] | None = None
     ) -> TSQLModel | None:
         query = select(self.model).where(self.model.id == id_)
 
         if load_spec is not None:
-            query = query.options(*load_spec)
+            for spec in load_spec:
+                query = query.options(selectinload(spec))
         else:
             query = query.options(selectinload("*"))
 
-        result: ScalarResult[TSQLModel] = await self.session.exec(query)
+        result = await self.session.exec(query)
         return result.one_or_none()
 
     async def find(
         self,
-        load_spec: List[SQLLoad] | None = None,
+        load_spec: List[Any] | None = None,
         query_spec: QuerySpecification = QuerySpecification(),
     ) -> List[TSQLModel]:
         query = select(self.model)
 
         for filter_ in query_spec.filters:
             query = query.where(filter_)
+
+        if load_spec is not None:
+            for spec in load_spec:
+                query = query.options(selectinload(spec))
 
         if query_spec.limit is not None:
             query = query.limit(query_spec.limit)
@@ -101,7 +114,7 @@ class SQLRepository(AbstractRepository, Generic[TSQLModel, TId]):
         if query_spec.order_by:
             query = query.order_by(*query_spec.order_by)
 
-        result: ScalarResult[TSQLModel] = await self.session.exec(query)
+        result = await self.session.exec(query)
         return result.all()
 
     async def delete(self, entity: TSQLModel) -> None:

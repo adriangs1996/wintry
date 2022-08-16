@@ -1,7 +1,9 @@
-from contextlib import contextmanager
+from asyncio import iscoroutinefunction
+from contextlib import contextmanager, asynccontextmanager
 from contextvars import ContextVar, Token
 from typing import Any, Callable, TypeVar
 from fastapi.params import Depends
+from starlette.concurrency import run_in_threadpool
 
 T = TypeVar("T")
 
@@ -63,8 +65,8 @@ class IGlooContainer(object):
         # exits
         self.request_dependencies: dict[type, Any] = dict()
 
-    @contextmanager
-    def scoped(self):
+    @asynccontextmanager
+    async def scoped(self):
         # Prepare the scoped context for dependency injection
         # It is important that this method gets called once for
         # each async context, so it might be a good candidate
@@ -74,6 +76,15 @@ class IGlooContainer(object):
         try:
             yield
         finally:
+            # Try to clean the context objects
+            context = _context_bounded_dependencies.get()
+            for dep in context.values():
+                if hasattr(dep, "dispose"):
+                    dispose_method = getattr(dep, "dispose")
+                    if iscoroutinefunction(dispose_method):
+                        await dispose_method()
+                    else:
+                        await run_in_threadpool(dispose_method)
             _context_bounded_dependencies.reset(token_context)
             _in_scope.reset(token_flag)
 
