@@ -163,3 +163,5 @@ app.py
 main.py
 settings.json
 *.db
+
+entry.py

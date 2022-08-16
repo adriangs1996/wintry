@@ -19,7 +19,7 @@ homepage="https://adriangs1996.github.io/wintry"
 [tool.poetry.dependencies]
 python = "^3.10"
 motor = "^2.5.1"
-SQLAlchemy = "^1.4.35"
+SQLAlchemy = "1.4.35"
 asyncpg = "^0.25.0"
 dataclass-wizard = "^0.22.0"
 pydantic = "1.9.0"
