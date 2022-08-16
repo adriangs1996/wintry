@@ -509,9 +509,7 @@ class ApiController(APIRouter):
             return add_nontrailing_slash_path(func)
 
         return (
-            add_trailing_slash_path
-            if given_path == "/"
-            else add_path_and_trailing_slash
+            add_trailing_slash_path if given_path == "/" else add_path_and_trailing_slash
         )
 
 
@@ -525,7 +523,7 @@ DictIntStrAny = Dict[Union[int, str], Any]
 
 
 @dataclass
-class RouteArgs:
+class RouteArgs(object):
     """The arguments APIRouter.add_api_route takes.
 
     Just a convenience for type safety and so we can pass all the args needed by the underlying FastAPI route args via
@@ -557,7 +555,7 @@ class RouteArgs:
     callbacks: Optional[List[Route]] = None
     openapi_extra: Optional[Dict[str, Any]] = None
 
-    class Config:
+    class Config(object):
         arbitrary_types_allowed = True
 
 
@@ -973,20 +971,27 @@ def _controller(
     # Get the __init__ signature and the original parameters
     old_init: Callable[..., Any] = cls.__init__
     old_signature = inspect.signature(old_init)
-    old_parameters = list(old_signature.parameters.values())[
-        1:
-    ]  # drop `self` parameter
+    # drop `self` parameter
+    old_parameters = list(old_signature.parameters.values())[1:]
     new_parameters = [
         x
         for x in old_parameters
-        if x.kind
-        not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        if x.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
     ]
     dependency_names: List[str] = []
     for name, hint in get_type_hints(cls).items():
         if is_classvar(hint):
             continue
-        parameter_kwargs = {"default": getattr(cls, name, Depends(SnowFactory(hint)))}
+
+        def dep(h):
+            def inner():
+                if h in container:
+                    return container[h]
+                return SnowFactory(h)()
+
+            return inner
+
+        parameter_kwargs = {"default": getattr(cls, name, Depends(dep(hint)))}
         dependency_names.append(name)
         new_parameters.append(
             inspect.Parameter(
@@ -1059,7 +1064,7 @@ def _fix_endpoint_signature(cls: Type[Any], endpoint: Callable[..., Any]):
     setattr(endpoint, "__signature__", new_signature)
 
 
-class TransportControllerRegistry:
+class TransportControllerRegistry(object):
     controllers: dict[TransporterType, type] = dict()
 
     @classmethod
