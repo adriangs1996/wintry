@@ -139,6 +139,8 @@ class SQLRepository(AbstractRepository, Generic[TSQLModel, TId]):
         if load_spec is not None:
             for spec in load_spec:
                 query = query.options(selectinload(spec))
+        else:
+            query = query.options(selectinload("*"))
 
         if query_spec.limit is not None:
             query = query.limit(query_spec.limit)
