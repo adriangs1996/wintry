@@ -14,7 +14,8 @@ TId = TypeVar("TId")
 # This has to serve as an abstraction over the concept of a session
 # that many ORM handles, so we can provide a UoW and Repository unified
 # experience
-class DbContext(Protocol):
+class DbContext(abc.ABC):
+    @abc.abstractmethod
     async def commit(self) -> None:
         """
         Flushes current state to DB
@@ -24,12 +25,46 @@ class DbContext(Protocol):
         """
         pass
 
+    @abc.abstractmethod
     async def rollback(self) -> None:
         """Rollback current state"""
         pass
 
+    @abc.abstractmethod
     def begin(self) -> None:
         """Start a new transaction"""
+        pass
+
+    @abc.abstractmethod
+    async def dispose(self):
+        """Release resources"""
+        pass
+
+
+class SyncDbContext(abc.ABC):
+    @abc.abstractmethod
+    def commit(self) -> None:
+        """
+        Flushes current state to DB
+
+        Returns:
+
+        """
+        pass
+
+    @abc.abstractmethod
+    def rollback(self) -> None:
+        """Rollback current state"""
+        pass
+
+    @abc.abstractmethod
+    def begin(self) -> None:
+        """Start a new transaction"""
+        pass
+
+    @abc.abstractmethod
+    def dispose(self):
+        """Release resources"""
         pass
 
 
