@@ -129,6 +129,26 @@ class Model(_BaseODMModel, metaclass=ModelMetaclass):
             exclude_none=exclude_none,
         )
 
+    def dict(  # type: ignore # Missing deprecated/ unsupported parameters
+        self,
+        *,
+        include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,  # type: ignore
+        exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,  # type: ignore
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        by_alias: bool = False,
+    ) -> "DictStrAny":
+        exclude = exclude or set() | {"__wintry_session__", "__wintry_embedded_parent__"}
+        return super(Model, self).dict(
+            include=include,
+            exclude=exclude,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            by_alias=by_alias,
+        )
+
 
 class EmbeddedModel(_BaseODMModel, metaclass=EmbeddedModelMetaclass):
     """Class that can be extended to create an ODMantic Embedded Model.
@@ -140,6 +160,26 @@ class EmbeddedModel(_BaseODMModel, metaclass=EmbeddedModelMetaclass):
     if TYPE_CHECKING:
         __wintry_session__: ClassVar["NosqlAsyncSession"] = None
         __wintry_embedded_parent__: ClassVar[Any] = None
+
+    def dict(  # type: ignore # Missing deprecated/ unsupported parameters
+        self,
+        *,
+        include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,  # type: ignore
+        exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,  # type: ignore
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        by_alias: bool = False,
+    ) -> "DictStrAny":
+        exclude = exclude or set() | {"__wintry_session__", "__wintry_embedded_parent__"}
+        return super(EmbeddedModel, self).dict(
+            include=include,
+            exclude=exclude,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            by_alias=by_alias,
+        )
 
     def __setattr__(self, key, value):
         if key == "__wintry_session__" or key == "__wintry_embedded_parent__":
