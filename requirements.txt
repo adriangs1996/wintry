@@ -1,0 +1,17 @@
+motor >=2.5.1, < 2.6
+SQLAlchemy == 1.4.35
+asyncpg >= 0.25.0, < 0.26
+dataclass-wizard >= 0.22.0
+pydantic >= 1.9.0, < 1.10
+aioredis >= 2.0.1, < 2.1
+fastapi >= 0.78.0
+aio-pika >= 7.2.0
+typer[all] >= 0.4.1
+cookiecutter >= 1.7.3
+uvicorn[standard] >= 0.17.6
+mongomock >= 4.0.0, < 4.1
+aiosqlite >= 0.17.0
+mashumaro >= 3.0.3
+sqlmodel >= 0.0.6
+odmantic >= 0.5.0, < 0.6
+dnspython >= 2.2.1

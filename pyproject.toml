@@ -33,6 +33,7 @@ mongomock = "^4.0.0"
 aiosqlite = "^0.17.0"
 mashumaro = "^3.0.3"
 sqlmodel = "^0.0.6"
+odmantic = "^0.5.0"
 
 [tool.poetry.extras]
 redis = ["aioredis"]

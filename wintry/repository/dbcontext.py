@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from .nosql import Model, NosqlAsyncSession
 
 T = TypeVar("T", bound=BaseModel)
 TId = TypeVar("TId")
@@ -75,7 +76,7 @@ class Order(str, Enum):
 
 class QuerySpecification(BaseModel):
     ordering: Order = Order.asc
-    order_by: List[Any] = []
+    order_by: Any | None = None
     filters: List[Any] = []
     limit: int | None = None
     offset: int | None = None
@@ -104,6 +105,7 @@ class AbstractRepository(abc.ABC, Generic[T, TId]):
 
 
 TSQLModel = TypeVar("TSQLModel", bound=SQLModel)
+TNOSQLModel = TypeVar("TNOSQLModel", bound=Model)
 
 
 class SQLRepository(AbstractRepository, Generic[TSQLModel, TId]):
@@ -158,4 +160,35 @@ class SQLRepository(AbstractRepository, Generic[TSQLModel, TId]):
         await self.session.delete(entity)
 
     async def add(self, entity: TSQLModel) -> None:
+        self.session.add(entity)
+
+
+class NoSQLRepository(AbstractRepository, Generic[TNOSQLModel, TId]):
+    @abc.abstractmethod
+    def __init__(self, session: NosqlAsyncSession, model: Type[TNOSQLModel]):
+        self.session = session
+        self.model = model
+
+    async def get_by_id(
+        self, id_: TId, load_spec: List[Any] | None = None
+    ) -> TNOSQLModel | None:
+        return await self.session.find_one(self.model, self.model.id == id_)
+
+    async def find(
+        self,
+        load_spec: List[Any] | None = None,
+        query_spec: QuerySpecification = QuerySpecification(),
+    ) -> List[TNOSQLModel]:
+        return await self.session.find(
+            self.model,
+            *query_spec.filters,
+            sort=query_spec.order_by,
+            skip=query_spec.offset or 0,
+            limit=query_spec.limit
+        )
+
+    async def delete(self, entity: TNOSQLModel) -> None:
+        self.session.remove(entity)
+
+    async def add(self, entity: TNOSQLModel) -> None:
         self.session.add(entity)
