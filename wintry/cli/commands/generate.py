@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 import typer
-from wintry.models import ModelRegistry
 import jinja2
 import importlib.resources
 import black
@@ -81,7 +80,6 @@ def generate_model(
     if path is None:
         path = Path(f"apps/{app}/models")
     model_fields = ModelField.parse_list(fields)
-    reg_models = ModelRegistry.get_all_models()
     imports: list[ModuleImport] = []
 
     path = path / f"{model.lower()}.py"
@@ -89,14 +87,6 @@ def generate_model(
 
     if not path.exists() and not dry:
         path.parent.mkdir(parents=True, exist_ok=True)
-
-    required_models = list(f.field_type.lower() for f in model_fields)
-
-    for reg_model in reg_models:
-        if any(reg_model.__name__.lower() in req_model for req_model in required_models):
-            imports.append(
-                ModuleImport(module=reg_model.__module__, model=reg_model.__name__)
-            )
 
     with importlib.resources.open_text(
         "wintry.cli.templates.generate", "model.py.j2"

@@ -1,12 +1,9 @@
-from inspect import iscoroutinefunction
-
-from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from wintry.ioc.container import igloo, _context_bounded_dependencies
+from wintry.ioc.container import igloo
 
 
 class IoCContainerMiddleware(BaseHTTPMiddleware):

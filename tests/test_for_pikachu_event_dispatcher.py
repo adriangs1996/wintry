@@ -52,6 +52,7 @@ async def container():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip
 async def test_pikachu_handle_event():
     connection = await aio_pika.connect_robust("amqp://localhost/")
 

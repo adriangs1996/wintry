@@ -45,7 +45,6 @@ from wintry.settings import TransporterType
 from wintry.utils.keys import __winter_transporter_name__, __winter_microservice_event__
 from wintry.ioc import inject
 from wintry.ioc.container import IGlooContainer, SnowFactory, igloo
-from wintry.models import Model
 from pydantic.typing import is_classvar
 
 
@@ -60,12 +59,6 @@ def prepare_response_content(
     exclude_defaults: bool = False,
     exclude_none: bool = False,
 ) -> Any:
-    # wintry.Models are also dataclasses, so this check must come first.
-    # Also, we expect response models to be wintry.Models within wintry,
-    # so we put the check first to gain some performance
-    if isinstance(res, Model):
-        return res.to_dict(omit_none=exclude_none)
-
     # Replicate FastAPI from now on
     if isinstance(res, BaseModel):
         read_with_orm_mode = getattr(res.__config__, "read_with_orm_mode", None)
@@ -131,11 +124,6 @@ def wintry_jsonable_encoder(
         include = set(include)
     if exclude is not None and not isinstance(exclude, (set, dict)):
         exclude = set(exclude)
-
-    # Override the encoder here so we can use wintry.Models as an encoding
-    # source
-    if isinstance(obj, Model):
-        return obj.to_dict(omit_none=exclude_none, by_alias=by_alias)
 
     if isinstance(obj, BaseModel):
         encoder = getattr(obj.__config__, "json_encoders", {})

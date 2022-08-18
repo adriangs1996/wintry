@@ -8,48 +8,7 @@ from uuid import UUID, uuid4
 from wintry.utils.type_helpers import resolve_generic_type_or_die
 
 
-builtin_types = {
-    int,
-    str,
-    float,
-    bool,
-    datetime,
-    date,
-    Enum,
-    UUID
-}
-
-
-class Increment:
-    class NumberSequence:
-        def __init__(self):
-            self.counter = 0
-
-        def __call__(self) -> Any:
-            while True:
-                yield self.counter
-                self.counter += 1
-
-    def __init__(self) -> None:
-        self.generator = Increment.NumberSequence()()
-
-    def __call__(self) -> int:
-        return next(self.generator)
-
-
-class RandomUUID:
-    def __call__(self) -> UUID:
-        return uuid4()
-
-
-class UniqueString:
-    def __call__(self) -> Any:
-        return uuid4().hex
-
-
-AutoIncrement = Increment()
-AutoUUID = RandomUUID()
-AutoString = UniqueString()
+builtin_types = {int, str, float, bool, datetime, date, Enum, UUID}
 
 
 class CodeGenerator:
@@ -156,10 +115,14 @@ class CodeGenerator:
                     if isinstance(type_, ForwardRef):
                         type_ = type_.__forward_arg__
                         type_ = eval(type_, globs, locs)
-                    self._add_line(f"__{f.name} = {type_.__name__}.from_orm(getattr(obj, '{f.name}'))")
+                    self._add_line(
+                        f"__{f.name} = {type_.__name__}.from_orm(getattr(obj, '{f.name}'))"
+                    )
                 else:
                     self._add_line(f"__{f.name} = getattr(obj, '{f.name}')")
-            self._add_line(f"return cls({','.join(f'{f.name}=__{f.name}' for f in fields(model))})")
+            self._add_line(
+                f"return cls({','.join(f'{f.name}=__{f.name}' for f in fields(model))})"
+            )
         self._add_line(f"setattr({model.__name__}, 'from_orm', from_orm)")
 
     def map_to(self, model: type, globs, locs):
@@ -167,10 +130,15 @@ class CodeGenerator:
         self.method("map", "_dict")
         with self.indent():
             for field in fields(model):
-                self._add_line(f"if (value := _dict.get('{field.name}', Undefined)) is not Undefined:")
+                self._add_line(
+                    f"if (value := _dict.get('{field.name}', Undefined)) is not Undefined:"
+                )
                 with self.indent():
                     # Here is where we directly set the new value
-                    if isinstance(field.type, GenericAlias) and field.type.__origin__ == list:
+                    if (
+                        isinstance(field.type, GenericAlias)
+                        and field.type.__origin__ == list
+                    ):
                         type_ = resolve_generic_type_or_die(field.type)
                         if isinstance(type_, str):
                             type_ = eval(type_, globs, locs)
@@ -196,7 +164,9 @@ class CodeGenerator:
 
                             if type_ in builtin_types:
                                 # If we got a list of builtin types, then just assign it
-                                self._add_line(f"self.{field.name} =  _dict['{field.name}']")
+                                self._add_line(
+                                    f"self.{field.name} =  _dict['{field.name}']"
+                                )
 
                             else:
                                 # If it is a list of custom objects, then we need to build
@@ -208,17 +178,25 @@ class CodeGenerator:
                             type_ = resolve_generic_type_or_die(type_)
                             if type_ in builtin_types:
                                 # if a builtin type, then just assign it
-                                self._add_line(f"self.{field.name} =  _dict['{field.name}']")
+                                self._add_line(
+                                    f"self.{field.name} =  _dict['{field.name}']"
+                                )
 
                             else:
                                 # this is an object, so if it is not none, we go and updated it
                                 # otherwise we create it and assign it
-                                self._add_line(f"if self.{field.name} is not None and isinstance(self.{field.name}, Model):")
+                                self._add_line(
+                                    f"if self.{field.name} is not None and isinstance(self.{field.name}, Model):"
+                                )
                                 with self.indent():
-                                    self._add_line(f"self.{field.name}.map(_dict['{field.name}'])")
+                                    self._add_line(
+                                        f"self.{field.name}.map(_dict['{field.name}'])"
+                                    )
                                 self._add_line(f"else:")
                                 with self.indent():
-                                    self._add_line(f"self.{field.name} = {type_.__name__}.build(_dict['{field.name}'])")
+                                    self._add_line(
+                                        f"self.{field.name} = {type_.__name__}.build(_dict['{field.name}'])"
+                                    )
 
                     elif isinstance(field.type, ForwardRef):
                         type_ = field.type.__forward_arg__
@@ -232,7 +210,9 @@ class CodeGenerator:
 
                             if type_ in builtin_types:
                                 # If we got a list of builtin types, then just assign it
-                                self._add_line(f"self.{field.name} =  _dict['{field.name}']")
+                                self._add_line(
+                                    f"self.{field.name} =  _dict['{field.name}']"
+                                )
 
                             else:
                                 # If it is a list of custom objects, then we need to build
@@ -244,17 +224,25 @@ class CodeGenerator:
                             type_ = resolve_generic_type_or_die(type_)
                             if type_ in builtin_types:
                                 # if a builtin type, then just assign it
-                                self._add_line(f"self.{field.name} =  _dict['{field.name}']")
+                                self._add_line(
+                                    f"self.{field.name} =  _dict['{field.name}']"
+                                )
 
                             else:
                                 # this is an object, so if it is not none, we go and updated it
                                 # otherwise we create it and assign it
-                                self._add_line(f"if self.{field.name} is not None and isinstance(self.{field.name}, Model):")
+                                self._add_line(
+                                    f"if self.{field.name} is not None and isinstance(self.{field.name}, Model):"
+                                )
                                 with self.indent():
-                                    self._add_line(f"self.{field.name}.map(_dict['{field.name}'])")
+                                    self._add_line(
+                                        f"self.{field.name}.map(_dict['{field.name}'])"
+                                    )
                                 self._add_line(f"else:")
                                 with self.indent():
-                                    self._add_line(f"self.{field.name} = {type_.__name__}.build(_dict['{field.name}'])")
+                                    self._add_line(
+                                        f"self.{field.name} = {type_.__name__}.build(_dict['{field.name}'])"
+                                    )
 
                     elif field.type not in builtin_types:
                         type_ = resolve_generic_type_or_die(field.type)
@@ -263,12 +251,18 @@ class CodeGenerator:
                             type_ = type_.__forward_arg__
                             type_ = eval(type_, globs, locs)
 
-                        self._add_line(f"if self.{field.name} is not None and isinstance(self.{field.name}, Model):")
+                        self._add_line(
+                            f"if self.{field.name} is not None and isinstance(self.{field.name}, Model):"
+                        )
                         with self.indent():
-                            self._add_line(f"self.{field.name}.map(_dict['{field.name}'])")
+                            self._add_line(
+                                f"self.{field.name}.map(_dict['{field.name}'])"
+                            )
                         self._add_line(f"else:")
                         with self.indent():
-                            self._add_line(f"self.{field.name} = {type_.__name__}.build(_dict['{field.name}'])")
+                            self._add_line(
+                                f"self.{field.name} = {type_.__name__}.build(_dict['{field.name}'])"
+                            )
 
                     else:
                         self._add_line(f"self.{field.name} =  _dict['{field.name}']")

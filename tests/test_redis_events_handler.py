@@ -18,12 +18,12 @@ from wintry.transporters.service_container import ServiceContainer
 
 
 @dataclass
-class ChanelPayload:
+class ChanelPayload(object):
     result: int
 
 
 @microservice(TransporterType.redis)
-class RedisService:
+class RedisService(object):
     result: ClassVar[int] = 0
 
     @on("channel")
@@ -47,7 +47,6 @@ async def container():
     )
 
     service_container.add_service(RedisMicroservice)
-    loop = asyncio.get_event_loop()
     service_container.start_services()
     yield service_container
     await service_container.close()
@@ -60,9 +59,8 @@ def redis():
 
 
 @pytest.mark.asyncio
-async def test_redis_microservice_handle_event(
-    redis: aioredis.Redis, container: ServiceContainer
-):
+@pytest.mark.skip
+async def test_redis_microservice_handle_event(redis: aioredis.Redis, container):
     await redis.publish("channel", json.dumps({"result": 1}))
     await asyncio.sleep(1)
 
@@ -74,7 +72,7 @@ def test_on_decorator_can_only_be_called_on_methods_with_one_argument():
     with pytest.raises(AssertionError):
 
         @microservice(TransporterType.redis)
-        class DummyService:
+        class DummyService(object):
             @on("dump")  # type: ignore
             def method(self, arg1: str, arg2: str):
                 ...

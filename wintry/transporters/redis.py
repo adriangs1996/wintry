@@ -1,11 +1,12 @@
-from inspect import iscoroutinefunction
+import asyncio
 import json
+from inspect import iscoroutinefunction
+
 import aioredis
+
 from wintry.controllers import TransportControllerRegistry
 from wintry.settings import TransporterType, WinterSettings
 from wintry.transporters import Microservice
-import async_timeout
-import asyncio
 from wintry.utils.model_binding import bind_payload_to, get_payload_type_for
 
 

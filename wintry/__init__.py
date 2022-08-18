@@ -20,7 +20,6 @@ from starlette.routing import BaseRoute
 
 # Import the services defined by the framework
 import wintry.services
-from wintry.backend import Backend, QueryDriver
 from wintry.controllers import __controllers__
 from wintry.errors import (
     ForbiddenError,
@@ -33,7 +32,6 @@ from wintry.errors import (
     not_found_exception_handler,
 )
 from wintry.middlewares import IoCContainerMiddleware
-from wintry.models import ModelRegistry, VirtualDatabaseSchema
 from wintry.settings import BackendOptions, EngineType, WinterSettings
 from wintry.transporters.service_container import ServiceContainer
 from wintry.utils.loaders import autodiscover_modules
@@ -41,8 +39,6 @@ from wintry.ioc import inject
 from wintry.utils.keys import __winter_backend_identifier_key__
 
 __version__ = "0.1.2"
-
-BACKENDS: dict[str, Backend] = {}
 
 
 class NotConfiguredFactoryForServerType(Exception):
@@ -69,68 +65,6 @@ class InvalidEngineOption(Exception):
     pass
 
 
-def init_backend(settings: BackendOptions) -> None:
-    """
-    Initialize the winter engine with the provided driver in the config.
-    Defaults to `winter.drivers.mongo`.
-    """
-    # try to get driver
-    try:
-        driver_module = importlib.import_module(settings.driver)
-    except ModuleNotFoundError:
-        raise DriverNotFoundError(
-            "Provide the absolute path to driver module: Ej: winter.drivers.module"
-        )
-
-    try:
-        factory = getattr(driver_module, "factory")
-    except AttributeError:
-        raise FactoryNotFoundError(
-            "Driver module must contain a factory function: (WinterSettings) -> QueryDriver"
-        )
-
-    driver = factory(settings)
-
-    if not isinstance(driver, QueryDriver):
-        raise InvalidDriverInterface("Driver should implement QueryDriver interface")
-
-    import wintry.repository as wintry_repository
-
-    match driver.driver_class:
-        case EngineType.NoSql:
-            VirtualDatabaseSchema.use_nosql()
-            wintry_repository.RepositoryRegistry.configure_for_nosql(settings.name)
-        case EngineType.Sql:
-            VirtualDatabaseSchema.use_sqlalchemy()
-            wintry_repository.RepositoryRegistry.configure_for_sqlalchemy(settings.name)
-        case EngineType.NoEngine:
-            pass
-        case _:
-            raise InvalidEngineOption()
-
-    # set the backend driver
-    backend = Backend(driver)
-    # init the driver
-    driver.init(settings)
-
-    BACKENDS[settings.name] = backend
-
-
-def init_backends(settings: WinterSettings = WinterSettings()) -> None:
-    for backend in settings.backends:
-        init_backend(backend)
-
-
-async def get_connection(
-    backend_name: str = "default",
-) -> AsyncIOMotorDatabase | AsyncConnection:
-    backend = BACKENDS.get(backend_name, None)
-    if backend is None:
-        raise DriverNotFoundError(f"{backend_name} has not been configured as a backend")
-
-    return await backend.get_connection()
-
-
 def _config_logger():
     FORMAT: str = "%(levelprefix)s %(asctime)s | %(message)s"
     # create logger
@@ -142,7 +76,9 @@ def _config_logger():
     ch.setLevel(logging.DEBUG)
 
     # create formatter
-    formatter = uvicorn.logging.DefaultFormatter(FORMAT, datefmt="%Y-%m-%d %H:%M:%S")  # type: ignore
+    formatter = uvicorn.logging.DefaultFormatter(
+        FORMAT, datefmt="%Y-%m-%d %H:%M:%S"
+    )  # type:ignore
 
     # add formatter to ch
     ch.setFormatter(formatter)
@@ -267,32 +203,11 @@ class App(FastAPI):
                 InvalidRequestError, invalid_request_exception_handler
             )
 
-    def _get_repo_driver(self, repo):
-        backend_name = getattr(repo, __winter_backend_identifier_key__, "default")
-        back = BACKENDS[backend_name]
-        assert back.driver is not None
-        return back.driver
-
-    async def _load_metadata(self):
-        from wintry.repository import RepositoryRegistry
-
-        for repo in RepositoryRegistry.repositories:
-            driver = self._get_repo_driver(repo)
-            if driver.driver_class == EngineType.Sql:
-                from wintry.models import metadata
-
-                engine = getattr(driver, "_engine")
-                async with engine.begin() as conn:
-                    await conn.run_sync(metadata.create_all)
-
         @self.on_startup
         @inject
         async def wintry_startup(logger: logging.Logger):
             if self.settings.transporters:
                 self.service_container.start_services()
-
-            if self.settings.ensure_metadata:
-                await self._load_metadata()
 
         @self.on_shutdown
         @inject
@@ -320,19 +235,6 @@ class App(FastAPI):
             logger.info("Loading project modules.")
             autodiscover_modules(settings)
             logger.info("Project modules loaded.")
-
-        # Initialize the backends
-        if settings.backends:
-            logger.info("Initializing backends.")
-            init_backends(settings)
-            logger.info("Backends set succesfuly.")
-
-        # Configure the models
-        # This adds the code for methods like from_orm, SQL selectinload
-        # statement compilation, etc
-        logger.info("Configuring Models.")
-        ModelRegistry.configure()
-        logger.info("Models configured.")
 
     def on_startup(self, fn: Callable[..., Any]):
         return self.on_event("startup")(fn)

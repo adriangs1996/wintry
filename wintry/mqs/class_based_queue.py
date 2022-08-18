@@ -24,7 +24,7 @@ background tasks.
 import abc
 from dataclasses import dataclass
 from inspect import iscoroutinefunction
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Dict, Type, List
 
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
@@ -90,7 +90,7 @@ class IQueryHandler(abc.ABC, Generic[TQuery, T]):
         ...
 
 
-def command_handler(command: type[ICommand]):
+def command_handler(command: Type[ICommand]):
     """
     Decorator to register a Handler for a Command
     Args:
@@ -100,15 +100,15 @@ def command_handler(command: type[ICommand]):
 
     """
 
-    def handler_wrapper(handler: type[ICommandHandler]):
+    def handler_wrapper(handler: Type[ICommandHandler]):
         COMMANDS_HANDLERS[command] = handler
         return handler
 
     return handler_wrapper
 
 
-def event_handler(event: type[IEvent]):
-    def handler_wrapper(handler: type[IEventHandler]):
+def event_handler(event: Type[IEvent]):
+    def handler_wrapper(handler: Type[IEventHandler]):
         if event in EVENTS_HANDLERS:
             EVENTS_HANDLERS[event].append(handler)
         else:
@@ -119,7 +119,7 @@ def event_handler(event: type[IEvent]):
     return handler_wrapper
 
 
-def query_handler(qry: type[IQuery]):
+def query_handler(qry: Type[IQuery]):
     """
     Decorator to register a Handler for a Query
     Args:
@@ -129,7 +129,7 @@ def query_handler(qry: type[IQuery]):
 
     """
 
-    def handler_wrapper(handler: type[IQueryHandler]):
+    def handler_wrapper(handler: Type[IQueryHandler]):
         QUERY_HANDLERS[qry] = handler
         return handler
 
@@ -205,6 +205,6 @@ class Mediator(object):
         raise HandlerNotFoundException("Not registered handler for this query")
 
 
-EVENTS_HANDLERS: dict[type[IEvent], list[type[IEventHandler]]] = {}
-COMMANDS_HANDLERS: dict[type[ICommand], type[ICommandHandler]] = {}
-QUERY_HANDLERS: dict[type[IQuery], type[IQueryHandler]] = {}
+EVENTS_HANDLERS: Dict[Type[IEvent], List[Type[IEventHandler]]] = {}
+COMMANDS_HANDLERS: Dict[Type[ICommand], Type[ICommandHandler]] = {}
+QUERY_HANDLERS: Dict[Type[IQuery], Type[IQueryHandler]] = {}

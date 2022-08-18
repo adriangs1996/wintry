@@ -1,8 +1,7 @@
-import logging
-from pathlib import Path
-from typing import Any
-from wintry.settings import WinterSettings
 import importlib
+from pathlib import Path
+
+from wintry.settings import WinterSettings
 
 
 class LoaderError(Exception):

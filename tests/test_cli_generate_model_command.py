@@ -1,12 +1,6 @@
 from typer.testing import CliRunner
 from wintry.cli.cli import snowman
-from wintry.models import Model
 import pytest
-
-
-class Address(Model):
-    name: str
-
 
 cli_runner = CliRunner()
 
