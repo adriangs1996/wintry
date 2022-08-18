@@ -22,7 +22,7 @@ motor = "^2.5.1"
 SQLAlchemy = "1.4.35"
 asyncpg = "^0.25.0"
 pydantic = "1.9.0"
-aioredis = {version = "^2.0.1", optional = true }
+aioredis = "^2.0.1"
 fastapi = "^0.78.0"
 aio-pika = "^7.2.0"
 typer = {extras = ["all"], version = "^0.4.1"}
@@ -32,9 +32,8 @@ mongomock = "^4.0.0"
 aiosqlite = "^0.17.0"
 sqlmodel = "^0.0.6"
 odmantic = "^0.5.0"
-
-[tool.poetry.extras]
-redis = ["aioredis"]
+wrapt = "^1.14.1"
+redis = "^4.3.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
