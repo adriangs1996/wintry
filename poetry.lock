@@ -568,6 +568,20 @@ pytest = ">=6.1.0"
 testing = ["coverage (==6.2)", "hypothesis (>=5.7.1)", "flaky (>=3.5.0)", "mypy (==0.931)", "pytest-trio (>=0.7.0)"]
 
 [[package]]
+name = "pytest-mock"
+version = "3.8.2"
+description = "Thin-wrapper around the mock package for easier use with pytest"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+pytest = ">=5.0"
+
+[package.extras]
+dev = ["pre-commit", "tox", "pytest-asyncio"]
+
+[[package]]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
@@ -860,7 +874,7 @@ redis = ["aioredis"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "81f9dbbfc03eade7006302fb8b2d200b4f374f17a626df20f617e95e9bbef11d"
+content-hash = "f2c31937ac6d41dc7d53b75fc41365306f4110b05a5bb19ae6847916c60ca410"
 
 [metadata.files]
 aio-pika = []
@@ -910,6 +924,7 @@ pymongo = []
 pyparsing = []
 pytest = []
 pytest-asyncio = []
+pytest-mock = []
 python-dateutil = []
 python-dotenv = []
 python-slugify = []

@@ -15,3 +15,4 @@ mashumaro >= 3.0.3
 sqlmodel >= 0.0.6
 odmantic >= 0.5.0, < 0.6
 dnspython >= 2.2.1
+wrapt >= 1.14.1
