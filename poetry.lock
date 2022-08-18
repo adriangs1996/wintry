@@ -233,18 +233,6 @@ requests = ">=2.23.0"
 six = ">=1.10"
 
 [[package]]
-name = "dataclass-wizard"
-version = "0.22.1"
-description = "Marshal dataclasses to/from JSON. Use field properties with initial values. Construct a dataclass schema with JSON input."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.extras]
-timedelta = ["pytimeparse (>=1.1.7)"]
-yaml = ["PyYAML (>=5.3)"]
-
-[[package]]
 name = "fastapi"
 version = "0.78.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -341,21 +329,6 @@ description = "Safely add untrusted strings to HTML/XML markup."
 category = "main"
 optional = false
 python-versions = ">=3.7"
-
-[[package]]
-name = "mashumaro"
-version = "3.0.4"
-description = "Fast serialization framework on top of dataclasses"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-typing-extensions = "*"
-
-[package.extras]
-yaml = ["pyyaml (>=3.13)"]
-msgpack = ["msgpack (>=0.5.6)"]
 
 [[package]]
 name = "mongomock"
@@ -874,7 +847,7 @@ redis = ["aioredis"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "f2c31937ac6d41dc7d53b75fc41365306f4110b05a5bb19ae6847916c60ca410"
+content-hash = "688fb3acd22cdb10074a16d6a01023203fd56ad55d79fd2bae955f61a7d35d0f"
 
 [metadata.files]
 aio-pika = []
@@ -896,7 +869,6 @@ charset-normalizer = []
 click = []
 colorama = []
 cookiecutter = []
-dataclass-wizard = []
 fastapi = []
 greenlet = []
 h11 = []
@@ -906,7 +878,6 @@ iniconfig = []
 jinja2 = []
 jinja2-time = []
 markupsafe = []
-mashumaro = []
 mongomock = []
 motor = []
 multidict = []

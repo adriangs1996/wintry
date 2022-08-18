@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "wintry"
 version = "0.1.4-alpha"
-description = "A modern python web framework. Based on python-3.10, dataclasses and type-hints"
+description = "A modern python web framework based on python-3.10"
 authors = ["adriangs1996 <adriangonzalezsanchez1996@gmail.com>"]
 license = "MIT"
 readme="README.md"
@@ -21,7 +21,6 @@ python = "^3.10"
 motor = "^2.5.1"
 SQLAlchemy = "1.4.35"
 asyncpg = "^0.25.0"
-dataclass-wizard = "^0.22.0"
 pydantic = "1.9.0"
 aioredis = {version = "^2.0.1", optional = true }
 fastapi = "^0.78.0"
@@ -31,7 +30,6 @@ cookiecutter = "^1.7.3"
 uvicorn = {extras = ["standard"], version = "^0.17.6"}
 mongomock = "^4.0.0"
 aiosqlite = "^0.17.0"
-mashumaro = "^3.0.3"
 sqlmodel = "^0.0.6"
 odmantic = "^0.5.0"
 

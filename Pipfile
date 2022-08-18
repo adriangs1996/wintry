@@ -25,6 +25,8 @@ wrapt = ">=1.14.1"
 pytest = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
+black = "*"
+pipenv-setup = "*"
 
 [requires]
 python_version = "3.10"
