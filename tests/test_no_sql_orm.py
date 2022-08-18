@@ -119,7 +119,7 @@ class TestAttributesChanges(object):
 @pytest.mark.asyncio
 class TestListAttributesChanges(object):
     @staticmethod
-    async def test_mongo_context_tracks_shallow_attribute_on_list_property(
+    async def test_mongo_context_tracks_change_on_list_property_append(
         mocker: MockerFixture,
     ):
         class MyModel1(EmbeddedModel):
@@ -135,9 +135,74 @@ class TestListAttributesChanges(object):
         obj = await session.find_one(MyModel2, MyModel2.id == ObjectId())
         assert obj is not None
         assert obj.id in session.transient
-        print(obj.nesteds)
         obj.nesteds.append(MyModel1(name="deep"))
 
         find_mock.assert_called_once()
         assert obj.id in session.dirty
         assert obj.nesteds == [MyModel1(name="deep")]
+
+    @staticmethod
+    async def test_mongo_context_tracks_change_on_list_property_remove(
+        mocker: MockerFixture,
+    ):
+        class MyModel1(EmbeddedModel):
+            name: str
+
+        class MyModel2(Model):
+            name: str
+            nesteds: List[MyModel1] = []
+
+        session, find_mock = get_mock_with_override("find_one", mocker)
+        model1 = MyModel1(name="test")
+        find_mock.return_value = MyModel2(name="test1", nesteds=[model1])
+
+        obj = await session.find_one(MyModel2, MyModel2.id == ObjectId())
+        assert obj is not None
+        assert obj.id in session.transient
+        obj.nesteds.remove(model1)
+
+    @staticmethod
+    async def test_mongo_context_tracks_change_on_list_property_pop(
+        mocker: MockerFixture,
+    ):
+        class MyModel1(EmbeddedModel):
+            name: str
+
+        class MyModel2(Model):
+            name: str
+            nesteds: List[MyModel1] = []
+
+        session, find_mock = get_mock_with_override("find_one", mocker)
+        find_mock.return_value = MyModel2(name="test1", nesteds=[MyModel1(name="test")])
+
+        obj = await session.find_one(MyModel2, MyModel2.id == ObjectId())
+        assert obj is not None
+        assert obj.id in session.transient
+        obj.nesteds.pop()
+
+        find_mock.assert_called_once()
+        assert obj.id in session.dirty
+        assert obj.nesteds == []
+
+    @staticmethod
+    async def test_mongo_context_tracks_change_on_list_property_extend(
+        mocker: MockerFixture,
+    ):
+        class MyModel1(EmbeddedModel):
+            name: str
+
+        class MyModel2(Model):
+            name: str
+            nesteds: List[MyModel1] = []
+
+        session, find_mock = get_mock_with_override("find_one", mocker)
+        find_mock.return_value = MyModel2(name="test1")
+
+        obj = await session.find_one(MyModel2, MyModel2.id == ObjectId())
+        assert obj is not None
+        assert obj.id in session.transient
+        obj.nesteds.extend([MyModel1(name="1"), MyModel1(name="2")])
+
+        find_mock.assert_called_once()
+        assert obj.id in session.dirty
+        assert obj.nesteds == [MyModel1(name="1"), MyModel1(name="2")]
