@@ -29,7 +29,7 @@ from typing import TypeVar, Generic, Dict, Type, List
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from wintry import inject
+from wintry.ioc import inject
 from wintry.ioc.container import igloo
 
 T = TypeVar("T")

@@ -1,255 +1,59 @@
-import importlib
-import logging
-from logging import Logger
-from typing import (
-    Any,
-    Callable,
-    Coroutine,
-    Sequence,
-    Union,
-    Type,
-    TypeVar,
-    Optional,
-    List,
+from fastapi import Body as Body
+from fastapi import Depends as Depends
+from fastapi import FastAPI
+from fastapi import Header as Header
+from fastapi import Query as Query
+from fastapi import Path as Path
+
+from fastapi.middleware import Middleware as Middleware
+from starlette.requests import Request as Request
+from starlette.responses import JSONResponse as JSONResponse, Response as Response
+
+from .transactions import atomic as atomic
+from .repository import ObjectId as ObjectId
+from .repository import DetachedFromSessionException as DetachedFromSessionExceptio
+from .repository import NoSQLModel as NoSQLModel
+from .repository import NosqlAsyncSession as NosqlAsyncSession
+from .repository import MotorContext as MotorContext
+from .repository import MotorContextNotInitialized as MotorContextNotInitialized
+from .repository import SQLEngineContext as SQLEngineContext
+from .repository import (
+    SQLEngineContextNotInitializedException as SQLEngineContextNotInitializedException,
 )
-
-import uvicorn
-
-# Import things directly from fastapi so they are
-# accessible from wintry
-from fastapi import Body, Depends, FastAPI, Header, Query
-from fastapi.datastructures import Default
-from fastapi.middleware import Middleware
-from fastapi.params import Depends as DependsParam
-from fastapi.routing import APIRoute
-from fastapi.utils import generate_unique_id
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic.main import BaseModel
-from sqlalchemy.ext.asyncio import AsyncConnection
-from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
-from starlette.routing import BaseRoute
-
-# Import the services defined by the framework
-import wintry.services
-from wintry.controllers import __controllers__
-from wintry.errors import (
-    ForbiddenError,
-    InternalServerError,
-    InvalidRequestError,
-    NotFoundError,
-    forbidden_exception_handler,
-    internal_server_exception_handler,
-    invalid_request_exception_handler,
-    not_found_exception_handler,
-)
-from wintry.ioc.injector import scoped
-from wintry.middlewares import IoCContainerMiddleware
-from wintry.repository.dbcontext import SQLEngineContext
-from wintry.repository.nosql import MotorContext
-from wintry.settings import BackendOptions, EngineType, WinterSettings
-from wintry.transporters.service_container import ServiceContainer
-from wintry.utils.loaders import autodiscover_modules
-from wintry.ioc import inject, provider
-from wintry.utils.keys import __winter_backend_identifier_key__
-
-__version__ = "0.1.2"
+from .repository import DbContext as DbContext
+from .repository import SyncDbContext as SyncDbContext
+from .repository import QuerySpecification as QuerySpecification
+from .repository import AbstractRepository as AbstractRepository
+from .repository import NoSQLRepository as NoSQLRepository
+from .repository import SQLRepository as SQLRepository
+from .repository import SQLModel as SQLModel
+from .repository import AsyncSession as AsyncSession
+from odmantic import EmbeddedModel as EmbeddedModel
 
 
-class NotConfiguredFactoryForServerType(Exception):
-    pass
+from .mqs import command_handler as command_handler
+from .mqs import event_handler as event_handler
+from .mqs import query_handler as query_handler
+from .mqs import IEventHandler as IEventHandler
+from .mqs import IEvent as IEvent
+from .mqs import ICommandHandler as ICommandHandler
+from .mqs import IQueryHandler as IQueryHandler
+from .mqs import IQuery as IQuery
+from .mqs import HandlerNotFoundException as HandlerNotFoundException
+from .mqs import ICommand as ICommand
+from .mqs import Mediator as Mediator
 
 
-class DriverNotFoundError(Exception):
-    pass
+from .controllers import controller as controller
+from .controllers import get as get
+from .controllers import patch as patch
+from .controllers import put as put
+from .controllers import post as post
+from .controllers import delete as delete
 
+from .ioc import inject, provider, scoped
 
-class FactoryNotFoundError(Exception):
-    pass
+from .entrypoints import App as App
+from .entrypoints import AppBuilder as AppBuilder
 
-
-class InvalidDriverInterface(Exception):
-    pass
-
-
-class DriverNotSetError(Exception):
-    pass
-
-
-class InvalidEngineOption(Exception):
-    pass
-
-
-def _config_logger():
-    FORMAT: str = "%(levelprefix)s %(asctime)s | %(message)s"
-    # create logger
-    logger = logging.getLogger("logger")
-    logger.setLevel(logging.DEBUG)
-
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-
-    # create formatter
-    formatter = uvicorn.logging.DefaultFormatter(
-        FORMAT, datefmt="%Y-%m-%d %H:%M:%S"
-    )  # type:ignore
-
-    # add formatter to ch
-    ch.setFormatter(formatter)
-
-    # add ch to logger
-    logger.addHandler(ch)
-
-    return logger
-
-
-class App(FastAPI):
-    def __init__(
-        self,
-        *,
-        server_prefix: str = "",
-        debug: bool = False,
-        routes: list[BaseRoute] | None = None,
-        title: str = "Wintry API",
-        description: str = "",
-        version: str = "0.1.0",
-        openapi_url: str | None = "/openapi.json",
-        openapi_tags: list[dict[str, Any]] | None = None,
-        servers: list[dict[str, Union[str, Any]]] | None = None,
-        dependencies: Sequence[DependsParam] | None = None,
-        default_response_class: type[Response] = Default(JSONResponse),
-        docs_url: str | None = "/docs",
-        redoc_url: str | None = "/redoc",
-        swagger_ui_oauth2_redirect_url: str | None = "/docs/oauth2-redirect",
-        swagger_ui_init_oauth: dict[str, Any] | None = None,
-        middleware: Sequence[Middleware] | None = None,
-        exception_handlers: dict[
-            Union[int, type[Exception]],
-            Callable[[Request, Any], Coroutine[Any, Any, Response]],
-        ]
-        | None = None,
-        on_startup: Sequence[Callable[[], Any]] | None = None,
-        on_shutdown: Sequence[Callable[[], Any]] | None = None,
-        terms_of_service: str | None = None,
-        contact: dict[str, Union[str, Any]] | None = None,
-        license_info: dict[str, Union[str, Any]] | None = None,
-        openapi_prefix: str = "",
-        root_path: str = "",
-        root_path_in_servers: bool = True,
-        responses: dict[Union[int, str], dict[str, Any]] | None = None,
-        callbacks: list[BaseRoute] | None = None,
-        deprecated: bool | None = None,
-        include_in_schema: bool = True,
-        swagger_ui_parameters: dict[str, Any] | None = None,
-        generate_unique_id_function: Callable[[APIRoute], str] = Default(
-            generate_unique_id
-        ),
-        **extra: Any,
-    ) -> None:
-        super().__init__(
-            debug=debug,
-            routes=routes,
-            callbacks=callbacks,
-            contact=contact,
-            default_response_class=default_response_class,
-            dependencies=dependencies,
-            deprecated=deprecated,
-            description=description,
-            docs_url=docs_url,
-            exception_handlers=exception_handlers,
-            extra=extra,
-            generate_unique_id_function=generate_unique_id_function,
-            include_in_schema=include_in_schema,
-            license_info=license_info,
-            middleware=middleware,
-            on_shutdown=on_shutdown,
-            on_startup=on_startup,
-            openapi_prefix=openapi_prefix,
-            openapi_tags=openapi_tags,
-            openapi_url=openapi_url,
-            redoc_url=redoc_url,
-            responses=responses,
-            root_path=root_path,
-            root_path_in_servers=root_path_in_servers,
-            servers=servers,
-            swagger_ui_init_oauth=swagger_ui_init_oauth,
-            swagger_ui_oauth2_redirect_url=swagger_ui_oauth2_redirect_url,
-            swagger_ui_parameters=swagger_ui_parameters,
-            terms_of_service=terms_of_service,
-            title=title,
-            version=version,
-        )
-        self.add_middleware(IoCContainerMiddleware)
-
-        for controller in __controllers__:
-            self.include_router(controller, prefix=server_prefix)
-
-        _config_logger()
-
-    def on_startup(self, fn: Callable[..., Any]):
-        return self.on_event("startup")(fn)
-
-    def on_shutdown(self, fn: Callable[..., Any]):
-        return self.on_event("shutdown")(fn)
-
-
-T = TypeVar("T")
-P = TypeVar("P")
-
-
-class SQLConfig(BaseModel):
-    echo: bool = True
-
-
-class AppBuilder(object):
-    @staticmethod
-    def use_mongo_context(
-        app: App, motor_context: Type[MotorContext], url: str
-    ) -> "Type[AppBuilder]":
-        """Bootstrap a :ref:motor.motor_asyncio.AsyncIOMotorClient inside application StartUp event.
-        Args:
-            app (App): An App instance to attach this context to
-            motor_context (Type[MotorContext]): the motor context with the motor client
-            url (str): the mongo url connection str
-
-        Returns: AppBuilder
-
-        """
-
-        @app.on_startup
-        @inject
-        async def setup_mongo_context(logger: Logger):
-            logger.info(f"Configuring {motor_context.__name__}")
-            motor_context.config(url)
-
-        return AppBuilder
-
-    @staticmethod
-    def use_sql_context(
-        app: App,
-        sql_context: Type[SQLEngineContext],
-        url: str,
-        conf: SQLConfig = SQLConfig(),
-    ):
-        @app.on_startup
-        @inject
-        async def setup_sql_context(logger: Logger):
-            logger.info(f"Configuring {sql_context.__name__}")
-            sql_context.config(url, echo=conf.echo)
-
-        return AppBuilder
-
-    @staticmethod
-    def autodiscover(app_path: str, modules: Optional[List[str]] = None):
-        modules = modules or []
-        autodiscover_modules(modules, app_path)
-        return AppBuilder
-
-    @staticmethod
-    def use_default_exception_handlers(app: App):
-        app.add_exception_handler(NotFoundError, not_found_exception_handler)
-        app.add_exception_handler(InternalServerError, internal_server_exception_handler)
-        app.add_exception_handler(ForbiddenError, forbidden_exception_handler)
-        app.add_exception_handler(InvalidRequestError, invalid_request_exception_handler)
-        return AppBuilder
+__version__ = "0.1.5"
