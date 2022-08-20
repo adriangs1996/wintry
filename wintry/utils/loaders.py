@@ -1,5 +1,6 @@
 import importlib
 from pathlib import Path
+from typing import List
 
 from wintry.settings import WinterSettings
 
@@ -20,7 +21,7 @@ def to_package_format(path: Path) -> str:
     return module
 
 
-def discover(path: Path, settings: WinterSettings):
+def discover(path: Path, app_path: str):
     dirs: list[Path] = [path]
     while dirs:
         module = dirs.pop(0)
@@ -31,30 +32,32 @@ def discover(path: Path, settings: WinterSettings):
                 if sub_module.name.endswith(".py"):
                     try:
                         mod = to_package_format(sub_module)
-                        if mod not in settings.app_path:
+                        if mod not in app_path:
                             importlib.import_module(mod)
                     except ModuleNotFoundError as e:
                         raise LoaderError(str(e))
 
 
-def autodiscover_modules(settings: WinterSettings = WinterSettings()):
+def autodiscover_modules(modules: List[str], app_path: str):
     """Utility to automatically import the app's modules so there is
     no need to manual importing controllers, services, etc, to provide
     the necessary registry for DI
 
     Args:
-        settings(WinterSettings): App global configuration. If omitted, will be
-        constructed with defaults and .env variables
+        modules:
+        app_path:
 
     Returns:
         None
 
     """
 
-    for module in settings.modules:
+    for module in modules:
         app_root = Path(module)
 
         if not app_root.is_dir():
             raise LoaderError(
                 f"{app_root.resolve()} is not a dir. Autodiscovery must be called on a dir."
             )
+
+        discover(app_root, app_path)

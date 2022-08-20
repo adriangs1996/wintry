@@ -1,7 +1,17 @@
 import importlib
 import logging
 from logging import Logger
-from typing import Any, Callable, Coroutine, Sequence, Union, Type, TypeVar, Optional
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Sequence,
+    Union,
+    Type,
+    TypeVar,
+    Optional,
+    List,
+)
 
 import uvicorn
 
@@ -97,8 +107,8 @@ def _config_logger():
 class App(FastAPI):
     def __init__(
         self,
-        settings: WinterSettings,
         *,
+        server_prefix: str = "",
         debug: bool = False,
         routes: list[BaseRoute] | None = None,
         title: str = "Wintry API",
@@ -170,76 +180,12 @@ class App(FastAPI):
             title=title,
             version=version,
         )
-        # Provide settings for the whole app. This would be accessible from
-        # dependency injection.
-        self.settings = settings
-
-        self.service_container = ServiceContainer(settings)
-
-        self.bootstrap()
-
-        for transporter in settings.transporters:
-            driver = importlib.import_module(transporter.driver)
-            service_class = getattr(driver, transporter.service)
-            self.service_container.add_service(service_class)
-
-        if settings.middlewares:
-            for mid in settings.middlewares:
-                # Try to import the middleware module
-                module = importlib.import_module(mid.module)
-                # try to get the middleware object
-                middleware_factory = getattr(module, mid.name)
-                # register the middleware
-                self.add_middleware(middleware_factory, **mid.args)
-
         self.add_middleware(IoCContainerMiddleware)
 
         for controller in __controllers__:
-            self.include_router(controller, prefix=settings.server_prefix)
+            self.include_router(controller, prefix=server_prefix)
 
-        if settings.include_error_handling:
-
-            self.add_exception_handler(NotFoundError, not_found_exception_handler)
-            self.add_exception_handler(
-                InternalServerError, internal_server_exception_handler
-            )
-            self.add_exception_handler(ForbiddenError, forbidden_exception_handler)
-            self.add_exception_handler(
-                InvalidRequestError, invalid_request_exception_handler
-            )
-
-        @self.on_startup
-        @inject
-        async def wintry_startup(logger: logging.Logger):
-            if self.settings.transporters:
-                self.service_container.start_services()
-
-        @self.on_shutdown
-        @inject
-        async def wintry_shutdown(logger: logging.Logger):
-            if self.settings.transporters:
-                await self.service_container.close()
-            logger.info("Server is shuting down")
-
-    def bootstrap(self):
-        """
-        Launch general configurations for the server.
-        :func:`Winter.setup()` is based on the configurations
-        provided in a settings.json, the default values of
-        the `WinterSettings` or a custom instance passed
-        to this method. It will launch services based on configuration
-        flags, like autodiscovery and DI Configuration
-        """
-        settings = self.settings
-
-        # Configure the builtin logger
-        logger = _config_logger()
-
-        # Load all the modules so DI and mappings works
-        if settings.auto_discovery_enabled:
-            logger.info("Loading project modules.")
-            autodiscover_modules(settings)
-            logger.info("Project modules loaded.")
+        _config_logger()
 
     def on_startup(self, fn: Callable[..., Any]):
         return self.on_event("startup")(fn)
@@ -292,4 +238,18 @@ class AppBuilder(object):
             logger.info(f"Configuring {sql_context.__name__}")
             sql_context.config(url, echo=conf.echo)
 
+        return AppBuilder
+
+    @staticmethod
+    def autodiscover(app_path: str, modules: Optional[List[str]] = None):
+        modules = modules or []
+        autodiscover_modules(modules, app_path)
+        return AppBuilder
+
+    @staticmethod
+    def use_default_exception_handlers(app: App):
+        app.add_exception_handler(NotFoundError, not_found_exception_handler)
+        app.add_exception_handler(InternalServerError, internal_server_exception_handler)
+        app.add_exception_handler(ForbiddenError, forbidden_exception_handler)
+        app.add_exception_handler(InvalidRequestError, invalid_request_exception_handler)
         return AppBuilder
