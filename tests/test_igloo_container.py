@@ -3,7 +3,6 @@ from wintry import App
 from wintry.controllers import controller, get
 from wintry.ioc import provider, inject
 from wintry.ioc.container import IGlooContainer
-from wintry.settings import WinterSettings
 from wintry import Depends, Header
 from wintry.controllers import __controllers__
 from fastapi.testclient import TestClient
@@ -139,13 +138,6 @@ def test_scoped_injection():
     container.clear()
 
 
-settings = WinterSettings(
-    backends=[],
-    transporters=[],
-    auto_discovery_enabled=False,
-)
-
-
 def test_controllers_works_with_classical_injection():
     @provider(container=container)
     class Service(object):
@@ -161,7 +153,7 @@ def test_controllers_works_with_classical_injection():
         async def run(self):
             return self.service.do_something()
 
-    app = App(settings)
+    app = App()
     client = TestClient(app)
 
     response = client.get("/some")
@@ -196,7 +188,7 @@ def test_controllers_can_merge_fastapi_di_api_with_builtin_di():
         async def get_something(self):
             return self.service.do_something_user(self.user)
 
-    app = App(settings)
+    app = App()
     client = TestClient(app)
     user = {"name": "Jon", "password": "Snow"}
     response = client.get("/user", params=user)
@@ -223,7 +215,7 @@ def test_controller_handles_single_depends_from_fastapi():
         async def get_user(self):
             return self.user
 
-    app = App(settings)
+    app = App()
     client = TestClient(app)
     user = {"name": "Jon", "password": "Snow"}
     response = client.get("/user2", params=user)
@@ -251,7 +243,7 @@ def test_controller_handles_nested_fastapi_dependencies():
         async def get_user(self):
             return self.user
 
-    app = App(settings)
+    app = App()
     client = TestClient(app)
     user = {"name": "Jon", "password": "Snow"}
     response = client.get("/user3", params={"password": "Snow"}, headers={"name": "jon"})
@@ -298,7 +290,7 @@ def test_complex_dependencies():
         async def get_something(self):
             return self.service.get_text_for_user(self.user)
 
-    app = App(settings)
+    app = App()
     client = TestClient(app)
     user = {"name": "Jon", "password": "Snow"}
 
