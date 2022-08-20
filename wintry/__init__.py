@@ -1,6 +1,7 @@
 import importlib
 import logging
-from typing import Any, Callable, Coroutine, Sequence, Union, Type, TypeVar
+from logging import Logger
+from typing import Any, Callable, Coroutine, Sequence, Union, Type, TypeVar, Optional
 
 import uvicorn
 
@@ -13,6 +14,7 @@ from fastapi.params import Depends as DependsParam
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic.main import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -31,11 +33,14 @@ from wintry.errors import (
     invalid_request_exception_handler,
     not_found_exception_handler,
 )
+from wintry.ioc.injector import scoped
 from wintry.middlewares import IoCContainerMiddleware
+from wintry.repository.dbcontext import SQLEngineContext
+from wintry.repository.nosql import MotorContext
 from wintry.settings import BackendOptions, EngineType, WinterSettings
 from wintry.transporters.service_container import ServiceContainer
 from wintry.utils.loaders import autodiscover_modules
-from wintry.ioc import inject
+from wintry.ioc import inject, provider
 from wintry.utils.keys import __winter_backend_identifier_key__
 
 __version__ = "0.1.2"
@@ -247,8 +252,44 @@ T = TypeVar("T")
 P = TypeVar("P")
 
 
+class SQLConfig(BaseModel):
+    echo: bool = True
+
+
 class AppBuilder(object):
     @staticmethod
-    def add_service(interface: Type[T], provider: Type[P]) -> "Type[AppBuilder]":
+    def use_mongo_context(
+        app: App, motor_context: Type[MotorContext], url: str
+    ) -> "Type[AppBuilder]":
+        """Bootstrap a :ref:motor.motor_asyncio.AsyncIOMotorClient inside application StartUp event.
+        Args:
+            app (App): An App instance to attach this context to
+            motor_context (Type[MotorContext]): the motor context with the motor client
+            url (str): the mongo url connection str
+
+        Returns: AppBuilder
+
+        """
+
+        @app.on_startup
+        @inject
+        async def setup_mongo_context(logger: Logger):
+            logger.info(f"Configuring {motor_context.__name__}")
+            motor_context.config(url)
+
+        return AppBuilder
+
+    @staticmethod
+    def use_sql_context(
+        app: App,
+        sql_context: Type[SQLEngineContext],
+        url: str,
+        conf: SQLConfig = SQLConfig(),
+    ):
+        @app.on_startup
+        @inject
+        async def setup_sql_context(logger: Logger):
+            logger.info(f"Configuring {sql_context.__name__}")
+            sql_context.config(url, echo=conf.echo)
 
         return AppBuilder

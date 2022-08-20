@@ -1,6 +1,8 @@
+import dataclasses
 import uuid
 from datetime import date, datetime
 from enum import Enum, IntEnum
+from logging import Logger
 from typing import (
     Dict,
     List,
@@ -10,6 +12,7 @@ from typing import (
     Optional,
     TypeVar,
     Callable,
+    ClassVar,
 )
 
 from bson import ObjectId
@@ -104,10 +107,10 @@ class ModelSessionProxy(ObjectProxy):
         if not key.startswith("_self_"):
             self._self_session.to_dirty(self._self_parent)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str):
         attr = super(ModelSessionProxy, self).__getattr__(item)
 
-        if type(attr) in __mappings_builtins__:
+        if type(attr) in __mappings_builtins__ or isinstance(attr, Callable):
             return attr
 
         if isinstance(attr, list):
@@ -131,6 +134,32 @@ class ModelSessionProxy(ObjectProxy):
 
 
 T = TypeVar("T", bound=Model)
+
+
+class MotorContextNotInitialized(Exception):
+    ...
+
+
+class MotorContext(object):
+    """
+    This holds a class reference to a mongo client instance.
+    Is meant to be initialized once, on the Event Loop that will
+    be running the application, so no Detached Sessions Errors
+    occurs
+    """
+
+    _client: ClassVar[Optional[AsyncIOMotorClient]] = None
+
+    @classmethod
+    def config(cls, url: str):
+        if cls._client is None:
+            cls._client = AsyncIOMotorClient(url)
+
+    @classmethod
+    def get_client(cls) -> AsyncIOMotorClient:
+        if cls._client is None:
+            raise MotorContextNotInitialized()
+        return cls._client
 
 
 class NosqlAsyncSession(AIOEngine):
@@ -165,6 +194,7 @@ class NosqlAsyncSession(AIOEngine):
         await self._commit_new()
         await self._commit_dirty()
         await self._commit_deleted()
+        self.begin()
 
     async def rollback(self):
         self.new.clear()
@@ -221,13 +251,32 @@ class NosqlAsyncSession(AIOEngine):
         *queries: Union[QueryExpression, Dict, bool],
         sort: Optional[Any] = None,
     ) -> Optional[T]:
+
+        # This might seem odd, but actually is quite important.
+        # find_one is just a shortcut for find()[0]. As this calls
+        # (as implemented by AIOEngine) self.find, we must ensure
+        # that result does not get registered twice and that the
+        # registry does not accidentally map a proxy object instead
+        # of the original one. So we save the old orm value, set it
+        # to false in the call to super, and finally revert it back
+        # to function as the flag for configuring the OrmProxy or not.
+        old_orm = self.orm
+
+        # Set the orm flag to False, so the call to super returns pure
+        # objects
+        self.orm = False
+
         result = await super(NosqlAsyncSession, self).find_one(model, *queries, sort=sort)
+
+        # Restore the orm flag
+        self.orm = old_orm
+
         if not self.orm:
             return result
 
         if result is not None:
             proxy = ModelSessionProxy(result, self, result.id)
-            self._register(proxy)
+            self._register(result)
             return proxy
         return None
 
@@ -239,15 +288,22 @@ class NosqlAsyncSession(AIOEngine):
         skip: int = 0,
         limit: Optional[int] = None,
     ) -> List[T]:
+
+        # Same as above, overriden method should account for the orm flag
+        # presence, otherwise they could end up with proxies registered in the
+        # identity map instead of the pure objects the imap is expecting
+        old_orm = self.orm
+        self.orm = False
         results = await super(NosqlAsyncSession, self).find(
             model, *queries, sort=sort, skip=skip, limit=limit
         )
+        self.orm = old_orm
         if not self.orm:
             return results
 
         proxies = []
         for result in results:
             proxy = ModelSessionProxy(result, self, result.id)
-            self._register(proxy)
+            self._register(result)
             proxies.append(proxy)
         return proxies

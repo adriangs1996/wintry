@@ -1,11 +1,12 @@
 import abc
 from enum import Enum
-from typing import TypeVar, Any, Type, Generic, Dict, List, Protocol
+from typing import TypeVar, Any, Type, Generic, Dict, List, Protocol, ClassVar, Optional
 
 from pydantic import BaseModel
 from sqlalchemy.orm import selectinload
 from sqlmodel import SQLModel, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession, AsyncEngine
+from sqlalchemy.ext.asyncio import create_async_engine
 from .nosql import Model, NosqlAsyncSession
 
 T = TypeVar("T", bound=BaseModel)
@@ -67,6 +68,25 @@ class SyncDbContext(abc.ABC):
     def dispose(self):
         """Release resources"""
         pass
+
+
+class SQLEngineContextNotInitializedException(Exception):
+    pass
+
+
+class SQLEngineContext(object):
+    _client: ClassVar[Optional[AsyncEngine]] = None
+
+    @classmethod
+    def config(cls, url: str, echo: bool = True):
+        if cls._client is None:
+            cls._client = create_async_engine(url, echo=echo)
+
+    @classmethod
+    def get_client(cls):
+        if cls._client is None:
+            raise SQLEngineContextNotInitializedException()
+        return cls._client
 
 
 class Order(str, Enum):
