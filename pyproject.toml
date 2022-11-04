@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wintry"
-version = "0.1.4-alpha"
+version = "0.1.5"
 description = "A modern python web framework based on python-3.10"
 authors = ["adriangs1996 <adriangonzalezsanchez1996@gmail.com>"]
 license = "MIT"
