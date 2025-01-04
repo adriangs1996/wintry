@@ -1,0 +1,1906 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://adriangs1996.github.io/wintry/quickstart/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../user-guide/installation/">
+      
+      
+      <link rel="icon" href="../img/penguin-logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Quick Start - Wintry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="../stylesheets/custom.css">
+    
+      <link rel="stylesheet" href="../stylesheets/termynal.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#quick-start" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Wintry Documentation" class="md-header__button md-logo" aria-label="Wintry Documentation" data-md-component="logo">
+      
+  <img src="../img/penguin-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Wintry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Quick Start
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/adriangs1996/wintry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    adriangs1996/wintry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Wintry Documentation" class="md-nav__button md-logo" aria-label="Wintry Documentation" data-md-component="logo">
+      
+  <img src="../img/penguin-logo.png" alt="logo">
+
+    </a>
+    Wintry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/adriangs1996/wintry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    adriangs1996/wintry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      The demo
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The demo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#one-aggregate-one-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      One Aggregate = One Repository
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#first-thing-first-ensure-atomicity-and-consistency-use-an-unitofwork" class="md-nav__link">
+    <span class="md-ellipsis">
+      First thing First, ensure atomicity and consistency, use an UnitOfWork
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-service-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      The service layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      External Events
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entrypoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      Entrypoints
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      The App
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-it-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check it out
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    User Guide
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/controllers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Controllers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/di/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Dependency Injection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/models/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Models
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/repository/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Repositories
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/unitofwork/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Unit Of Work
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/eventshandlers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Events and Commands Handling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/middlewares/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Middlewares
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/autodiscovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bootstraping and API registration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      The demo
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The demo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#one-aggregate-one-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      One Aggregate = One Repository
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#first-thing-first-ensure-atomicity-and-consistency-use-an-unitofwork" class="md-nav__link">
+    <span class="md-ellipsis">
+      First thing First, ensure atomicity and consistency, use an UnitOfWork
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-service-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      The service layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      External Events
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entrypoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      Entrypoints
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      The App
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-it-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check it out
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="quick-start">Quick Start</h1>
+<p>Here you will find a gentle introduction to 🐧<strong>Wintry</strong>🐧. No in-deep API discussion
+or details related to every specific possible combination of settings. Instead
+you will be able to grasp the full power of 🐧<strong>Wintry</strong>🐧 through
+a textbook-like tutorial over an imaginary APP which will allow
+me to show you the approaches that lead to the creation of 🐧<strong>Wintry</strong>🐧
+and how easy is to build 'cool stuff' with it. We have a long road
+ahead, let's get started!.</p>
+<h2 id="the-demo">The demo</h2>
+<hr />
+<p>👋 Hello there. Whether you are a newbie or a seassoned developer, you are at the right place.
+You will develop a full CRUD app, from scratch, using 🐧<strong>Wintry</strong>🐧 to ease your development
+flow. You'll find that the framework tries to remove the hazzle of setting up your
+environment, and let you instead focus on what really matters, your business logic.</p>
+<p>Pherhaps a lot of what you will see next feels like magic 🧙‍♂️, that's ok,
+a lot of what 🐧<strong>Wintry</strong>🐧 do under the hood is pretty advanced stuff, but rest assure,
+it is developed with speed 🚀, performance, and confort in mind. Also, I expect you to find
+it really, really cool 🥶</p>
+<p>This demo follows the same road of <a href="https://www.cosmicpython.com/book/preface.html">this book📚</a>, which I personally love. The API design is Domain Model centric, and I think that it always should be.
+This means that we will try to do DDD, in the right way, with
+as little (or none) details from data access as possible, and using
+our Domain Models for every interaction and Domain Logic. I will jump
+over most Design choices and dive directly in the implementation.</p>
+<div class="admonition tip">
+<p class="admonition-title">Think in your business logic first</p>
+<p>We’ve found that many developers, when asked to design a new system, will immediately start to build a database schema, with the object model treated as an afterthought. This is where it all starts to go wrong. Instead, behavior should come first and drive our storage requirements. After all, our customers don’t care about the data model. They care about what the system does; otherwise they’d just use a spreadsheet.</p>
+</div>
+<p>Suppose we are working for a furniture retailer, and now we are
+concerned with the allocation system. Some rules are:</p>
+<ul>
+<li>
+<p>We need to allocate order lines to batches. When we’ve allocated an order line to a batch, we will send stock from that specific batch to the customer’s delivery address. When we allocate x units of stock to a batch, the available quantity is reduced by x.</p>
+</li>
+<li>
+<p>We can’t allocate to a batch if the available quantity is less than the quantity of the order line</p>
+</li>
+<li>
+<p>We can’t allocate the same line twice</p>
+</li>
+</ul>
+<p>The following class definitions could
+represent an Aggregate for consinstency and boundaries checks.</p>
+<div class="admonition tip aggregates">
+<p class="admonition-title">Tip</p>
+<p>An AGGREGATE is a cluster of associated objects that we treat as a unit for the purpose of data changes.</p>
+</div>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">models.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-0-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#__codelineno-0-65">65</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">wintry.models</span> <span class="kn">import</span> <span class="n">Array</span><span class="p">,</span> <span class="n">Model</span><span class="p">,</span> <span class="n">RequiredId</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="k">class</span> <span class="nc">OutOfStock</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a>    <span class="k">pass</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="k">class</span> <span class="nc">OrderLine</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">qty</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="n">orderid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">RequiredId</span><span class="p">()</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">class</span> <span class="nc">Batch</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">purchased_quantity</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">RequiredId</span><span class="p">()</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">allocations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OrderLine</span><span class="p">]</span> <span class="o">=</span> <span class="n">Array</span><span class="p">()</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="n">eta</span><span class="p">:</span> <span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="k">def</span> <span class="nf">allocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">OrderLine</span><span class="p">):</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_allocate</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a>    <span class="k">def</span> <span class="nf">deallocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">OrderLine</span><span class="p">):</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a>        <span class="k">if</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="p">:</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="k">def</span> <span class="nf">deallocate_one</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderLine</span><span class="p">:</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="nd">@property</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="k">def</span> <span class="nf">allocated_quantity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a>        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">qty</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="p">)</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="nd">@property</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">def</span> <span class="nf">available_quantity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">purchased_quantity</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocated_quantity</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="k">def</span> <span class="nf">can_allocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">OrderLine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sku</span> <span class="o">==</span> <span class="n">line</span><span class="o">.</span><span class="n">sku</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_quantity</span> <span class="o">&gt;=</span> <span class="n">line</span><span class="o">.</span><span class="n">qty</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="k">def</span> <span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">eta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>            <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">&gt;</span> <span class="n">other</span><span class="o">.</span><span class="n">eta</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="k">class</span> <span class="nc">Product</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>  <span class="c1"># (1)</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">RequiredId</span><span class="p">()</span>  <span class="c1"># (2)</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">batches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Batch</span><span class="p">]</span> <span class="o">=</span> <span class="n">Array</span><span class="p">()</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="k">def</span> <span class="nf">allocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="n">OrderLine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>            <span class="n">batch</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batches</span><span class="p">)</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">can_allocate</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>            <span class="n">batch</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>            <span class="k">return</span> <span class="n">batch</span><span class="o">.</span><span class="n">reference</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59"></a>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="k">def</span> <span class="nf">change_batch_quantity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">qty</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>        <span class="n">batch</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">batches</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">reference</span> <span class="o">==</span> <span class="n">ref</span><span class="p">)</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>        <span class="n">batch</span><span class="o">.</span><span class="n">purchased_quantity</span> <span class="o">=</span> <span class="n">qty</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63"></a>        <span class="k">while</span> <span class="n">batch</span><span class="o">.</span><span class="n">available_quantity</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64"></a>            <span class="n">line</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">deallocate_one</span><span class="p">()</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65"></a>            <span class="k">yield</span> <span class="n">line</span>
+</code></pre></div></td></tr></table></div>
+<ol>
+<li>Models are transformed to dataclasses, so no need to define
+a dummy constructor.</li>
+<li><code>sku</code> is the identifier of this model.</li>
+</ol>
+<p>Models are automatically converted to dataclasses. Futhermore, we can now build instances of our models
+using <code class="highlight"><span class="n">Batch</span><span class="o">.</span><span class="n">build</span><span class="p">()</span></code> or serialize them using <code class="highlight"><span class="n">Batch</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span></code></p>
+<p>Notice that we define the models interaction inside the model itself, don't worry about persistance,
+we will see that in a moment. First, let's tackle an issue that is not   appearent when first starting
+the app's development, but this is a tutorial, and I'm allowed to cheat and go with time travel⌛.
+The issues is "Query Segregation". Wait, WTF you just say. Is easy, usually when we develop an app,
+we try to model two things at the same time: Relations and Representations.
+We always want our Relations to be consistent, we want our representations to be efficient.
+Translating to code, I want to represent <code>Batch</code> allocations as a list, because is easy to
+remove or add new <code>OrderLines</code>, and to easily and accuratly compute <code>available_quantity</code> and
+<code>allocated_quantity</code>. But when I query the system, I don't expect it to search to an entire
+array for an <code>Allocation</code>, it would be better if this query is optimized too. The problem is,
+we should split our model into "Write Data" and "Read Data", and there is a pattern that really
+apply here: CQRS:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>I'm not using Event-Sourcing here, usually comes together👪, but we should not confuse one
+with the other.</p>
+</div>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">viewmodels.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1">1</a></span>
+<span class="normal"><a href="#__codelineno-1-2">2</a></span>
+<span class="normal"><a href="#__codelineno-1-3">3</a></span>
+<span class="normal"><a href="#__codelineno-1-4">4</a></span>
+<span class="normal"><a href="#__codelineno-1-5">5</a></span>
+<span class="normal"><a href="#__codelineno-1-6">6</a></span>
+<span class="normal"><a href="#__codelineno-1-7">7</a></span>
+<span class="normal"><a href="#__codelineno-1-8">8</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="kn">from</span> <span class="nn">wintry.generators</span> <span class="kn">import</span> <span class="n">AutoString</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="kn">from</span> <span class="nn">wintry.models</span> <span class="kn">import</span> <span class="n">Id</span><span class="p">,</span> <span class="n">Model</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="k">class</span> <span class="nc">AllocationsViewModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Id</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">AutoString</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a>    <span class="n">orderid</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a>    <span class="n">batchref</span><span class="p">:</span> <span class="nb">str</span>
+</code></pre></div></td></tr></table></div>
+<p>I know I said we will not be concerned with data access at the moment, but the real
+benefit of this split comes when we are querying a DB: we are eliminating the joins
+from the query.</p>
+<p>Ok, we have run from our persistance layer for a long time, let's tackle that next.</p>
+<h3 id="one-aggregate-one-repository">One Aggregate = One Repository</h3>
+<hr />
+<p>This is by no means enforced, but it is a good rule of thumb.
+Thinking in Repositories at Aggregates levels allows to simplify
+data access logic at the same time you guarantee some degree of 
+cohesion between dependant models. Again, I follow this approach
+as in the book 📚, but it is here just to make a point.</p>
+<p>Repositories are abstractions over Data🗃️ Access, that allow us to treat databases as if we were controlling an in-memory data store. Usually Repositories are coupled to databases with a 
+specific dialect. 🐧<strong>Wintry</strong>🐧 provides a unified view over data🗃️ access, but not the same way as Django. Django Model's Managers 
+represent what is called an Active Record, and that aproach promotes the "Fat Models" antipattern. Well, is all a matter of opinions, but there is always one friction:</p>
+<blockquote>
+<p>Writting Queries for managing domain logic usually involve
+pretty straight forward queries, specially for writting data🗃️.</p>
+</blockquote>
+<p>So, with 🐧<strong>Wintry</strong>🐧 , you dont have to write your Queries at all, you can do it, though you most likely wont need it. Sounds🔊 confusing, let me show you how our persistance layer could look like:</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">repositories.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span>
+<span class="normal"><a href="#__codelineno-2-16">16</a></span>
+<span class="normal"><a href="#__codelineno-2-17">17</a></span>
+<span class="normal"><a href="#__codelineno-2-18">18</a></span>
+<span class="normal"><a href="#__codelineno-2-19">19</a></span>
+<span class="normal"><a href="#__codelineno-2-20">20</a></span>
+<span class="normal"><a href="#__codelineno-2-21">21</a></span>
+<span class="normal"><a href="#__codelineno-2-22">22</a></span>
+<span class="normal"><a href="#__codelineno-2-23">23</a></span>
+<span class="normal"><a href="#__codelineno-2-24">24</a></span>
+<span class="normal"><a href="#__codelineno-2-25">25</a></span>
+<span class="normal"><a href="#__codelineno-2-26">26</a></span>
+<span class="normal"><a href="#__codelineno-2-27">27</a></span>
+<span class="normal"><a href="#__codelineno-2-28">28</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="kn">from</span> <span class="nn">tuto.viewmodels</span> <span class="kn">import</span> <span class="n">AllocationsViewModel</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="kn">from</span> <span class="nn">wintry.ioc</span> <span class="kn">import</span> <span class="n">provider</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3"></a><span class="kn">from</span> <span class="nn">wintry.repository</span> <span class="kn">import</span> <span class="n">Repository</span><span class="p">,</span> <span class="n">query</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="kn">from</span> <span class="nn">.models</span> <span class="kn">import</span> <span class="n">Product</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="nd">@provider</span> <span class="c1"># (3)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="k">class</span> <span class="nc">ProductRepository</span><span class="p">(</span><span class="n">Repository</span><span class="p">[</span><span class="n">Product</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">entity</span><span class="o">=</span><span class="n">Product</span><span class="p">):</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8"></a>    <span class="nd">@query</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_by_sku</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Product</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10"></a>        <span class="o">...</span> <span class="c1"># (1)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12"></a>    <span class="nd">@query</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">get_by_batches__reference</span><span class="p">(</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14"></a>        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">batches__reference</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Product</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16"></a>        <span class="o">...</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18"></a><span class="nd">@provider</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19"></a><span class="k">class</span> <span class="nc">AllocationViewModelRepository</span><span class="p">(</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20"></a>    <span class="n">Repository</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="n">AllocationsViewModel</span><span class="p">,</span> <span class="n">for_backend</span><span class="o">=</span><span class="s2">&quot;mongo&quot;</span> <span class="c1"># (2)</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21"></a><span class="p">):</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22"></a>    <span class="nd">@query</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">find_by_orderid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">orderid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AllocationsViewModel</span><span class="p">]:</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24"></a>        <span class="o">...</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25"></a>
+<a id="__codelineno-2-26" name="__codelineno-2-26"></a>    <span class="nd">@query</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">delete_by_orderid_and_sku</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">orderid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28"></a>        <span class="o">...</span>
+</code></pre></div></td></tr></table></div>
+<ol>
+<li>🧙‍♂️Hey dude, you forgot to implement your method, this will crush you in your face.... Well, no it didn't... BAZINGA!!🧙‍♂️</li>
+<li>⚙️Do not give to much thinking to this, it would be explained in the Repository Chapter.</li>
+<li>💉This comes from the dependency injection module, it allows to latter on inject instances of this class</li>
+</ol>
+<p>So you may ask: Ok, where are all these methods implemented?</p>
+<p>That's the beauty, yo don't have to, it is already there, in the name. Repositories are query compilers and automatically translate
+your method names into queries, and yes, it automatically knows
+how to build your object from your data source, and whether to return a list or a single object.</p>
+<p>Speaking of data source, we better configure one to make the whole thing real, right?
+We will be using Postgresql, Mongo and Redis for this tutorial, but any SQLAlchemy
+compatible database will do. Do you remember when we talked 
+about data separation? Well, 🐧<strong>Wintry</strong>🐧 allow us to do that
+at persistance layer very very easily too. 
+For the setup, we can use Docker with the following docker-compose:</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">docker-compose.yml</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-3-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-3-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-3-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-3-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-3-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-3-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-3-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-3-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-3-10">10</a></span>
+<span class="normal"><a href="#__codelineno-3-11">11</a></span>
+<span class="normal"><a href="#__codelineno-3-12">12</a></span>
+<span class="normal"><a href="#__codelineno-3-13">13</a></span>
+<span class="normal"><a href="#__codelineno-3-14">14</a></span>
+<span class="normal"><a href="#__codelineno-3-15">15</a></span>
+<span class="normal"><a href="#__codelineno-3-16">16</a></span>
+<span class="normal"><a href="#__codelineno-3-17">17</a></span>
+<span class="normal"><a href="#__codelineno-3-18">18</a></span>
+<span class="normal"><a href="#__codelineno-3-19">19</a></span>
+<span class="normal"><a href="#__codelineno-3-20">20</a></span>
+<span class="normal"><a href="#__codelineno-3-21">21</a></span>
+<span class="normal"><a href="#__codelineno-3-22">22</a></span>
+<span class="normal"><a href="#__codelineno-3-23">23</a></span>
+<span class="normal"><a href="#__codelineno-3-24">24</a></span>
+<span class="normal"><a href="#__codelineno-3-25">25</a></span>
+<span class="normal"><a href="#__codelineno-3-26">26</a></span>
+<span class="normal"><a href="#__codelineno-3-27">27</a></span>
+<span class="normal"><a href="#__codelineno-3-28">28</a></span>
+<span class="normal"><a href="#__codelineno-3-29">29</a></span>
+<span class="normal"><a href="#__codelineno-3-30">30</a></span>
+<span class="normal"><a href="#__codelineno-3-31">31</a></span>
+<span class="normal"><a href="#__codelineno-3-32">32</a></span>
+<span class="normal"><a href="#__codelineno-3-33">33</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="nt">services</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w">  </span><span class="nt">postgres</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres:14-alpine</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;5432:5432&quot;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">POSTGRES_PASSWORD=secret</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">POSTGRES_USER=postgres</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">POSTGRES_DB=tests</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12"></a><span class="w">  </span><span class="nt">mongo</span><span class="p">:</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13"></a><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mongo</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mongo:5.0.6-focal</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15"></a><span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;27017:27017&quot;</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17"></a><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">always</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18"></a><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./scripts/rs-init.sh:/scripts/rs-init.sh</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20"></a><span class="w">    </span><span class="nt">entrypoint</span><span class="p">:</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21"></a><span class="w">      </span><span class="p p-Indicator">[</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22"></a><span class="w">        </span><span class="s">&quot;/usr/bin/mongod&quot;</span><span class="p p-Indicator">,</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23"></a><span class="w">        </span><span class="s">&quot;--bind_ip_all&quot;</span><span class="p p-Indicator">,</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24"></a><span class="w">        </span><span class="s">&quot;--replSet&quot;</span><span class="p p-Indicator">,</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25"></a><span class="w">        </span><span class="s">&quot;dbrs&quot;</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26"></a><span class="w">      </span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27"></a>
+<a id="__codelineno-3-28" name="__codelineno-3-28"></a><span class="w">  </span><span class="nt">redis</span><span class="p">:</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29"></a><span class="w">    </span><span class="nt">container_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">redis</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">redis:6-alpine</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31"></a><span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;6379:6379&quot;</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33"></a><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">always</span>
+</code></pre></div></td></tr></table></div>
+<div class="termy">
+
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">[+] Running 5/5</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go"> ⠿ Network winter_default Created                                                                                                      0.4s</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go"> ⠿ Container postgres      Started                                                                                                      8.5s</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go"> ⠿ Container redis         Started                                                                                                      8.7s</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go"> ⠿ Container mongo         Started                                                                                                      6.5s</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go">Starting replica set initialization</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="go">Connecting to:          mongodb://mongo:27017/?directConnection=true&amp;appName=mongosh+1.3.1</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="go">MongoNetworkError: connect ECONNREFUSED 172.22.0.2:27017</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="go">Current Mongosh Log ID: 62803fdacc3f016a401c7b6f</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="go">Connecting to:          mongodb://mongo:27017/?directConnection=true&amp;appName=mongosh+1.3.1</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="go">Using MongoDB:          5.0.6</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="go">Using Mongosh:          1.3.1</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="go">For mongosh info see: https://docs.mongodb.com/mongodb-shell/</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="go">To help improve our products, anonymous usage data is collected and sent to MongoDB periodically (https://www.mongodb.com/legal/privacy-policy).</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="go">You can opt-out by running the disableTelemetry() command.</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="go">------</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="go">   The server generated these startup warnings when booting:</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="go">   2022-05-14T23:48:28.619+00:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="go">   2022-05-14T23:48:32.745+00:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="go">   2022-05-14T23:48:32.745+00:00: You are running this process as the root user, which is not recommended</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="go">------</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="go">waited for connection</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="go">Connection finished</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">Creating replica set</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="go">Current Mongosh Log ID: 62803fe159c7cb9bf4f581bd</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">Connecting to:          mongodb://mongo:27017/?directConnection=true&amp;appName=mongosh+1.3.1</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="go">Using MongoDB:          5.0.6</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="go">Using Mongosh:          1.3.1</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="go">For mongosh info see: https://docs.mongodb.com/mongodb-shell/</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="go">------</span>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="go">   The server generated these startup warnings when booting:</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="go">   2022-05-14T23:48:28.619+00:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="go">   2022-05-14T23:48:32.745+00:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="go">   2022-05-14T23:48:32.745+00:00: You are running this process as the root user, which is not recommended</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="go">------</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="go">test&gt; {</span>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="go">  ok: 1,</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="go">  &#39;$clusterTime&#39;: {</span>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="go">    clusterTime: Timestamp({ t: 1652572133, i: 1 }),</span>
+<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="go">    signature: {</span>
+<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="go">      hash: Binary(Buffer.from(&quot;0000000000000000000000000000000000000000&quot;, &quot;hex&quot;), 0),</span>
+<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a><span class="go">      keyId: Long(&quot;0&quot;)</span>
+<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="go">    }</span>
+<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a><span class="go">  },</span>
+<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a><span class="go">  operationTime: Timestamp({ t: 1652572133, i: 1 })</span>
+<a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a><span class="go">}</span>
+<a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a><span class="go">dbrs [direct: secondary] test&gt; replica set created </span>
+</code></pre></div>
+
+</div>
+
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>All the output of the above console is necessary to show you that you need
+to configure the mongodb server as a replica set because that's the only way
+to use sessions.
+You can configure yours with the following script, this is the one used
+in the docker-compose file from above
+<div class="highlight"><span class="filename">rs-init.sh</span><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w">    </span><span class="c1">#!/bin/bash</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Starting replica set initialization&quot;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="k">until</span><span class="w"> </span>mongosh<span class="w"> </span>--host<span class="w"> </span>mongo<span class="w"> </span>--eval<span class="w"> </span><span class="s2">&quot;print(\&quot;waited for connection\&quot;)&quot;</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="k">do</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span>sleep<span class="w"> </span><span class="m">2</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="k">done</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Connection finished&quot;</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Creating replica set&quot;</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="nv">MONGO1IP</span><span class="o">=</span><span class="k">$(</span>getent<span class="w"> </span>hosts<span class="w"> </span>mongo<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{ print $1 }&#39;</span><span class="k">)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="nb">read</span><span class="w"> </span>-r<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span>CMD<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="s">    var config = {</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="s">        &quot;_id&quot;: &quot;dbrs&quot;,</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="s">        &quot;version&quot;: 1,</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="s">        &quot;members&quot;: [</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="s">            {</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="s">                &quot;_id&quot;: 1,</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="s">                &quot;host&quot;:&#39;${MONGO1IP}:27017&#39;,</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="s">            }</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="s">        ]</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="s">    };</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="s">    rs.initiate(config, { force: true });</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="s">    EOF</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$CMD</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>mongosh<span class="w"> </span>--host<span class="w"> </span>mongo
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;replica set created&quot;</span>
+</code></pre></div></p>
+</div>
+<p>Alright, we now need to define the interaction of our app, the way our Models talks one to another.
+We will do it in a Event-Based fashion. In fact, we will write our service layer in a way that
+will transform our app into a Message Pipeline.</p>
+<h3 id="first-thing-first-ensure-atomicity-and-consistency-use-an-unitofwork">First thing First, ensure atomicity and consistency, use an UnitOfWork</h3>
+<hr />
+<p>Out of the box, 🐧<strong>Wintry</strong>🐧 integrates an Unit Of Work with your Repositories,
+let's declare one for our app:</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">uow.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-6-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-6-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-6-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-6-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-6-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-6-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-6-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-6-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-6-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="kn">from</span> <span class="nn">wintry.transactions</span> <span class="kn">import</span> <span class="n">UnitOfWork</span> <span class="k">as</span> <span class="n">WintryUnitOfWork</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="kn">from</span> <span class="nn">wintry.ioc</span> <span class="kn">import</span> <span class="n">provider</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="kn">from</span> <span class="nn">.repositories</span> <span class="kn">import</span> <span class="n">ProductRepository</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="nd">@provider</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6"></a><span class="k">class</span> <span class="nc">UnitOfWork</span><span class="p">(</span><span class="n">WintryUnitOfWork</span><span class="p">):</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7"></a>    <span class="n">products</span><span class="p">:</span> <span class="n">ProductRepository</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">products</span><span class="p">:</span> <span class="n">ProductRepository</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">products</span><span class="o">=</span><span class="n">products</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<div class="admonition tip">
+<p class="admonition-title">The Unit of Work pattern</p>
+<p>The Unit of Work pattern is used to group one or more operations (usually database CRUD operations) into a single
+transaction or “unit of work” so that all operations either pass or fail as one unit. In simple words we can say that
+for a specific user action, say booking on a website, all the transactions like insert/update/delete and so on are
+done in one single transaction, rather than doing multiple database transactions. This means, one unit of work here
+involves insert/update/delete operations, all in one single transaction so that all operations either pass or fail as
+one unit.</p>
+</div>
+<p>Yes, thats all it takes. But how we use this?? If you read the idea of "Unit of Work", you probably
+associate it with a lovely piece of python syntax: a context manager. That's how we use it, we enclose
+our transaction inside a context manager and then commit the changes when we have done. If the transaction
+fails for some reason, then the changes are rolled back. That could look like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>    <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">uow</span> <span class="k">as</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>        <span class="n">product</span> <span class="o">=</span> <span class="k">await</span> <span class="n">uow</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">get_by_sku</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        <span class="k">if</span> <span class="n">product</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>            <span class="k">raise</span> <span class="n">InvalidSku</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid sku </span><span class="si">{</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="n">batchref</span> <span class="o">=</span> <span class="n">product</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="k">if</span> <span class="n">batchref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>                <span class="n">Allocated</span><span class="p">(</span><span class="n">orderid</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">orderid</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span> <span class="n">batchref</span><span class="o">=</span><span class="n">batchref</span><span class="p">)</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>            <span class="p">)</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Allocated </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">OutOfStockEvent</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="p">))</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>        <span class="k">await</span> <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</code></pre></div>
+<p>This is really nice, but can you see something there? Repeating the context manager for
+each transaction is quite cumbersome. Futhermore, our <a href="/wintry/user-guide/unitofwork">
+Unit of Work</a> class can only handle a single type of repository (More on this on the 
+<a href="/wintry/user-guide/repository">Repositories</a> section). For common use case like
+this, 🐧<strong>Wintry</strong> provides another shortcut: the <code>@transaction</code> decorator. Let's see how
+we can use all this in our service layer.</p>
+<h3 id="the-service-layer">The service layer</h3>
+<hr />
+<p>Service layers allows to decouple the business logic from storage requirements. Actually,
+I like to think in services as if I were coding a transient app (Meaning that it gets
+data from memory and so, can use all sort of <code>Python</code> representations and operate directly
+on the model intances). This is actually a pretty powerfull concept, as applications tend
+to become complex at the Domain Level, where restrictions and relations are enforced.
+Also, services usually are represented in terms of verbs, that represent a desired action
+to be executed by our system. This concept of action is what give the name to the <code>Command</code>
+input that you will see in every service function. So, our service layer could look like this:</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">services.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-8-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-8-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-8-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-8-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-8-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-8-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-8-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-8-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-8-10">10</a></span>
+<span class="normal"><a href="#__codelineno-8-11">11</a></span>
+<span class="normal"><a href="#__codelineno-8-12">12</a></span>
+<span class="normal"><a href="#__codelineno-8-13">13</a></span>
+<span class="normal"><a href="#__codelineno-8-14">14</a></span>
+<span class="normal"><a href="#__codelineno-8-15">15</a></span>
+<span class="normal"><a href="#__codelineno-8-16">16</a></span>
+<span class="normal"><a href="#__codelineno-8-17">17</a></span>
+<span class="normal"><a href="#__codelineno-8-18">18</a></span>
+<span class="normal"><a href="#__codelineno-8-19">19</a></span>
+<span class="normal"><a href="#__codelineno-8-20">20</a></span>
+<span class="normal"><a href="#__codelineno-8-21">21</a></span>
+<span class="normal"><a href="#__codelineno-8-22">22</a></span>
+<span class="normal"><a href="#__codelineno-8-23">23</a></span>
+<span class="normal"><a href="#__codelineno-8-24">24</a></span>
+<span class="normal"><a href="#__codelineno-8-25">25</a></span>
+<span class="normal"><a href="#__codelineno-8-26">26</a></span>
+<span class="normal"><a href="#__codelineno-8-27">27</a></span>
+<span class="normal"><a href="#__codelineno-8-28">28</a></span>
+<span class="normal"><a href="#__codelineno-8-29">29</a></span>
+<span class="normal"><a href="#__codelineno-8-30">30</a></span>
+<span class="normal"><a href="#__codelineno-8-31">31</a></span>
+<span class="normal"><a href="#__codelineno-8-32">32</a></span>
+<span class="normal"><a href="#__codelineno-8-33">33</a></span>
+<span class="normal"><a href="#__codelineno-8-34">34</a></span>
+<span class="normal"><a href="#__codelineno-8-35">35</a></span>
+<span class="normal"><a href="#__codelineno-8-36">36</a></span>
+<span class="normal"><a href="#__codelineno-8-37">37</a></span>
+<span class="normal"><a href="#__codelineno-8-38">38</a></span>
+<span class="normal"><a href="#__codelineno-8-39">39</a></span>
+<span class="normal"><a href="#__codelineno-8-40">40</a></span>
+<span class="normal"><a href="#__codelineno-8-41">41</a></span>
+<span class="normal"><a href="#__codelineno-8-42">42</a></span>
+<span class="normal"><a href="#__codelineno-8-43">43</a></span>
+<span class="normal"><a href="#__codelineno-8-44">44</a></span>
+<span class="normal"><a href="#__codelineno-8-45">45</a></span>
+<span class="normal"><a href="#__codelineno-8-46">46</a></span>
+<span class="normal"><a href="#__codelineno-8-47">47</a></span>
+<span class="normal"><a href="#__codelineno-8-48">48</a></span>
+<span class="normal"><a href="#__codelineno-8-49">49</a></span>
+<span class="normal"><a href="#__codelineno-8-50">50</a></span>
+<span class="normal"><a href="#__codelineno-8-51">51</a></span>
+<span class="normal"><a href="#__codelineno-8-52">52</a></span>
+<span class="normal"><a href="#__codelineno-8-53">53</a></span>
+<span class="normal"><a href="#__codelineno-8-54">54</a></span>
+<span class="normal"><a href="#__codelineno-8-55">55</a></span>
+<span class="normal"><a href="#__codelineno-8-56">56</a></span>
+<span class="normal"><a href="#__codelineno-8-57">57</a></span>
+<span class="normal"><a href="#__codelineno-8-58">58</a></span>
+<span class="normal"><a href="#__codelineno-8-59">59</a></span>
+<span class="normal"><a href="#__codelineno-8-60">60</a></span>
+<span class="normal"><a href="#__codelineno-8-61">61</a></span>
+<span class="normal"><a href="#__codelineno-8-62">62</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="kn">from</span> <span class="nn">tuto.publisher</span> <span class="kn">import</span> <span class="n">Publisher</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="kn">from</span> <span class="nn">tuto.repositories</span> <span class="kn">import</span> <span class="n">AllocationViewModelRepository</span><span class="p">,</span> <span class="n">ProductRepository</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="kn">from</span> <span class="nn">tuto.viewmodels</span> <span class="kn">import</span> <span class="n">AllocationsViewModel</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="kn">from</span> <span class="nn">wintry.mqs</span> <span class="kn">import</span> <span class="n">event_handler</span><span class="p">,</span> <span class="n">command_handler</span><span class="p">,</span> <span class="n">MessageQueue</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="kn">from</span> <span class="nn">wintry.ioc</span> <span class="kn">import</span> <span class="n">provider</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7"></a><span class="kn">from</span> <span class="nn">commands</span> <span class="kn">import</span> <span class="n">Allocate</span><span class="p">,</span> <span class="n">ChangeBatchQuantity</span><span class="p">,</span> <span class="n">CreateBatch</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8"></a><span class="kn">from</span> <span class="nn">models</span> <span class="kn">import</span> <span class="n">Batch</span><span class="p">,</span> <span class="n">OrderLine</span><span class="p">,</span> <span class="n">Product</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9"></a><span class="kn">from</span> <span class="nn">events</span> <span class="kn">import</span> <span class="n">Allocated</span><span class="p">,</span> <span class="n">Deallocated</span><span class="p">,</span> <span class="n">OutOfStock</span> <span class="k">as</span> <span class="n">OutOfStockEvent</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10"></a><span class="kn">from</span> <span class="nn">wintry.transactions.transactional</span> <span class="kn">import</span> <span class="n">transaction</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11"></a>
+<a id="__codelineno-8-12" name="__codelineno-8-12"></a>
+<a id="__codelineno-8-13" name="__codelineno-8-13"></a><span class="k">class</span> <span class="nc">InvalidSku</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14"></a>    <span class="k">pass</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15"></a>
+<a id="__codelineno-8-16" name="__codelineno-8-16"></a>
+<a id="__codelineno-8-17" name="__codelineno-8-17"></a><span class="nd">@provider</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18"></a><span class="k">class</span> <span class="nc">MessageBus</span><span class="p">(</span><span class="n">MessageQueue</span><span class="p">):</span> <span class="c1"># (1)</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19"></a>    <span class="n">products</span><span class="p">:</span> <span class="n">ProductRepository</span>
+<a id="__codelineno-8-20" name="__codelineno-8-20"></a>    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+<a id="__codelineno-8-21" name="__codelineno-8-21"></a>    <span class="n">sender</span><span class="p">:</span> <span class="n">Publisher</span> <span class="c1"># (2)</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22"></a>    <span class="n">allocations</span><span class="p">:</span> <span class="n">AllocationViewModelRepository</span>
+<a id="__codelineno-8-23" name="__codelineno-8-23"></a>
+<a id="__codelineno-8-24" name="__codelineno-8-24"></a>    <span class="nd">@command_handler</span> <span class="c1"># (4)</span>
+<a id="__codelineno-8-25" name="__codelineno-8-25"></a>    <span class="nd">@transaction</span>
+<a id="__codelineno-8-26" name="__codelineno-8-26"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">allocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="n">Allocate</span><span class="p">):</span>
+<a id="__codelineno-8-27" name="__codelineno-8-27"></a>        <span class="n">line</span> <span class="o">=</span> <span class="n">OrderLine</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">dict</span><span class="p">())</span>
+<a id="__codelineno-8-28" name="__codelineno-8-28"></a>        <span class="n">product</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">get_by_sku</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-8-29" name="__codelineno-8-29"></a>        <span class="k">if</span> <span class="n">product</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-8-30" name="__codelineno-8-30"></a>            <span class="k">raise</span> <span class="n">InvalidSku</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid sku </span><span class="si">{</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-31" name="__codelineno-8-31"></a>
+<a id="__codelineno-8-32" name="__codelineno-8-32"></a>        <span class="n">batchref</span> <span class="o">=</span> <span class="n">product</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+<a id="__codelineno-8-33" name="__codelineno-8-33"></a>        <span class="k">if</span> <span class="n">batchref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-8-34" name="__codelineno-8-34"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+<a id="__codelineno-8-35" name="__codelineno-8-35"></a>                <span class="n">Allocated</span><span class="p">(</span><span class="n">orderid</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">orderid</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">qty</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span> <span class="n">batchref</span><span class="o">=</span><span class="n">batchref</span><span class="p">)</span>
+<a id="__codelineno-8-36" name="__codelineno-8-36"></a>            <span class="p">)</span>
+<a id="__codelineno-8-37" name="__codelineno-8-37"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Allocated </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-38" name="__codelineno-8-38"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-8-39" name="__codelineno-8-39"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">OutOfStockEvent</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">sku</span><span class="p">))</span>
+<a id="__codelineno-8-40" name="__codelineno-8-40"></a>
+<a id="__codelineno-8-41" name="__codelineno-8-41"></a>    <span class="nd">@command_handler</span>
+<a id="__codelineno-8-42" name="__codelineno-8-42"></a>    <span class="nd">@transaction</span>
+<a id="__codelineno-8-43" name="__codelineno-8-43"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="n">CreateBatch</span><span class="p">):</span>
+<a id="__codelineno-8-44" name="__codelineno-8-44"></a>        <span class="n">product</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">get_by_sku</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-8-45" name="__codelineno-8-45"></a>        <span class="k">if</span> <span class="n">product</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-8-46" name="__codelineno-8-46"></a>            <span class="n">product</span> <span class="o">=</span> <span class="n">Product</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-8-47" name="__codelineno-8-47"></a>            <span class="n">product</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="n">product</span><span class="p">)</span>
+<a id="__codelineno-8-48" name="__codelineno-8-48"></a>        <span class="n">product</span><span class="o">.</span><span class="n">batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-8-49" name="__codelineno-8-49"></a>            <span class="n">Batch</span><span class="p">(</span><span class="n">reference</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="n">purchased_quantity</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">qty</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">eta</span><span class="p">)</span>
+<a id="__codelineno-8-50" name="__codelineno-8-50"></a>        <span class="p">)</span>
+<a id="__codelineno-8-51" name="__codelineno-8-51"></a>
+<a id="__codelineno-8-52" name="__codelineno-8-52"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created Batch&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-53" name="__codelineno-8-53"></a>
+<a id="__codelineno-8-54" name="__codelineno-8-54"></a>    <span class="nd">@command_handler</span>
+<a id="__codelineno-8-55" name="__codelineno-8-55"></a>    <span class="nd">@transaction</span>
+<a id="__codelineno-8-56" name="__codelineno-8-56"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">change_batch_quantity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">ChangeBatchQuantity</span><span class="p">):</span>
+<a id="__codelineno-8-57" name="__codelineno-8-57"></a>        <span class="n">product</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">get_by_batches__reference</span><span class="p">(</span>
+<a id="__codelineno-8-58" name="__codelineno-8-58"></a>            <span class="n">batches__reference</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">ref</span>
+<a id="__codelineno-8-59" name="__codelineno-8-59"></a>        <span class="p">)</span>
+<a id="__codelineno-8-60" name="__codelineno-8-60"></a>        <span class="k">assert</span> <span class="n">product</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-8-61" name="__codelineno-8-61"></a>        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">product</span><span class="o">.</span><span class="n">change_batch_quantity</span><span class="p">(</span><span class="o">**</span><span class="n">cmd</span><span class="o">.</span><span class="n">dict</span><span class="p">()):</span>
+<a id="__codelineno-8-62" name="__codelineno-8-62"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Deallocated</span><span class="p">(</span><span class="o">**</span><span class="n">line</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()))</span>
+</code></pre></div></td></tr></table></div>
+<ol>
+<li>
+<p>The <code>MessageQueue</code> will be explained in the Message Pipeline Chapter, but long story short,<br />
+it will allow you to translate your imperative app into a reactive pipeline of commands and events. 
+You declare handlers for commands and events, and they will get fired🚀 by the <code>MessageQueue</code> at the right input.</p>
+</li>
+<li>
+<p>Use Dependency Injection for a Publisher interface, we will get to the implementation in short. It
+just forward events to redis.</p>
+</li>
+<li>
+<p>Our Unit Of Work implementation, injected by the Dependency Injection System.</p>
+</li>
+<li>
+<p>Register a handler for the <code class="highlight"><span class="n">Allocate</span></code> command. Commands are just pydantic models
+and usually they are used as inputs in controllers.</p>
+</li>
+</ol>
+<p>There is a lot going on there, but notice something: we are never calling the <code class="highlight"><span class="n">Repository</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></code>
+method, we just call functions over model instances that manage the state of the instance and its
+relations with other models. And notice that we do all this inside a function decorated with 
+<code>@transaction</code>. Long story short, <code>@transaction</code> will initialize the repositories of the <code>MessageBus</code> class
+and issue a commit at the end of the function if everything went well.
+You should be scratching your head right now, because, I mean, this
+can not work, right ??!! Well, it does, and actually is not even thanks to 🐧<strong>Wintry</strong>🐧 (at least not
+entirely) because in here, we are using the full power of SQLAlchemy sessions to achieve this effect.
+The cool😎 part, and when 🐧<strong>Wintry</strong>🐧 becomes a really powerfull tool for this endeavor, is that it doesnt
+matter if you change to use MongoDB as your primary DB (a NOSQL one), it will provide you with the same
+features of automatic model synchronization. Futhermore, look at how clean the implementation of the
+services is, and of course, testability is achieved with so many components decoupled and used through
+<a href="/wintry/user-guide/di" class="external-link">Dependency Injection💉</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">About Models</p>
+<p>If you ever have used Vue.js in the past, the idea with reactive models is somehow similar as
+how <code>refs</code> work in Vue.js. Behind the scenes, 🐧<strong>Wintry</strong>🐧 is converting your model instances
+into Proxy Objects (either with SQLAlchemy sessions, or with 🐧<strong>Wintry</strong>🐧 builtin tracker)
+that record when a change is made to one of their properties, issuing an update for that
+property when the <code class="highlight"><span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></code> is called. Of course, this means that this functionality is
+only available if repositories are linked with an UnitOfWork class, if used standalone, they must
+call <code class="highlight"><span class="n">Repository</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></code> on the required instances.</p>
+</div>
+<p>Perhaps you are curious about the <code class="highlight"><span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">()</span></code> function that every service
+is calling. Well this is the way of the Message Pipeline to comunicate that something happened.
+This are called <code class="highlight"><span class="n">Events</span></code>. For example, when we succesfuly allocate an orderline, we
+register the <code class="highlight"><span class="n">Allocated</span></code> event, which is schedulled for triggering in the Message Pipeline.</p>
+<p>But firing🚀 events is not useful if we do not supply handlers for them, right?</p>
+<div class="highlight"><span class="filename">services.py</span><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># ... Rest of the code of the service layer</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="nd">@event_handler</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">reallocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Deallocated</span><span class="p">):</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>        <span class="n">product</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">get_by_sku</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Allocate</span><span class="p">(</span><span class="o">**</span><span class="n">event</span><span class="o">.</span><span class="n">dict</span><span class="p">()))</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="nd">@event_handler</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">save_allocation_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Allocated</span><span class="p">):</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        <span class="n">allocation</span> <span class="o">=</span> <span class="n">AllocationsViewModel</span><span class="p">(</span><span class="o">**</span><span class="n">event</span><span class="o">.</span><span class="n">dict</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;qty&quot;</span><span class="p">}))</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="n">allocation</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="n">allocation</span><span class="p">)</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sender</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&quot;line_allocated&quot;</span><span class="p">,</span> <span class="n">allocation</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Synced Allocation View&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="nd">@event_handler</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">delete_allocation_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">Deallocated</span><span class="p">):</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocations</span><span class="o">.</span><span class="n">delete_by_orderid_and_sku</span><span class="p">(</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>            <span class="n">orderid</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">orderid</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="p">)</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>            <span class="sa">f</span><span class="s2">&quot;Deallocated orders with: orderid=</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">orderid</span><span class="si">}</span><span class="s2">, sku=</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="p">)</span>
+</code></pre></div>
+<p>Again, really clean and concise implementation thanks to all the help of the framework.
+And notice a little detail, these are in-house events, meaning that they are fired🚀 and
+received by the same Entity (The Message Pipeline). This might seem silly at first, because,
+WTF don't we just put that code right before finishing the service function ???!! Well, this
+will become clearer in the Events Handlers section, but the thing is that this events can be
+run even in background, and represent a different logical unit than commands. Remember,
+we want to follow the Single Responsability principle whenever we can right?</p>
+<p>Notice that the Deallocated Event has declared two handlers. Yes, you can do that, why?, well,
+because events can fail, and it is OK if they do, so you wanna split your event logic as most
+as possible to ensure maximun cohesion in your app. More on this on the Events Section.</p>
+<h3 id="external-events">External Events</h3>
+<hr />
+<p>Notice that we use the <code class="highlight"><span class="n">Publisher</span><span class="o">.</span><span class="n">send</span><span class="p">()</span></code> here, but we have not implemented that yet, so let's do
+that:</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">publisher.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-10-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-10-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-10-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-10-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-10-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-10-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-10-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-10-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-10-10">10</a></span>
+<span class="normal"><a href="#__codelineno-10-11">11</a></span>
+<span class="normal"><a href="#__codelineno-10-12">12</a></span>
+<span class="normal"><a href="#__codelineno-10-13">13</a></span>
+<span class="normal"><a href="#__codelineno-10-14">14</a></span>
+<span class="normal"><a href="#__codelineno-10-15">15</a></span>
+<span class="normal"><a href="#__codelineno-10-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">json</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Protocol</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="kn">from</span> <span class="nn">wintry.ioc</span> <span class="kn">import</span> <span class="n">provider</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4"></a><span class="kn">import</span> <span class="nn">aioredis</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5"></a>
+<a id="__codelineno-10-6" name="__codelineno-10-6"></a><span class="k">class</span> <span class="nc">Publisher</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8"></a>        <span class="o">...</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9"></a>
+<a id="__codelineno-10-10" name="__codelineno-10-10"></a><span class="nd">@provider</span><span class="p">(</span><span class="n">of</span><span class="o">=</span><span class="n">Publisher</span><span class="p">)</span> <span class="c1"># (1)</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11"></a><span class="k">class</span> <span class="nc">RedisPublisher</span><span class="p">(</span><span class="n">Publisher</span><span class="p">):</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">aioredis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="s2">&quot;redis://localhost&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14"></a>
+<a id="__codelineno-10-15" name="__codelineno-10-15"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+</code></pre></div></td></tr></table></div>
+<ol>
+<li>😡😡Dude, this is brand new</li>
+</ol>
+<p>Yeah I know, the <code class="highlight"><span class="nd">@provider</span><span class="p">(</span><span class="n">of</span><span class="o">=</span><span class="n">Publisher</span><span class="p">)</span></code> line, this is how you declare
+an implementation of an interface, notice that the Publisher class is just a protocol
+in here. We have defined a RedisPublisher, so we will be sending events to a Redis Channel.</p>
+<p>This could be useful in a fully Distributed System, as a notification🔔 or synchronization⏲️
+mechanism. 🐧<strong>Wintry</strong>🐧 gives you the tools to also easily respond to such events, called
+external events. Think if you are implementing a Microservice, or maybe your app has been
+logically split into separated APIS, but that consume the same data source or are 
+dependent somehow. Well you could use this mechanism to comunicate them. Let's see an example of
+how we can go about this:</p>
+<h3 id="entrypoints">Entrypoints</h3>
+<hr />
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">controllers.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-11-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-11-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-11-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-11-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-11-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-11-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-11-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-11-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-11-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-11-10">10</a></span>
+<span class="normal"><a href="#__codelineno-11-11">11</a></span>
+<span class="normal"><a href="#__codelineno-11-12">12</a></span>
+<span class="normal"><a href="#__codelineno-11-13">13</a></span>
+<span class="normal"><a href="#__codelineno-11-14">14</a></span>
+<span class="normal"><a href="#__codelineno-11-15">15</a></span>
+<span class="normal"><a href="#__codelineno-11-16">16</a></span>
+<span class="normal"><a href="#__codelineno-11-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2"></a><span class="kn">from</span> <span class="nn">wintry.controllers</span> <span class="kn">import</span> <span class="n">microservice</span><span class="p">,</span> <span class="n">on</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3"></a><span class="kn">from</span> <span class="nn">.services</span> <span class="kn">import</span> <span class="n">MessageBus</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5"></a><span class="nd">@microservice</span><span class="p">(</span><span class="n">TransporterType</span><span class="o">.</span><span class="n">redis</span><span class="p">)</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6"></a><span class="k">class</span> <span class="nc">RedisMessagesControllers</span><span class="p">:</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7"></a>    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8"></a>    <span class="n">messagebus</span><span class="p">:</span> <span class="n">MessageBus</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9"></a>
+<a id="__codelineno-11-10" name="__codelineno-11-10"></a>    <span class="nd">@on</span><span class="p">(</span><span class="s2">&quot;change_batch_quantity&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">change_batch_quantity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">ChangeBatchQuantity</span><span class="p">):</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Event from Redis: </span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">messagebus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14"></a>
+<a id="__codelineno-11-15" name="__codelineno-11-15"></a>    <span class="nd">@on</span><span class="p">(</span><span class="s2">&quot;line_allocated&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">line_allocated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allocation</span><span class="p">:</span> <span class="n">AllocationsViewModel</span><span class="p">):</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hey look, a line&#39;ve been allocated from redis: </span><span class="si">{</span><span class="n">allocation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>You guessed it, with this in place, we can now listen to the <code>line_allocated</code> and <code>change_batch_quantity</code>
+redis channels. Notice how we injected a <code>MessageBus</code>🚌 instance and supply the <code>ChangeBatchQuantity</code> command
+as an entry point to the Message Pipeline.</p>
+<p>This same idea, is what we will use to conform our System API, so, our controllers will look like this:
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">controllers.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-12-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-12-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-12-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-12-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-12-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-12-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-12-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-12-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-12-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-12-10">10</a></span>
+<span class="normal"><a href="#__codelineno-12-11">11</a></span>
+<span class="normal"><a href="#__codelineno-12-12">12</a></span>
+<span class="normal"><a href="#__codelineno-12-13">13</a></span>
+<span class="normal"><a href="#__codelineno-12-14">14</a></span>
+<span class="normal"><a href="#__codelineno-12-15">15</a></span>
+<span class="normal"><a href="#__codelineno-12-16">16</a></span>
+<span class="normal"><a href="#__codelineno-12-17">17</a></span>
+<span class="normal"><a href="#__codelineno-12-18">18</a></span>
+<span class="normal"><a href="#__codelineno-12-19">19</a></span>
+<span class="normal"><a href="#__codelineno-12-20">20</a></span>
+<span class="normal"><a href="#__codelineno-12-21">21</a></span>
+<span class="normal"><a href="#__codelineno-12-22">22</a></span>
+<span class="normal"><a href="#__codelineno-12-23">23</a></span>
+<span class="normal"><a href="#__codelineno-12-24">24</a></span>
+<span class="normal"><a href="#__codelineno-12-25">25</a></span>
+<span class="normal"><a href="#__codelineno-12-26">26</a></span>
+<span class="normal"><a href="#__codelineno-12-27">27</a></span>
+<span class="normal"><a href="#__codelineno-12-28">28</a></span>
+<span class="normal"><a href="#__codelineno-12-29">29</a></span>
+<span class="normal"><a href="#__codelineno-12-30">30</a></span>
+<span class="normal"><a href="#__codelineno-12-31">31</a></span>
+<span class="normal"><a href="#__codelineno-12-32">32</a></span>
+<span class="normal"><a href="#__codelineno-12-33">33</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="kn">from</span> <span class="nn">tuto.viewmodels</span> <span class="kn">import</span> <span class="n">AllocationsViewModel</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2"></a><span class="kn">from</span> <span class="nn">.views</span> <span class="kn">import</span> <span class="n">AllocationReadModel</span><span class="p">,</span> <span class="n">Views</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="kn">from</span> <span class="nn">.commands</span> <span class="kn">import</span> <span class="n">Allocate</span><span class="p">,</span> <span class="n">CreateBatch</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4"></a><span class="kn">from</span> <span class="nn">wintry.controllers</span> <span class="kn">import</span> <span class="n">controller</span><span class="p">,</span> <span class="n">post</span><span class="p">,</span> <span class="n">get</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5"></a><span class="kn">from</span> <span class="nn">.services</span> <span class="kn">import</span> <span class="n">InvalidSku</span><span class="p">,</span> <span class="n">MessageBus</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6"></a><span class="kn">from</span> <span class="nn">wintry.responses</span> <span class="kn">import</span> <span class="n">DataResponse</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7"></a><span class="kn">from</span> <span class="nn">wintry.errors</span> <span class="kn">import</span> <span class="n">NotFoundError</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8"></a>
+<a id="__codelineno-12-9" name="__codelineno-12-9"></a><span class="nd">@controller</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Products&quot;</span><span class="p">])</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10"></a><span class="k">class</span> <span class="nc">ProductsController</span><span class="p">:</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11"></a>    <span class="n">messagebus</span><span class="p">:</span> <span class="n">MessageBus</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12"></a>    <span class="n">views</span><span class="p">:</span> <span class="n">Views</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13"></a>
+<a id="__codelineno-12-14" name="__codelineno-12-14"></a>    <span class="nd">@post</span><span class="p">(</span><span class="s2">&quot;/add_batch&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">DataResponse</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">add_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">CreateBatch</span><span class="p">):</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">messagebus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17"></a>        <span class="k">return</span> <span class="n">DataResponse</span><span class="p">[</span><span class="nb">str</span><span class="p">](</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;Created Batch&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18"></a>
+<a id="__codelineno-12-19" name="__codelineno-12-19"></a>    <span class="nd">@post</span><span class="p">(</span><span class="s2">&quot;/allocate&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">DataResponse</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">allocate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">Allocate</span><span class="p">):</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-12-22" name="__codelineno-12-22"></a>            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">messagebus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-12-23" name="__codelineno-12-23"></a>            <span class="k">return</span> <span class="n">DataResponse</span><span class="p">[</span><span class="nb">str</span><span class="p">](</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;Allocated&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">202</span><span class="p">)</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24"></a>        <span class="k">except</span> <span class="n">InvalidSku</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25"></a>            <span class="k">return</span> <span class="n">DataResponse</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+<a id="__codelineno-12-26" name="__codelineno-12-26"></a>
+<a id="__codelineno-12-27" name="__codelineno-12-27"></a>    <span class="nd">@get</span><span class="p">(</span><span class="s2">&quot;/allocations/</span><span class="si">{orderid}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">DataResponse</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">AllocationReadModel</span><span class="p">]])</span>
+<a id="__codelineno-12-28" name="__codelineno-12-28"></a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">allocations_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orderid</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-12-29" name="__codelineno-12-29"></a>        <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">views</span><span class="o">.</span><span class="n">get_allocations_for</span><span class="p">(</span><span class="n">orderid</span><span class="p">)</span>
+<a id="__codelineno-12-30" name="__codelineno-12-30"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+<a id="__codelineno-12-31" name="__codelineno-12-31"></a>            <span class="k">raise</span> <span class="n">NotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">orderid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-32" name="__codelineno-12-32"></a>
+<a id="__codelineno-12-33" name="__codelineno-12-33"></a>        <span class="k">return</span> <span class="n">DataResponse</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div></p>
+<p>You see the pattern here, every component in 🐧<strong>Wintry</strong>🐧 follows a similar pattern:</p>
+<ul>
+<li>Declare dependencies.</li>
+<li>Declare action handlers.</li>
+<li>Provide an entrypoint for those handlers.</li>
+</ul>
+<p>Of course, this is only the tip of the iceberg🧊, but you can already see a little penguin🐧 at the top.
+This can be a Emperor Penguin🐧, or simply a regular penguin, continue reading and find out.</p>
+<h3 id="the-app">The App</h3>
+<hr />
+<p>So now we have everything we need in place, how do we start it?</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">app.py</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-13-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-13-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-13-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-13-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-13-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-13-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-13-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-13-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-13-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-13-10">10</a></span>
+<span class="normal"><a href="#__codelineno-13-11">11</a></span>
+<span class="normal"><a href="#__codelineno-13-12">12</a></span>
+<span class="normal"><a href="#__codelineno-13-13">13</a></span>
+<span class="normal"><a href="#__codelineno-13-14">14</a></span>
+<span class="normal"><a href="#__codelineno-13-15">15</a></span>
+<span class="normal"><a href="#__codelineno-13-16">16</a></span>
+<span class="normal"><a href="#__codelineno-13-17">17</a></span>
+<span class="normal"><a href="#__codelineno-13-18">18</a></span>
+<span class="normal"><a href="#__codelineno-13-19">19</a></span>
+<span class="normal"><a href="#__codelineno-13-20">20</a></span>
+<span class="normal"><a href="#__codelineno-13-21">21</a></span>
+<span class="normal"><a href="#__codelineno-13-22">22</a></span>
+<span class="normal"><a href="#__codelineno-13-23">23</a></span>
+<span class="normal"><a href="#__codelineno-13-24">24</a></span>
+<span class="normal"><a href="#__codelineno-13-25">25</a></span>
+<span class="normal"><a href="#__codelineno-13-26">26</a></span>
+<span class="normal"><a href="#__codelineno-13-27">27</a></span>
+<span class="normal"><a href="#__codelineno-13-28">28</a></span>
+<span class="normal"><a href="#__codelineno-13-29">29</a></span>
+<span class="normal"><a href="#__codelineno-13-30">30</a></span>
+<span class="normal"><a href="#__codelineno-13-31">31</a></span>
+<span class="normal"><a href="#__codelineno-13-32">32</a></span>
+<span class="normal"><a href="#__codelineno-13-33">33</a></span>
+<span class="normal"><a href="#__codelineno-13-34">34</a></span>
+<span class="normal"><a href="#__codelineno-13-35">35</a></span>
+<span class="normal"><a href="#__codelineno-13-36">36</a></span>
+<span class="normal"><a href="#__codelineno-13-37">37</a></span>
+<span class="normal"><a href="#__codelineno-13-38">38</a></span>
+<span class="normal"><a href="#__codelineno-13-39">39</a></span>
+<span class="normal"><a href="#__codelineno-13-40">40</a></span>
+<span class="normal"><a href="#__codelineno-13-41">41</a></span>
+<span class="normal"><a href="#__codelineno-13-42">42</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1"></a><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">Logger</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2"></a><span class="kn">from</span> <span class="nn">wintry</span> <span class="kn">import</span> <span class="n">App</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3"></a><span class="kn">from</span> <span class="nn">wintry.orm</span> <span class="kn">import</span> <span class="n">metadata</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4"></a><span class="kn">from</span> <span class="nn">wintry</span> <span class="kn">import</span> <span class="n">BACKENDS</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5"></a><span class="kn">from</span> <span class="nn">wintry.ioc</span> <span class="kn">import</span> <span class="n">inject</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6"></a><span class="kn">from</span> <span class="nn">wintry.settings</span> <span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7"></a>    <span class="n">BackendOptions</span><span class="p">,</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8"></a>    <span class="n">ConnectionOptions</span><span class="p">,</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9"></a>    <span class="n">TransporterSettings</span><span class="p">,</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10"></a>    <span class="n">TransporterType</span><span class="p">,</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11"></a>    <span class="n">ConnectionOptions</span><span class="p">,</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12"></a>    <span class="n">WinterSettings</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13"></a><span class="p">)</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15"></a><span class="n">settings</span> <span class="o">=</span> <span class="n">WinterSettings</span><span class="p">(</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16"></a>    <span class="n">backends</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17"></a>        <span class="n">BackendOptions</span><span class="p">(</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19"></a>            <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;wintry.drivers.pg&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20"></a>            <span class="n">connection_options</span><span class="o">=</span><span class="n">ConnectionOptions</span><span class="p">(</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21"></a>                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;postgresql+asyncpg://postgres:secret@localhost/tests&quot;</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22"></a>            <span class="p">),</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23"></a>        <span class="p">),</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24"></a>        <span class="n">BackendOptions</span><span class="p">(</span>
+<a id="__codelineno-13-25" name="__codelineno-13-25"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;mongo&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-26" name="__codelineno-13-26"></a>            <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;wintry.drivers.mongo&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-27" name="__codelineno-13-27"></a>            <span class="n">connection_options</span><span class="o">=</span><span class="n">ConnectionOptions</span><span class="p">(</span>
+<a id="__codelineno-13-28" name="__codelineno-13-28"></a>                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;mongodb://localhost:27017/?replicaSet=dbrs&quot;</span>
+<a id="__codelineno-13-29" name="__codelineno-13-29"></a>            <span class="p">),</span>
+<a id="__codelineno-13-30" name="__codelineno-13-30"></a>        <span class="p">),</span>
+<a id="__codelineno-13-31" name="__codelineno-13-31"></a>    <span class="p">],</span>
+<a id="__codelineno-13-32" name="__codelineno-13-32"></a>    <span class="n">transporters</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-13-33" name="__codelineno-13-33"></a>        <span class="n">TransporterSettings</span><span class="p">(</span>
+<a id="__codelineno-13-34" name="__codelineno-13-34"></a>            <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;wintry.transporters.redis&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-35" name="__codelineno-13-35"></a>            <span class="n">service</span><span class="o">=</span><span class="s2">&quot;RedisMicroservice&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-36" name="__codelineno-13-36"></a>            <span class="n">transporter</span><span class="o">=</span><span class="n">TransporterType</span><span class="o">.</span><span class="n">redis</span><span class="p">,</span>
+<a id="__codelineno-13-37" name="__codelineno-13-37"></a>            <span class="n">connection_options</span><span class="o">=</span><span class="n">ConnectionOptions</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">&quot;redis://localhost&quot;</span><span class="p">),</span>
+<a id="__codelineno-13-38" name="__codelineno-13-38"></a>        <span class="p">)</span>
+<a id="__codelineno-13-39" name="__codelineno-13-39"></a>    <span class="p">],</span>
+<a id="__codelineno-13-40" name="__codelineno-13-40"></a><span class="p">)</span>
+<a id="__codelineno-13-41" name="__codelineno-13-41"></a>
+<a id="__codelineno-13-42" name="__codelineno-13-42"></a><span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="p">(</span><span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>You can now run your app:</p>
+<div class="termy">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="gp">$ </span>uvicorn<span class="w"> </span>tuto.app:app<span class="w"> </span>--reload<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="go">INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="go">INFO:     Started reloader process [1129311] using watchgod</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.repositories</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.events</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.settings</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.controllers</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.commands</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.services</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.models</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.views</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.uow</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.viewmodels</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="go">INFO:     2022-05-28 22:22:35 | Loading module tuto.publisher</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="go">INFO:     Started server process [1129313]</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="go">INFO:     Waiting for application startup.</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="go">INFO:     Application startup complete.</span>
+</code></pre></div>
+</div>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The logs come from the autoload functionality, it will be explained latter on.
+The modules names comes from the <a href="https://github.com/adriangs1996/wintry/tree/master/tuto">test app</a>
+that is shared with the github repository and it is the same from where I have been using the 
+source code for the demo.</p>
+</div>
+<h3 id="check-it-out">Check it out</h3>
+<hr />
+<p>Yo can now access the automatic documentation, got to <a href="http://127.0.0.1:8080/docs" class="external-link">
+http://127.0.0.1:8080/docs</a>, where you should find the swagger:</p>
+<p><img src="/wintry/img/wintry_api_doc.png" /></p>
+<p>Three endpoints do not make justice to what you have acomplished. You effectively:</p>
+<ul>
+<li>
+<p>Defined your pristine Models💪 and handle business👨‍💼 logic in them.</p>
+</li>
+<li>
+<p>Created Segregated Repositories for Writing✍🏻 and Querying👁️‍🗨️ efficiently. You even
+used two different databases for Write Operations and for Read Operations</p>
+</li>
+<li>
+<p>Made atomic transactions, which translate into data consistency.</p>
+</li>
+<li>
+<p>Communicate with an event broker and react to messages on some channels.</p>
+</li>
+<li>
+<p>Implemented your services in an asynchronous way.</p>
+</li>
+<li>
+<p>Defined your system entrypoints (API) and Model Binded the params into objects
+with validation (Ok, maybe you missed that part, but I ensure you, it is there)</p>
+</li>
+</ul>
+<p>All that, while working with Postgres and MongoDB databases, without writting a single
+line of SQL or MQL (Mongo Query Language), without worrying about ForeignKeys, Relations,
+Columns or stuff like that, using components where you want, when you want, saving Models state
+as if you where just manipulating objects in memory, listening to a Redis instance, that may as well
+be a RabbitMQ server and still would be the same, declaring your app's requirements as if you
+where telling the framework what you need instead of commanding it to do
+stuffs, at the same time you get automatic documentation of your API and in general unleash the power of FastAPI,
+and still you have the promise that you haven't see it all, that it just the begining,
+I mean come on, I think you deserve a coffee☕, and 🐧<strong>Wintry</strong>🐧 deserves you to give it a shot🔫.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["header.autohide", "content.code.annotate"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+        <script src="../js/termy.js"></script>
+      
+        <script src="../js/custom.js"></script>
+      
+    
+  </body>
+</html>
