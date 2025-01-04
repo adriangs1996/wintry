@@ -1,7 +1,0 @@
-from wintry.models import Model
-from dataclasses import field
-{% for model_import in model_imports %}from {{ model_import.module }} import {{ model_import.model }}{% endfor %}
-
-class {{ model_name }}(Model):
-    {% for model_field in model_fields %}{% if model_field.field_default %}{{ model_field.field_name }}: {{ model_field.field_type }} = {{ model_field.field_default }}{% else %}{{ model_field.field_name }}: {{ model_field.field_type }}{% endif %}
-    {% endfor %}

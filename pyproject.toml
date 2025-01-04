@@ -1,6 +1,7 @@
-[tool.poetry]
+[project]
 name = "wintry"
 version = "1.0.0"
+requires-python = ">=3.11"
 description = "Fastapi with steroids"
 authors = ["adriangs1996 <adriangonzalezsanchez1996@gmail.com>"]
 license = "MIT"
@@ -15,27 +16,23 @@ keywords=[
 repository="https://github.com/adriangs1996/wintry"
 homepage="https://adriangs1996.github.io/wintry"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "^0.78.0"
-typer = {extras = ["all"], version = "^0.4.1"}
-cookiecutter = "^1.7.3"
-uvicorn = {extras = ["standard"], version = "^0.17.6"}
-wrapt = "^1.14.1"
-redis = "^4.3.4"
+dependencies = [
+    "fastapi[standard]>=0.115.6",
+    "typer>=0.15.1",
+    "redis>=4.3.4"
+]
 
-[tool.poetry.dev-dependencies]
-black = "^22.3.0"
-pytest = "^7.1.1"
-pytest-asyncio = "^0.18.3"
-pytest-mock = "^3.8.2"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "alembic>=1.14.0",
+    "pytest-watcher>=0.4.3",
+    "pytest>=8.3.4",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.7.0",
+    "faker>=33.1.0",
+    "ipython>=8.31.0",
+    "invoke>=2.2.0",
+]
 
 [tool.black]
 line-length = 90
-
-[tool.poetry.scripts]
-snowman = "wintry.cli.cli:snowman"
